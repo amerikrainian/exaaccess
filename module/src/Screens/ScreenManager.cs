@@ -133,6 +133,10 @@ namespace ExaAccess.Screens
         {
             if (_registered.Count > 0) return;
             Register(new TitleScreen());
+            Register(new ControlPanelHomeScreen());
+            Register(new ControlPanelOptionsScreen());
+            Register(new ControlPanelControlsScreen());
+            Register(new GameKeyCaptureScreen()); // layer 10 — covers the panel while capturing
             Log.Info("[screen] " + _registered.Count + " screen(s) registered.");
         }
 

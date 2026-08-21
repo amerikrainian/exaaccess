@@ -130,6 +130,13 @@ state from `/eval` via `ExaAccess.GameState`.
 gate gets a click. Post one: find the EXAPUNKS window HWND, `PostMessage`
 `WM_LBUTTONDOWN`(0x201) + `WM_LBUTTONUP`(0x202) with REAL client coordinates packed in
 lParam (e.g. `(100 << 16) | 100`) — lParam 0, i.e. (0,0), does NOT release the gate.
+(With the any-key splash advance in place, posting a `WM_KEYDOWN` with a real scancode
+in lParam is the simpler route.)
+
+**Synthetic keyboard caveat**: posted `WM_KEYDOWN` for SHIFT does not reach SDL's
+modifier state (SDL normalizes shift against the thread keyboard state, which
+PostMessage doesn't update) — so scripted Shift+chords (Shift+Tab) silently act
+unshifted. Real keyboards are unaffected; test chorded bindings by hand.
 
 ## Architecture (current): permanent HOST + reloadable MODULE
 Two assemblies (pattern ported from NonVisualCalculus). The HOST (`ExaAccess.dll`,
@@ -203,7 +210,25 @@ Module (each reload starts this half cold — statics are per-load):
   hooks are pluggable funcs (`UiDispatcher`, `ActiveCategoriesProvider`,
   `SuppressPoll`) — wired when GraphNavigator/ScreenManager land with the first screen.
 - `module/src/Game/SdlNative.cs` — P/Invoke over the game's own SDL2.dll: keyboard
-  state reads + `SDL_PushEvent` (56-byte union — the struct is Size=64 on purpose).
+  state reads, `SDL_GetKeyName`, + `SDL_PushEvent` (56-byte union — Size=64 on purpose).
+- `module/src/Game/GameText.cs` — the game's own localized strings (see Hard rules).
+- `module/src/Game/GameApi.cs` + `ControlPanelApi.cs` — resolved game WRITE operations:
+  screen push/pop/quit (instance-method deob-index resolver with signature cross-checks
+  + unique-scan fallback), the control panel's page/tab fields (by nested-enum/int
+  shape), every settings cell resolved BY ITS CONFIG-KEY STRING ("Fullscreen",
+  "Volume.Music", "KeyMapping.X" — each GClass52 cell stores its key in its one string
+  field: no ordinals), the apply side effects the game's widgets perform beyond the
+  cell write (fullscreen/quality applies, live mixer volumes + live font flag on the
+  deob-GClass1 statics found via their real-named ReliableRandom anchor), window
+  resolutions, hostname (read), and the key-capture subscreen (found by ctor shape).
+- `module/src/Screens/ControlPanelScreens.cs` — the control panel accessified: ONE game
+  screen modeled as THREE mod screens keyed to its private page field (home / Options /
+  Controls — page flips announce as screen changes, each keeps focus memory), tabs as a
+  horizontal Tab-node row, labeled radio rows, volume sliders (±5%, percent feedback),
+  the Redshift key bindings (activation defers the game's raw capture screen until all
+  keys are up — it binds the first HELD key, which would otherwise be our Enter), the
+  keyboard-reference table, and `GameKeyCaptureScreen` (CapturesRawInput, layer 10)
+  over the game's capture overlay. Native mouse + Escape handling untouched throughout.
 - `module/src/Patches/SplashPatches.cs` — the any-key splash advance (see "Boot
   click-gate" above).
 
@@ -241,6 +266,12 @@ through the newest copy:
   another language = a dropped-in folder under `<game>\ExaAccess\locale\`). Named
   `{placeholders}`, not string.Format. Exemptions: HOST emergency strings (spoken when
   the module itself failed to load — localization is module-side) and dev-only tooling.
+- **Never duplicate a string the game already has.** Anything the game displays is read
+  LIVE via `module/src/Game/GameText.cs` (the game's own loc registry, deob
+  `GClass7.smethod_5(key, …) → LocString` — resolved by shape; six shipped languages,
+  keys are literally the English text so failed lookups stay readable). `TSpeech`
+  massages " / " separators/newlines for TTS. ui.json is ONLY for text the game
+  genuinely lacks: role words, hints, prompts, names for unlabeled/art-labeled things.
 - **Speech never interrupts by default** (SayTheSpire house preference), and all
   user-facing output flows through `Tts.Speak` — the single chokepoint (it also feeds
   the dev `/speech` tap).
@@ -264,15 +295,20 @@ through the newest copy:
 7. **(done)** Navigator glue: GraphNavigator + Screen/ScreenManager over the game's
    screen stack, input wired, TitleScreen modeled (keyboard-only from launch into the
    game, verified live).
-8. Model DesktopScreen — the in-game hub (AXIOM organizer window, CHATSUBO chat,
+8. **(done)** Control panel accessified end to end: home / Options (Display, Sound,
+   Interface, Network) / Controls (Redshift bindings with the game's own key-capture
+   flow, keyboard reference), all labels read live from the game's localization.
+   Deferred there: hostname EDITING (needs the WotR TextEntry port; the value reads and
+   says so) — and note Exit Game quits instantly, faithful to the game's own button.
+9. Model DesktopScreen — the in-game hub (AXIOM organizer window, CHATSUBO chat,
    draggable windows; see the screenshots dir for what it looks like). Then the EXA
    code editor. Along the way: the focus-mode key-suppression story (EXAPUNKS has no
    Keyboard.Disabled lever — swallow keys via the game's key-set facade or SDL);
    screens where the game actually uses the keyboard will need it.
-9. Map the remaining obfuscated transition/overlay screens to friendly names.
-10. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
+10. Map the remaining obfuscated transition/overlay screens to friendly names.
+11. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
     code editor for program text — this game is text-centric, a strong a11y target.
-11. Type-ahead search (WotR's TypeAheadSearch is pure — port with SDL TEXTINPUT), the
-    settings tree, and the mod menu.
-12. Installer (6 files + locale folder; uninstall = delete the config).
+12. Type-ahead search (WotR's TypeAheadSearch is pure — port with SDL TEXTINPUT), the
+    settings tree, the mod menu, and the TextEntry port (unlocks hostname editing).
+13. Installer (6 files + locale folder; uninstall = delete the config).
 

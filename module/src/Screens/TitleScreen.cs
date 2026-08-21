@@ -40,12 +40,15 @@ namespace ExaAccess.Screens
 
         public override void Build(GraphBuilder b)
         {
+            // Labels are the game's own hotspot LocStrings (each drawn as name + subtitle); only the
+            // hints are ours — the game offers no explanation of what the hotspots do.
             b.AddItem(ControlId.Structural("title.computer"), new NodeVtable
             {
                 ControlType = ControlTypes.Button,
                 Announcements = new[]
                 {
-                    new NodeAnnouncement(() => Loc.T("title.computer"), kind: AnnouncementKinds.Label),
+                    new NodeAnnouncement(() => GameText.T("SAWAYAMA") + " " + GameText.T("Z7 TurboLance"),
+                        kind: AnnouncementKinds.Label),
                     new NodeAnnouncement(() => Loc.T("title.computer.hint"), kind: AnnouncementKinds.Tooltip),
                 },
                 OnActivate = () => GameApi.PushScreen(GameState.GameAssembly.GetType("DesktopScreen")),
@@ -55,7 +58,8 @@ namespace ExaAccess.Screens
                 ControlType = ControlTypes.Button,
                 Announcements = new[]
                 {
-                    new NodeAnnouncement(() => Loc.T("title.tablet"), kind: AnnouncementKinds.Label),
+                    new NodeAnnouncement(() => GameText.T("TEC") + " " + GameText.T("Constellation II"),
+                        kind: AnnouncementKinds.Label),
                     new NodeAnnouncement(() => Loc.T("title.tablet.hint"), kind: AnnouncementKinds.Tooltip),
                 },
                 OnActivate = () => GameApi.PushScreen(GameState.GameAssembly.GetType("ControlPanelScreen")),

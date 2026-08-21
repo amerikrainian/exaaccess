@@ -39,6 +39,20 @@ namespace ExaAccess.Input
         public static bool Held(int scancode)
             => _primed && scancode >= 0 && scancode < _count && _current[scancode] != 0;
 
+        /// <summary>True while ANY key is physically held. Used to defer pushing the game's raw
+        /// key-capture screen until the activating key is released — that screen binds the first held
+        /// key it sees, which would otherwise be our own Enter.</summary>
+        public static bool AnyKeyHeld
+        {
+            get
+            {
+                if (!_primed) return false;
+                for (int i = 0; i < _count; i++)
+                    if (_current[i] != 0) return true;
+                return false;
+            }
+        }
+
         public static bool JustPressed(int scancode)
             => _primed && scancode >= 0 && scancode < _count
                && _current[scancode] != 0 && _previous[scancode] == 0;

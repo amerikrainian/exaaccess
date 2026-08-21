@@ -4,13 +4,8 @@
   "splash.press_any_key": "Press any key to continue",
 
   "screen.title": "Title screen",
-  "title.computer": "Sawayama Z7 TurboLance computer",
   "title.computer.hint": "Boot the computer and start the game",
-  "title.tablet": "TEC Constellation II tablet",
-  "title.tablet.hint": "Open the control panel: settings, sandbox, and extras",
-
-  "nav.no_tooltip": "No details",
-  "nav.no_details": "No details",
+  "title.tablet.hint": "Open the control panel: settings, controls, and exit",
 
   "screen.DesktopScreen": "Desktop",
   "screen.EditorScreen": "Editor",
@@ -31,5 +26,35 @@
   "role.expanded": "expanded",
   "role.collapsed": "collapsed",
 
-  "nav.position": "{index} of {count}"
+  "nav.position": "{index} of {count}",
+  "nav.no_tooltip": "No details",
+  "nav.no_details": "No details",
+
+  "value.selected": "selected",
+  "value.unavailable": "unavailable",
+  "value.percent": "{value} percent",
+
+  "screen.controlpanel": "Control panel",
+  "panel.options.hint": "Display, sound, interface, and network settings",
+  "panel.controls.hint": "Redshift key bindings and the keyboard reference",
+  "panel.exit.hint": "Quit EXAPUNKS immediately",
+  "panel.close": "Close control panel",
+  "panel.close.hint": "Return to the title screen. Escape also closes",
+  "panel.clock": "Clock",
+  "panel.back.hint": "Return to the control panel home. Escape also goes back",
+
+  "controls.gamepad": "Redshift gamepad bindings",
+  "controls.reference": "Keyboard reference",
+  "bind.up": "Up",
+  "bind.down": "Down",
+  "bind.left": "Left",
+  "bind.right": "Right",
+  "bind.x": "X button",
+  "bind.y": "Y button",
+  "bind.z": "Z button",
+  "bind.start": "Start button",
+  "bind.hint": "Press Enter to reassign this key",
+  "capture.prompt": "Press a key to assign. Escape cancels",
+
+  "hostname.hint": "Editing from the keyboard is not supported yet; use the mouse to edit"
 }
