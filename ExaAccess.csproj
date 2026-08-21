@@ -24,12 +24,19 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
-  <!-- Never compile the decompiled game tree (game/, gitignored) or the vendored libraries into
-       the loader. game/ holds hundreds of .cs files that the default SDK glob would otherwise pull in. -->
+  <!-- Never compile the decompiled game tree (game/, gitignored), the vendored libraries, or the
+       test project into the mod. game/ holds hundreds of .cs files that the default SDK glob would
+       otherwise pull in. -->
   <ItemGroup>
     <Compile Remove="game/**/*.cs" />
     <None Remove="game/**" />
     <Compile Remove="third_party/**/*.cs" />
+    <Compile Remove="tests/**/*.cs" />
+  </ItemGroup>
+
+  <!-- The unit-test project exercises internals (MemberResolver, ScreenNames, SpeechLog, …). -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="ExaAccess.Tests" />
   </ItemGroup>
 
   <!-- Paths. Override GameDir on the command line if your install differs:

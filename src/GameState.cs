@@ -29,9 +29,6 @@ namespace ExaAccess
     /// </summary>
     public static class GameState
     {
-        private const BindingFlags AllDeclared =
-            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
-
         // Discovered de4dot ordinals (see class doc).
         private const int InitMethodOrdinal = 8;
         private const int TickMethodOrdinal = 25;
@@ -113,21 +110,14 @@ namespace ExaAccess
             return names;
         }
 
-        // ---- resolution helpers ----
+        // ---- resolution helpers (the ordinal primitive lives in MemberResolver) ----
 
         private static MethodInfo MethodByOrdinal(Type t, int ordinal, string role)
         {
-            var methods = t.GetMethods(AllDeclared);
-            Array.Sort(methods, (a, b) => a.MetadataToken.CompareTo(b.MetadataToken));
-            if (ordinal >= methods.Length)
-            {
-                Log.Error("[gamestate] " + role + " method ordinal " + ordinal + " out of range (" + methods.Length + " methods).");
-                return null;
-            }
-            var m = methods[ordinal];
+            var m = MemberResolver.MethodByOrdinal(t, ordinal, role);
             // Cross-check: both init and tick are instance, void, no parameters. A mismatch means the
-            // layout shifted — resolve to null so we don't patch a random method.
-            if (m.IsStatic || m.ReturnType != typeof(void) || m.GetParameters().Length != 0)
+            // layout shifted — warn loudly so a game update can't silently patch a random method.
+            if (m != null && (m.IsStatic || m.ReturnType != typeof(void) || m.GetParameters().Length != 0))
                 Log.Warning("[gamestate] " + role + " method[" + ordinal + "] has unexpected signature (" + Describe(m) + ") — game may have updated.");
             return m;
         }
@@ -161,20 +151,8 @@ namespace ExaAccess
             return FieldByOrdinal(ScreenStackFieldOrdinal);
         }
 
-        private static FieldInfo FieldByOrdinal(int ordinal)
-        {
-            var fields = _gameLogic.GetFields(AllDeclared);
-            Array.Sort(fields, (a, b) => a.MetadataToken.CompareTo(b.MetadataToken));
-            return ordinal < fields.Length ? fields[ordinal] : null;
-        }
+        private static FieldInfo FieldByOrdinal(int ordinal) => MemberResolver.FieldByOrdinal(_gameLogic, ordinal);
 
-        private static string Describe(MethodInfo m)
-        {
-            if (m == null) return "<null>";
-            var ps = m.GetParameters();
-            var names = new string[ps.Length];
-            for (int i = 0; i < ps.Length; i++) names[i] = ps[i].ParameterType.Name;
-            return m.ReturnType.Name + " #" + m.MetadataToken.ToString("X") + "(" + string.Join(",", names) + ")";
-        }
+        private static string Describe(MethodInfo m) => MemberResolver.Describe(m);
     }
 }

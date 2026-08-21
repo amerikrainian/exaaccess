@@ -80,6 +80,12 @@ namespace ExaAccess
             if (!ApplyPatches(game))
                 Log.Warning("Harmony patches failed to attach — the game will still run, just without accessibility hooks.");
 
+            // Per-frame subsystems, in the order they run each frame (composition root owns the order).
+#if DEBUG
+            FrameLoop.Register("dev-pump", Dev.DevServer.Instance.Pump);
+#endif
+            FrameLoop.Register("screens", UI.ScreenAnnouncer.Instance.Tick);
+
 #if DEBUG
             try { Dev.DevServer.Instance.Start(); }
             catch (Exception ex) { Log.Error("Dev server failed to start", ex); }
