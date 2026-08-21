@@ -32,11 +32,14 @@
     <None Remove="game/**" />
     <Compile Remove="third_party/**/*.cs" />
     <Compile Remove="tests/**/*.cs" />
+    <Compile Remove="module/**/*.cs" />
   </ItemGroup>
 
-  <!-- The unit-test project exercises internals (MemberResolver, ScreenNames, SpeechLog, …). -->
+  <!-- The unit-test project exercises internals; the reloadable module (module/) shares the host's
+       internal seams (MemberResolver, dev plumbing). -->
   <ItemGroup>
     <InternalsVisibleTo Include="ExaAccess.Tests" />
+    <InternalsVisibleTo Include="ExaAccess.Module" />
   </ItemGroup>
 
   <!-- Paths. Override GameDir on the command line if your install differs:

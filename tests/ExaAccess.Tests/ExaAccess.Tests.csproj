@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\ExaAccess.csproj" />
+    <ProjectReference Include="..\..\module\ExaAccess.Module.csproj" />
   </ItemGroup>
 
 </Project>

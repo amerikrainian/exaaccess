@@ -9,8 +9,8 @@ namespace ExaAccess.Patches
     ///   • <see cref="AfterInit"/>  — postfix on GameLogic.method_8() (one-time init: SDL/window/textures/
     ///     Steam are all up). Announces the mod is live at the moment the window appears.
     ///   • <see cref="BeforeTick"/> — prefix on GameLogic.method_25() (the per-frame tick from Main's
-    ///     while(true) loop). Runs <see cref="FrameLoop"/> — the registry every per-frame subsystem
-    ///     (dev pump, screen watcher, input, UI) hangs off.
+    ///     while(true) loop). Runs <see cref="Bootstrap.TickFrame"/>: dev pump, then the reloadable
+    ///     module's Tick (which drives the module-side FrameLoop).
     ///
     /// These are attached MANUALLY from <see cref="Bootstrap"/> (harmony.Patch with reflected MethodInfos),
     /// not via [HarmonyPatch] attributes, because we don't reference the obfuscated game assembly at
@@ -30,9 +30,7 @@ namespace ExaAccess.Patches
                 if (_announcedReady) return; // method_8 runs once, but guard anyway
                 _announcedReady = true;
                 Log.Info("[hook] GameLogic init complete — ExaAccess is live.");
-                Speech.Tts.Speak("ExaAccess ready.");
-                // Forget any pre-init screen state so the first tick announces the opening screen.
-                UI.ScreenAnnouncer.Instance.Reset();
+                Bootstrap.OnGameInitialized(); // the module announces readiness on its next tick
             }
             catch (Exception ex) { Log.Error("[hook] AfterInit failed", ex); }
         }
@@ -40,7 +38,7 @@ namespace ExaAccess.Patches
         /// <summary>Prefix on GameLogic.method_25() — runs at the top of every frame.</summary>
         public static void BeforeTick(object __instance)
         {
-            try { FrameLoop.Tick(); } // FrameLoop catches per-step; this guards the loop itself.
+            try { Bootstrap.TickFrame(); } // defensively layered inside; this guards the call itself
             catch (Exception ex) { Log.Error("[hook] BeforeTick failed", ex); }
         }
     }

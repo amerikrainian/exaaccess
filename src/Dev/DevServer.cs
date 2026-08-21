@@ -79,13 +79,17 @@ namespace ExaAccess.Dev
                 _http = new DevHttpServer(port, HandleRequest);
                 _http.Start();
                 _enabled = true;
-                Log.Info("Dev server on http://127.0.0.1:" + port + " (gate: " + how + "; GET /health /speech /screen, POST /say /eval)");
+                Log.Info("Dev server on http://127.0.0.1:" + port + " (gate: " + how + "; GET /health /speech /screen, POST /say /eval /reload)");
             }
             catch (Exception e)
             {
                 Log.Error("Dev server failed to start", e);
             }
         }
+
+        /// <summary>Drop the REPL so the next /eval builds a fresh evaluator — required after a module
+        /// hot-reload (the old evaluator holds references into the retired module's types).</summary>
+        public void ResetEvaluator() => _evaluator.Reset();
 
         /// <summary>Run queued main-thread jobs. Called once per frame from the GameLogic tick prefix.</summary>
         public void Pump()
@@ -140,6 +144,10 @@ namespace ExaAccess.Dev
 
             if (route == "/screen" && method == "GET")
                 return OnMainThread(DumpScreens);
+
+            if (route == "/reload" && method == "POST")
+                // Main thread: module Load/Dispose touch Harmony and game state mid-frame otherwise.
+                return OnMainThread(Bootstrap.ReloadModule);
 
             if (route == "/eval" && method == "POST")
             {

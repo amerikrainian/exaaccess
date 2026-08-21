@@ -12,7 +12,9 @@ namespace ExaAccess.Tests
     public class MemberResolverTests
     {
         // Declaration order is deliberately scrambled across visibility/static-ness so the tests prove
-        // token order, not GetMethods' default (which groups public first).
+        // token order, not GetMethods' default (which groups public first). The fields exist only to
+        // be enumerated — never assigned.
+#pragma warning disable 0649
         private sealed class Fixture
         {
             public void Alpha() { }
@@ -27,6 +29,7 @@ namespace ExaAccess.Tests
             // Silence "never used" noise.
             public override string ToString() => Bravo() + _fieldTwo + FieldOne + FieldThree;
         }
+#pragma warning restore 0649
 
         [Fact]
         public void MethodsComeBackInDeclarationOrder()

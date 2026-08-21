@@ -24,6 +24,14 @@ namespace ExaAccess.Dev
         private Evaluator _evaluator;
         private StringWriter _report; // compiler diagnostics land here
 
+        /// <summary>Forget all REPL state; the next Eval re-initializes against the currently loaded
+        /// assemblies (so a hot-reloaded module's fresh types become reachable).</summary>
+        public void Reset()
+        {
+            _evaluator = null;
+            _report = null;
+        }
+
         private void Initialize()
         {
             _report = new StringWriter();

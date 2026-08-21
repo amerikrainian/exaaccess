@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using HarmonyLib;
 
 namespace ExaAccess
@@ -26,6 +27,13 @@ namespace ExaAccess
     public sealed class Bootstrap : AppDomainManager
     {
         private const string SteamAppId = "716490";
+
+        private static Modularity.ModHost _modHost;
+        private static Modularity.ModuleLoader _moduleLoader;
+        private static bool _tickErrorLogged;
+#if DEBUG
+        private static bool _reloadKeyDown;
+#endif
 
         public override void InitializeNewDomain(AppDomainSetup appDomainInfo)
         {
@@ -80,16 +88,91 @@ namespace ExaAccess
             if (!ApplyPatches(game))
                 Log.Warning("Harmony patches failed to attach — the game will still run, just without accessibility hooks.");
 
-            // Per-frame subsystems, in the order they run each frame (composition root owns the order).
-#if DEBUG
-            FrameLoop.Register("dev-pump", Dev.DevServer.Instance.Pump);
-#endif
-            FrameLoop.Register("screens", UI.ScreenAnnouncer.Instance.Tick);
+            // The reloadable feature module (see Modularity/). Its references (this assembly, Harmony)
+            // normally bind via appbase probing; the resolver answers with the already-loaded copy if
+            // fusion ever misses (byte-loaded assemblies resolve through the default Load context).
+            AppDomain.CurrentDomain.AssemblyResolve += ResolveLoadedByName;
+            _modHost = new Modularity.ModHost();
+            _moduleLoader = new Modularity.ModuleLoader(Path.Combine(gameDir, "ExaAccess.Module.dll"), _modHost);
+            if (!_moduleLoader.Reload())
+                Speech.Tts.Speak("Exa Access could not load its features module. The game will run without accessibility.");
 
 #if DEBUG
             try { Dev.DevServer.Instance.Start(); }
             catch (Exception ex) { Log.Error("Dev server failed to start", ex); }
 #endif
+        }
+
+        /// <summary>The per-frame heartbeat — the tick prefix's one call. Dev pump first (so a /reload
+        /// swaps before the module runs this frame), then the module, read fresh so a swap is just a
+        /// field assignment. A throwing module logs once per reload, not once per frame.</summary>
+        internal static void TickFrame()
+        {
+#if DEBUG
+            try { Dev.DevServer.Instance.Pump(); }
+            catch (Exception ex) { Log.Error("[host] dev pump failed", ex); }
+            CheckReloadKey();
+#endif
+            var module = _moduleLoader?.Module;
+            if (module == null) return;
+            try
+            {
+                module.Tick();
+                _tickErrorLogged = false;
+            }
+            catch (Exception ex)
+            {
+                if (!_tickErrorLogged)
+                {
+                    _tickErrorLogged = true;
+                    Log.Error("[module] Tick threw — suppressing repeats until it recovers or reloads", ex);
+                }
+            }
+        }
+
+        /// <summary>Called by the init postfix: the game is up, screens exist.</summary>
+        internal static void OnGameInitialized()
+        {
+            if (_modHost != null) _modHost.GameInitialized = true;
+        }
+
+        /// <summary>Swap in the current on-disk module. Main thread only (the dev server routes
+        /// /reload through its main-thread queue; F6 fires from TickFrame). Returns a status line.</summary>
+        internal static string ReloadModule()
+        {
+            if (_moduleLoader == null) return "[no module loader]\n";
+            bool ok = _moduleLoader.Reload();
+            _tickErrorLogged = false;
+#if DEBUG
+            // The REPL holds references into the old module's types; start it fresh.
+            if (ok) { try { Dev.DevServer.Instance.ResetEvaluator(); } catch { } }
+#endif
+            return (ok ? "reloaded: generation " + _moduleLoader.Generation : "[reload failed] see the log") + "\n";
+        }
+
+#if DEBUG
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
+        private const int VkF6 = 0x75;
+
+        private static void CheckReloadKey()
+        {
+            bool down = (GetAsyncKeyState(VkF6) & 0x8000) != 0;
+            if (down && !_reloadKeyDown)
+            {
+                Log.Info("[host] F6 — reloading module.");
+                ReloadModule();
+            }
+            _reloadKeyDown = down;
+        }
+#endif
+
+        private static Assembly ResolveLoadedByName(object sender, ResolveEventArgs args)
+        {
+            string name = new AssemblyName(args.Name).Name;
+            foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+                if (!a.IsDynamic && a.GetName().Name == name) return a;
+            return null;
         }
 
         /// <summary>Write steam_appid.txt next to the game so Steamworks accepts a launch that didn't

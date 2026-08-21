@@ -54,10 +54,12 @@ to WrathAccess (`../wotr-access`) and SayTheSpire — reuse those patterns where
 ```
 dotnet build
 ```
-Debug compiles `ExaAccess.dll` and deploys into the game folder: our dll, `0Harmony.dll`,
+Building the solution (repo root) builds host + module + tests. A Debug build deploys
+into the game folder: `ExaAccess.dll`, `ExaAccess.Module.dll`, `0Harmony.dll`,
 `prism.dll` (native screen-reader bridge), `EXAPUNKS.exe.config`, `Mono.CSharp.dll` (dev
 REPL), writes `steam_appid.txt`, and deletes any stale pre-DLL `ExaAccess.exe`.
-**Game must be closed** or the dll copy fails (loaded assemblies are locked).
+The HOST dll copy needs the game closed (file-locked; the deploy warns and continues);
+the MODULE dll deploys fine with the game running — that's the hot-reload loop.
 `dotnet build -c Release` compiles without deploying and contains zero dev tooling.
 Override the install path with `-p:GameDir="…"`.
 
@@ -65,11 +67,12 @@ Tests: `dotnet test` from the repo root (`ExaAccess.sln` = mod + `tests/ExaAcces
 net48, InternalsVisibleTo). Game-independent logic (resolution, text mapping, loc, UI graph core)
 belongs there — grow the suite with each subsystem.
 
-User install (the future installer) = copy 5 files into the game folder:
-`EXAPUNKS.exe.config`, `ExaAccess.dll`, `0Harmony.dll`, `prism.dll`, `steam_appid.txt`.
-Uninstall = delete the config. The config binds our assembly by **full display name**,
-so `AssemblyVersion` is pinned at **1.0.0.0** in the csproj — bump both in lockstep or
-the mod silently stops loading (release versioning goes in FileVersion instead).
+User install (the future installer) = copy 6 files into the game folder:
+`EXAPUNKS.exe.config`, `ExaAccess.dll`, `ExaAccess.Module.dll`, `0Harmony.dll`,
+`prism.dll`, `steam_appid.txt`. Uninstall = delete the config. The config binds the
+host assembly by **full display name**, so the host's `AssemblyVersion` is pinned at
+**1.0.0.0** in its csproj — bump both in lockstep or the mod silently stops loading
+(release versioning goes in FileVersion instead).
 
 ## Logs
 `%LOCALAPPDATA%\ExaAccess\exaaccess.log` — fresh file per launch; the one path to give
@@ -98,23 +101,44 @@ gate gets a click. Post one: find the EXAPUNKS window HWND, `PostMessage`
 `WM_LBUTTONDOWN`(0x201) + `WM_LBUTTONUP`(0x202) with REAL client coordinates packed in
 lParam (e.g. `(100 << 16) | 100`) — lParam 0, i.e. (0,0), does NOT release the gate.
 
-## Architecture (current)
+## Architecture (current): permanent HOST + reloadable MODULE
+Two assemblies (pattern ported from NonVisualCalculus). The HOST (`ExaAccess.dll`,
+root `src/`) is the config-bound permanent half; the MODULE (`ExaAccess.Module.dll`,
+`module/src/`) holds every feature and hot-reloads (see "Hot reload" below).
+
+Host:
 - `src/Bootstrap.cs` — THE entry point: `AppDomainManager` the CLR instantiates inside
-  the stock exe. Pins cwd to the game folder, writes `steam_appid.txt`, boots speech,
-  binds `GameState`, attaches Harmony patches, starts the dev server, hooks
-  `ProcessExit` for speech shutdown. Swallows every exception — see Hard rules.
-- `src/GameState.cs` — reflection-cached view of the live game and the seam every model
-  read goes through; owns the ordinal/signature resolution described above.
-- `src/Patches/GameLogicPatches.cs` — the two hooks everything hangs off: init postfix
-  (announce ready) and per-frame tick prefix (dev pump + screen-change announcements).
-  Attached manually via reflected `MethodInfo`s — there is no `typeof(GameLogic)` to
-  name at compile time, so no `[HarmonyPatch]` attributes.
-- `src/Speech/` — `PrismNative.cs` P/Invoke over `prism.dll`; `Tts.cs` thin facade
-  (best-available backend: NVDA/JAWS/SAPI/OneCore). WrathAccess's richer config-driven
-  stack ports in behind the same `Speak`/`Stop` surface later.
-- `src/Dev/` — the DEBUG-only dev server (`DevServer`, `DevHttpServer`, `SpeechLog`,
-  `CSharpEvaluator` on Mono.CSharp).
-- `src/Log.cs` — file logger (thread-safe; game thread + HTTP thread both log).
+  the stock exe. Pins cwd, writes `steam_appid.txt`, boots speech, binds `GameState`,
+  attaches the host Harmony patches, loads the module, starts the dev server, hooks
+  `ProcessExit`. Owns `TickFrame` (dev pump → `Module.Tick`, read fresh each frame) and
+  `ReloadModule`. Swallows every exception — see Hard rules.
+- `src/GameState.cs` + `src/MemberResolver.cs` — reflection-cached view of the live
+  game; the ordinal/signature resolution primitive (unit-tested).
+- `src/Patches/GameLogicPatches.cs` — the two host hooks: init postfix (sets
+  GameInitialized) and tick prefix (calls `Bootstrap.TickFrame`). Applied ONCE, never
+  unpatched — they are the module's heartbeat. Attached manually via reflected
+  `MethodInfo`s (no `typeof(GameLogic)` at compile time).
+- `src/Modularity/` — `IModModule`/`ModHost` contract + `ModuleLoader`
+  (byte-load, load-then-swap; the module dll is never file-locked).
+- `src/Speech/` — `PrismNative.cs` P/Invoke over `prism.dll`; `Tts.cs` facade. Host-side
+  because the native backend handle must survive module reloads.
+- `src/Dev/` — DEBUG-only dev server (+ `/reload`); `src/Log.cs` — file logger.
+
+Module (each reload starts this half cold — statics are per-load):
+- `module/src/ExaAccessModule.cs` — `IModModule` implementation, module composition
+  root: registers FrameLoop steps, announces readiness (generation 1 only).
+- `module/src/FrameLoop.cs` — ordered, defensive per-frame step registry.
+- `module/src/UI/` — `ScreenNames` (labels + obfuscation filter), `ScreenAnnouncer`.
+
+## Hot reload (DEBUG loop for feature work)
+The module is `Assembly.Load(byte[])`'d, so `dotnet build module/ExaAccess.Module.csproj`
+works with the game RUNNING (the Debug build auto-deploys it), then `POST /reload` (or
+F6 in-game) swaps it in — no restart, no click-gate. Load-then-swap: a broken build
+leaves the old module running. Old copies leak until exit (dev cost only). The REPL
+resets on reload so `/eval` sees the new types. Host/contract changes still need a full
+game restart (the host is file-locked and loaded once). Rules for module code are in
+`src/Modularity/IModModule.cs` — notably: module Harmony patches use a per-load unique
+id + `UnpatchSelf` in Dispose, and native handles live host-side only.
 
 ## Hard rules
 - **Never commit or ship game code.** `game/` (deob exe, decompiled source, copied game
@@ -140,14 +164,3 @@ lParam (e.g. `(100 << 16) | 100`) — lParam 0, i.e. (0,0), does NOT release the
 - **`AssemblyVersion` stays 1.0.0.0** unless `deploy/EXAPUNKS.exe.config` is updated in
   the same commit.
 
-## Roadmap
-1. **(done)** In-process injection, Harmony on obfuscated members, Prism speech,
-   dev server, screen-change announcements.
-2. **(done)** Zero-loader: stock `EXAPUNKS.exe` boots the mod via AppDomainManager
-   config; mod ships as a DLL.
-3. Boot click-gate: auto-advance (synthesize the click) or announce it.
-4. Map the remaining obfuscated transition/overlay screens to friendly names.
-5. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
-   code editor for program text — this game is text-centric, a strong a11y target.
-6. Port the richer WrathAccess speech stack (settings, SAPI, positional) behind `Tts`.
-7. Installer (5-file copy; uninstall = delete the config).
