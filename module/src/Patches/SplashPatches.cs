@@ -7,26 +7,20 @@ using HarmonyLib;
 namespace ExaAccess.Patches
 {
     /// <summary>
-    /// Makes ANY KEY advance the boot splash, which stock EXAPUNKS gates on a MOUSE CLICK only — an
-    /// unprompted, invisible wall for a blind player. Decompile findings (game/decompiled/GameLogic.cs,
-    /// splash gate at the end of GameLogic.method_8):
+    /// Makes ANY KEY advance the boot splash, which stock EXAPUNKS gates on a MOUSE CLICK only.
+    /// Decompile facts (game/decompiled/GameLogic.cs, gate at the end of GameLogic.method_8): the
+    /// gate waits on LOCALS but opens on any SDL type-1025 event, and its event loop DISCARDS key
+    /// events — SDL's internal keyboard state is the only usable key sensor there. So:
     ///
-    ///  • The gate waits on LOCALS, so no field can be poked; but the ONLY thing that opens it is an
-    ///    SDL event with type 1025 (SDL_MOUSEBUTTONDOWN) — button/coords ignored, repeat-safe.
-    ///  • The gate's event loop DISCARDS key events without populating the game's own key sets, so
-    ///    SDL's internal keyboard state array (SDL_GetKeyboardState) is the only usable key sensor there.
-    ///  • LoadingScreenRenderer.method_2() (ordinal 2) runs once when loading completes, immediately
-    ///    before the gate loop — our "splash is waiting" signal, where the prompt is announced.
-    ///  • LoadingScreenRenderer.method_3(float, bool) draws the splash once per gate iteration — the
-    ///    per-frame, main-thread hook to poll keys from. Resolved BY SIGNATURE: it is the only
-    ///    void(float, bool) on the type. (It also runs during the loading-progress phase, but the
-    ///    _armed flag from method_2 scopes us to the gate.)
-    ///  • GameLogic.method_24() (ordinal 24) is the first call after the gate — disarm, so a synthetic
-    ///    click can never fire during gameplay.
+    ///  • postfix LoadingScreenRenderer.method_2 (runs once when loading completes, right before the
+    ///    gate) — arm + announce the localized prompt;
+    ///  • postfix LoadingScreenRenderer.method_3 (the per-frame splash draw) — edge-poll the
+    ///    keyboard against a baseline (keys held since launch don't count) and push a synthetic
+    ///    1025 via SDL_PushEvent, which takes the game's own click path (music, sfx, fade);
+    ///  • prefix GameLogic.method_24 (the first call after the gate) — disarm for the session.
     ///
-    /// On a new key press (edge-detected against a baseline, so a key held since launch doesn't
-    /// auto-skip), a synthetic 1025 goes through SDL_PushEvent and the game takes its own click path —
-    /// menu music, click sound, the 0.5 s fade — identical to a real mouse click.
+    /// Targets are TYPED (Expr.MethodOf so the references remap); method_24 is private, so it goes
+    /// through the Deobf name lookup.
     /// </summary>
     internal static class SplashPatches
     {
@@ -36,60 +30,18 @@ namespace ExaAccess.Patches
         private static byte[] _current;
         private static int _keyCount;
 
-        /// <summary>Resolve the three targets and patch. No-op (with a loud log) if any target fails its
-        /// cross-check — never patch a maybe-wrong method. Harmony instance is the module's per-load one.</summary>
         public static void Apply(Harmony harmony)
         {
-            var game = GameState.GameAssembly;
-            if (game == null) { Log.Error("[splash] no game assembly bound — skipping."); return; }
-
-            var renderer = game.GetType("LoadingScreenRenderer");
-            var gameLogic = game.GetType("GameLogic");
-            if (renderer == null || gameLogic == null)
-            {
-                Log.Error("[splash] LoadingScreenRenderer/GameLogic not found — game layout changed? Skipping.");
-                return;
-            }
-
-            // Splash-ready: ordinal 2, cross-checked public void() instance.
-            var ready = MemberResolver.MethodByOrdinal(renderer, 2, "splash-ready");
-            if (ready == null || ready.IsStatic || !ready.IsPublic
-                || ready.ReturnType != typeof(void) || ready.GetParameters().Length != 0)
-            {
-                Log.Error("[splash] splash-ready method failed its signature cross-check (" + MemberResolver.Describe(ready) + ") — skipping.");
-                return;
-            }
-
-            // Per-frame splash draw: the unique void(float, bool) instance method.
-            MethodInfo draw = null;
-            foreach (var m in MemberResolver.MethodsInTokenOrder(renderer))
-            {
-                if (m.IsStatic || m.ReturnType != typeof(void)) continue;
-                var ps = m.GetParameters();
-                if (ps.Length != 2 || ps[0].ParameterType != typeof(float) || ps[1].ParameterType != typeof(bool)) continue;
-                if (draw != null) { draw = null; break; } // not unique anymore — game updated; bail
-                draw = m;
-            }
-            if (draw == null)
-            {
-                Log.Error("[splash] no unique void(float,bool) splash-draw method — game updated? Skipping.");
-                return;
-            }
-
-            // Post-splash: ordinal 24, cross-checked void() instance.
-            var after = MemberResolver.MethodByOrdinal(gameLogic, 24, "post-splash");
-            if (after == null || after.IsStatic || after.ReturnType != typeof(void) || after.GetParameters().Length != 0)
-            {
-                Log.Error("[splash] post-splash method failed its signature cross-check (" + MemberResolver.Describe(after) + ") — skipping.");
-                return;
-            }
+            var ready = Expr.MethodOf(() => default(LoadingScreenRenderer).method_2());
+            var draw = Expr.MethodOf(() => default(LoadingScreenRenderer).method_3(0f, false));
+            var afterGate = Deobf.Method(typeof(GameLogic), "method_24"); // private void ()
+            if (afterGate == null) { Log.Error("[splash] post-splash method unresolved — skipping."); return; }
 
             var self = typeof(SplashPatches);
             harmony.Patch(ready, postfix: new HarmonyMethod(self.GetMethod(nameof(AfterSplashReady), BindingFlags.NonPublic | BindingFlags.Static)));
             harmony.Patch(draw, postfix: new HarmonyMethod(self.GetMethod(nameof(AfterSplashDraw), BindingFlags.NonPublic | BindingFlags.Static)));
-            harmony.Patch(after, prefix: new HarmonyMethod(self.GetMethod(nameof(BeforePostSplash), BindingFlags.NonPublic | BindingFlags.Static)));
-            Log.Info("[splash] any-key advance attached (ready=" + MemberResolver.Describe(ready)
-                + ", draw=" + MemberResolver.Describe(draw) + ", after=" + MemberResolver.Describe(after) + ").");
+            harmony.Patch(afterGate, prefix: new HarmonyMethod(self.GetMethod(nameof(BeforePostSplash), BindingFlags.NonPublic | BindingFlags.Static)));
+            Log.Info("[splash] any-key advance attached.");
         }
 
         private static void AfterSplashReady()

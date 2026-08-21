@@ -66,6 +66,32 @@ to WrathAccess (`../wotr-access`) and SayTheSpire — reuse those patterns where
   (GetTypes omits `<Module>` and de4dot strips obfuscator types): THIS build,
   deob row = live index − 14 (GameLogic 1205→1191; verified DesktopScreen 1148→1134,
   LocString 1296→1282). NEVER reflection-load the deob exe (initializers stack-overflow).
+  (For code the full deob↔shipping map exists anyway — see "Typed game access" below;
+  TypeMap remains the quick one-off lookup tool.)
+
+## Typed game access (the remap pipeline)
+The MODULE compiles directly against `game/EXAPUNKS-deob.exe` (readable de4dot names;
+`Private=false`, never shipped — and a hard BUILD PREREQUISITE: no deob exe, no module
+build). Both binaries carry assembly name "Burbank", so references bind to the loaded
+shipping game at runtime once names are fixed up:
+
+- `tools/NameMap` (runs from the module build, incremental) aligns orig vs deob —
+  two-pointer walk over TypeDef rows, junk types skipped by shape, per-type members
+  zipped with the same skip logic — and emits `namemap.tsv` (deob → shipping renames;
+  ~10.5k entries). It FAILS the build unless every real-name anchor pairs exactly and
+  the skip count matches; a game update dies here loudly instead of misbinding.
+- The host's `Modularity/GameRefRemapper` (Mono.Cecil) rewrites the module BYTES at
+  load (the same seam hot reload uses): member refs first via a METHOD-BODY OPERAND
+  walk — Cecil materializes a fresh reference per call site for members on
+  generic-instance parents (`GClass52<bool>::method_0`), so renaming the
+  GetMemberReferences() table view silently misses those — then type refs. Missing
+  namemap.tsv = module load fails loudly.
+- So module source reads like WrathAccess: `GameLogic.gameLogic_0.method_12(screen)`,
+  `S.gclass52_5.method_2(v)`, `new GClass21(cell)` — compiler-checked, IntelliSense'd.
+- The two escape hatches: PRIVATE members can't compile — resolve by deob name via
+  `Game/Deobf` (reads the same namemap; only valid on name-preserved types); Harmony
+  targets for PUBLIC methods via `Game/Expr.MethodOf(() => …)` so the ldtoken remaps
+  (STRING-based reflection with deob names does NOT remap — never use it).
 - **Title screen decoded** (deob `GClass368`, live type index 1055): the room scene.
   Per-frame `imethod_1(float)` draws save-progress overlays (gated by
   `saveData_0.method_13("ghast-1", 0)`-style story keys) and THREE mouse hotspots via
@@ -81,10 +107,15 @@ to WrathAccess (`../wotr-access`) and SayTheSpire — reuse those patterns where
 ```
 dotnet build
 ```
-Building the solution (repo root) builds host + module + tests. A Debug build deploys
-into the game folder: `ExaAccess.dll`, `ExaAccess.Module.dll`, `0Harmony.dll`,
-`prism.dll` (native screen-reader bridge), `EXAPUNKS.exe.config`, `Mono.CSharp.dll` (dev
-REPL), writes `steam_appid.txt`, and deletes any stale pre-DLL `ExaAccess.exe`.
+Building the solution (repo root) builds host + module + tests. BUILD PREREQUISITE:
+`game/EXAPUNKS-deob.exe` + `game/EXAPUNKS.orig.exe` must exist locally (the module
+compiles against the deob names and the build generates `namemap.tsv` from the pair —
+see "Typed game access"; a machine without a game copy cannot build the module).
+A Debug build deploys into the game folder: `ExaAccess.dll`, `ExaAccess.Module.dll`,
+`Mono.Cecil.dll` (the remapper), `0Harmony.dll`, `prism.dll` (native screen-reader
+bridge), `EXAPUNKS.exe.config`, `Mono.CSharp.dll` (dev REPL), `ExaAccess\namemap.tsv`
++ `ExaAccess\locale\`, writes `steam_appid.txt`, and deletes any stale pre-DLL
+`ExaAccess.exe`.
 The HOST dll copy needs the game closed (file-locked; the deploy warns and continues);
 the MODULE dll deploys fine with the game running — that's the hot-reload loop.
 `dotnet build -c Release` compiles without deploying and contains zero dev tooling.
@@ -94,10 +125,11 @@ Tests: `dotnet test` from the repo root (`ExaAccess.sln` = mod + `tests/ExaAcces
 net48, InternalsVisibleTo). Game-independent logic (resolution, text mapping, loc, UI graph core)
 belongs there — grow the suite with each subsystem.
 
-User install (the future installer) = copy 6 files into the game folder —
-`EXAPUNKS.exe.config`, `ExaAccess.dll`, `ExaAccess.Module.dll`, `0Harmony.dll`,
-`prism.dll`, `steam_appid.txt` — plus the `ExaAccess\locale\` folder (the locale
-tables). Uninstall = delete the config. The config binds the
+User install (the future installer) = copy 7 files into the game folder —
+`EXAPUNKS.exe.config`, `ExaAccess.dll`, `ExaAccess.Module.dll`, `Mono.Cecil.dll`,
+`0Harmony.dll`, `prism.dll`, `steam_appid.txt` — plus the `ExaAccess\` folder
+(`namemap.tsv` + `locale\`). Uninstall = delete the config. (namemap.tsv ships name
+pairs only — the same information our ordinals always encoded; no game code ships.) The config binds the
 host assembly by **full display name**, so the host's `AssemblyVersion` is pinned at
 **1.0.0.0** in its csproj — bump both in lockstep or the mod silently stops loading
 (release versioning goes in FileVersion instead).
@@ -211,16 +243,12 @@ Module (each reload starts this half cold — statics are per-load):
   `SuppressPoll`) — wired when GraphNavigator/ScreenManager land with the first screen.
 - `module/src/Game/SdlNative.cs` — P/Invoke over the game's own SDL2.dll: keyboard
   state reads, `SDL_GetKeyName`, + `SDL_PushEvent` (56-byte union — Size=64 on purpose).
-- `module/src/Game/GameText.cs` — the game's own localized strings (see Hard rules).
-- `module/src/Game/GameApi.cs` + `ControlPanelApi.cs` — resolved game WRITE operations:
-  screen push/pop/quit (instance-method deob-index resolver with signature cross-checks
-  + unique-scan fallback), the control panel's page/tab fields (by nested-enum/int
-  shape), every settings cell resolved BY ITS CONFIG-KEY STRING ("Fullscreen",
-  "Volume.Music", "KeyMapping.X" — each GClass52 cell stores its key in its one string
-  field: no ordinals), the apply side effects the game's widgets perform beyond the
-  cell write (fullscreen/quality applies, live mixer volumes + live font flag on the
-  deob-GClass1 statics found via their real-named ReliableRandom anchor), window
-  resolutions, hostname (read), and the key-capture subscreen (found by ctor shape).
+- `module/src/Game/` — the thin typed game boundary (see "Typed game access"):
+  `GameText` (the game's own localized strings — see Hard rules), `GameApi`
+  (push/pop/quit wrappers over `GameLogic.method_12/15/32`), `Deobf` (private-member
+  lookup via the namemap) + `Expr.MethodOf` (remappable Harmony targets), `SdlNative`
+  (our own SDL P/Invokes for the splash/keyboard). Everything else touches the game
+  directly in typed code at the call sites — the WrathAccess shape.
 - `module/src/Screens/ControlPanelScreens.cs` — the control panel accessified: ONE game
   screen modeled as THREE mod screens keyed to its private page field (home / Options /
   Controls — page flips announce as screen changes, each keeps focus memory), tabs as a
@@ -256,9 +284,12 @@ through the newest copy:
   their vanilla game.
 - **Read the model, never the pixels** — and route every game read through `GameState`,
   so obfuscation-resolution stays in one file.
-- **Resolve types by real name, members by token-order ordinal, and cross-check** by
-  signature (or pin fields by unique type). Never bake de4dot names (`method_8`) or raw
-  metadata tokens into the mod — both are meaningless on the shipping exe.
+- **Game access is TYPED through the remap pipeline** (module side — see "Typed game
+  access"): write plain C# against the deob names; never string-based reflection with
+  deob names (it does not remap — `Deobf` for privates, `Expr.MethodOf` for patch
+  targets). The HOST (which loads before any remapping exists) keeps the original
+  discipline for its few members: types by real name, members by token-order ordinal,
+  cross-checked by signature — never raw metadata tokens.
 - **Never speak `#=q…`** — filter obfuscated names (`GameLogicPatches.IsObfuscated`)
   before anything reaches `Tts`; map screens to friendly labels as they're identified.
 - **Localize every string the mod speaks** — `Loc.T(key[, args])` / `Message` + an

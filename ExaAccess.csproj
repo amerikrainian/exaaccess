@@ -63,6 +63,12 @@
     <Reference Include="System.Web.Extensions" />
   </ItemGroup>
 
+  <!-- Mono.Cecil (MIT): the load-time remap of the module's game references (deob → shipping
+       names). Ships next to the host dll. -->
+  <ItemGroup>
+    <PackageReference Include="Mono.Cecil" Version="0.11.6" />
+  </ItemGroup>
+
   <!-- Dev-only /screenshot capture (PrintWindow → PNG). In-box; the whole feature is #if DEBUG. -->
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <Reference Include="System.Drawing" />
@@ -89,6 +95,8 @@
       <!-- Zero-loader hookup: makes the STOCK EXAPUNKS.exe instantiate ExaAccess.Bootstrap
            (AppDomainManager) before any game code runs, so launching the game normally loads the mod. -->
       <Payload Include="$(MSBuildProjectDirectory)\deploy\EXAPUNKS.exe.config" />
+      <!-- The module remapper (see src/Modularity/GameRefRemapper.cs). -->
+      <Payload Include="$(OutputPath)Mono.Cecil.dll" />
     </ItemGroup>
     <!-- ContinueOnError: the dll is locked while the game runs, and a test build (dotnet test also
          builds this project) must not fail just because the game is open — the deploy is then stale

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Dev/build tool: aligns game/EXAPUNKS.orig.exe (obfuscated shipping names) with
+       game/EXAPUNKS-deob.exe (de4dot's readable names) and emits the deob → shipping rename table
+       (namemap.tsv) that the host's load-time remapper applies to the module. Pure metadata reading
+       (System.Reflection.Metadata) — nothing is loaded or executed.
+
+       de4dot preserves TypeDef/member ROW ORDER but strips obfuscator runtime types (and their
+       members), so the type walk is a two-pointer alignment: identical names pair; an obfuscated
+       shipping row that a shape check (method/field counts) rejects is junk and gets skipped. The
+       run FAILS (nonzero exit) unless every real-name anchor pairs exactly and the skip count
+       matches the type-count difference — a game update breaks the build here, loudly, instead of
+       misbinding at runtime.
+
+       Usage: dotnet run - -project tools/NameMap - - <orig.exe> <deob.exe> <out.tsv> -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+</Project>

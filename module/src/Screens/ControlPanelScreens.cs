@@ -1,22 +1,21 @@
 using System;
+using System.Reflection;
 using ExaAccess.Game;
 using ExaAccess.Localization;
 using ExaAccess.UI;
 using ExaAccess.UI.Graph;
+using SDL2;
 
 namespace ExaAccess.Screens
 {
     /// <summary>
-    /// The TEC Constellation II control panel (game type ControlPanelScreen — one game screen, but
-    /// THREE mod screens keyed to its private page field, so page flips announce as screen changes
-    /// and each page keeps its own focus memory). All widgets mirror the decompiled originals:
-    /// radios write the config cell plus the same apply call the game's button makes; sliders write
-    /// the cell plus the live mixer value; key bindings push the game's own capture subscreen.
-    ///
-    /// LABELS COME FROM THE GAME (GameText — live language, all six the game ships); our own locale
-    /// carries only what the game has no string for: hints, role words, the capture prompt, and the
-    /// gamepad binding names (baked into art in the game). The game's native mouse handling and
-    /// Escape behavior keep working untouched throughout.
+    /// The TEC Constellation II control panel — TYPED against the game via the remap pipeline. One
+    /// game screen, three mod screens keyed to its private page field (home / Options / Controls) so
+    /// page flips announce as screen changes and each page keeps its own focus memory. Widgets
+    /// mirror the decompiled originals exactly: radios write the config cell plus the same apply
+    /// call the game's button makes; sliders write the cell plus the live mixer statics; key
+    /// bindings push the game's own capture subscreen. Labels come from the game (GameText); ours
+    /// only where the game has no string. Native mouse + Escape handling untouched throughout.
     /// </summary>
     public abstract class ControlPanelPageScreen : Screen
     {
@@ -28,11 +27,13 @@ namespace ExaAccess.Screens
             Wrap = true; // small closed screens: Tab cycles tabs → content → back → tabs
         }
 
-        public override bool IsActive()
-            => ControlPanelApi.PanelInstance != null && ControlPanelApi.Page == _page;
+        public override bool IsActive() => PanelState.Page == _page;
 
         // Covered by the key-capture overlay (or a page flip): keep focus/tab memory.
         public override bool KeepStateOnPop => true;
+
+        /// <summary>The game's settings object (typed).</summary>
+        protected static GClass17 S => GameLogic.gameLogic_0?.gclass17_0;
 
         // ---- shared widget declarations ----
 
@@ -75,9 +76,7 @@ namespace ExaAccess.Screens
             });
         }
 
-        /// <summary>A labeled row holding a pair of radio options (the panel's visual layout: label
-        /// left, two buttons right — modeled as a context wrapping a two-item row). Label and option
-        /// texts are GAME loc keys.</summary>
+        /// <summary>A labeled row holding a pair of radio options. Label/option texts are GAME loc keys.</summary>
         protected static void RadioRow(GraphBuilder b, string rowKey, string gameLabelKey,
             string idA, string gameOptKeyA, Func<bool> selA, Action actA,
             string idB, string gameOptKeyB, Func<bool> selB, Action actB,
@@ -91,12 +90,12 @@ namespace ExaAccess.Screens
             b.PopContext();
         }
 
-        /// <summary>A 0..1 volume slider over a config cell, mirroring the live mixer value. The
-        /// label is a GAME loc key.</summary>
-        protected static void VolumeSlider(GraphBuilder b, string id, string gameLabelKey, string configKey)
+        /// <summary>A 0..1 volume slider — the setter must also mirror the live mixer value, exactly
+        /// like the game's slider (see the call sites).</summary>
+        protected static void VolumeSlider(GraphBuilder b, string id, string gameLabelKey,
+            Func<float> get, Action<float> set)
         {
-            Func<float> value = () => ControlPanelApi.GetCell(configKey)?.GetFloat() ?? 0f;
-            Func<string> percent = () => Loc.T("value.percent", new { value = Math.Round(value() * 100f) });
+            Func<string> percent = () => Loc.T("value.percent", new { value = Math.Round(Safe(get) * 100f) });
             b.AddItem(ControlId.Structural(id), new NodeVtable
             {
                 ControlType = ControlTypes.Slider,
@@ -108,12 +107,9 @@ namespace ExaAccess.Screens
                 StateText = percent,
                 OnAdjust = (sign, large) =>
                 {
-                    var cell = ControlPanelApi.GetCell(configKey);
-                    if (cell == null) return;
                     float step = large ? 0.1f : 0.05f;
-                    float v = Math.Max(0f, Math.Min(1f, cell.GetFloat() + sign * step));
-                    cell.Set(v);
-                    ControlPanelApi.SetLiveVolume(configKey, v); // the game's slider writes both
+                    float v = Math.Max(0f, Math.Min(1f, Safe(get) + sign * step));
+                    set(v);
                 },
             });
         }
@@ -149,11 +145,11 @@ namespace ExaAccess.Screens
                     Announcements = new[]
                     {
                         new NodeAnnouncement(label, kind: AnnouncementKinds.Label),
-                        new NodeAnnouncement(() => ControlPanelApi.Tab == index ? Loc.T("value.selected") : null,
+                        new NodeAnnouncement(() => PanelState.Tab == index ? Loc.T("value.selected") : null,
                             live: true, kind: AnnouncementKinds.Selected),
                     },
-                    StateText = () => ControlPanelApi.Tab == index ? Loc.T("value.selected") : null,
-                    OnActivate = () => ControlPanelApi.SetTab(index),
+                    StateText = () => PanelState.Tab == index ? Loc.T("value.selected") : null,
+                    OnActivate = () => PanelState.SetTab(index),
                 });
             }
             b.EndRow();
@@ -162,10 +158,74 @@ namespace ExaAccess.Screens
         protected static void BackButton(GraphBuilder b)
         {
             b.BeginStop("back");
-            Button(b, "panel.back", () => GameText.T("Back"), "panel.back.hint", () => ControlPanelApi.SetPage(0));
+            Button(b, "panel.back", () => GameText.T("Back"), "panel.back.hint", () => PanelState.SetPage(0));
         }
 
-        private static bool Safe(Func<bool> f) { try { return f(); } catch { return false; } }
+        protected static bool Safe(Func<bool> f) { try { return f(); } catch { return false; } }
+        protected static float Safe(Func<float> f) { try { return f(); } catch { return 0f; } }
+    }
+
+    /// <summary>The panel's private page/tab state — the ONE place typed access can't reach (private
+    /// fields), resolved by deob name through the namemap (see Game/Deobf).</summary>
+    internal static class PanelState
+    {
+        private static readonly FieldInfo PageField = Deobf.Field(typeof(ControlPanelScreen), "enum6_0");
+        private static readonly FieldInfo TabField = Deobf.Field(typeof(ControlPanelScreen), "int_0");
+
+        /// <summary>The live panel instance anywhere on the game's screen stack, else null.</summary>
+        public static ControlPanelScreen Panel
+        {
+            get
+            {
+                var stack = GameState.ScreenStack();
+                if (stack == null) return null;
+                for (int i = stack.Count - 1; i >= 0; i--)
+                    if (stack[i] is ControlPanelScreen p) return p;
+                return null;
+            }
+        }
+
+        /// <summary>0 = home, 1 = Options, 2 = Controls; -1 when the panel isn't up.</summary>
+        public static int Page
+        {
+            get
+            {
+                var p = Panel;
+                if (p == null || PageField == null) return -1;
+                try { return Convert.ToInt32(PageField.GetValue(p)); } catch { return -1; }
+            }
+        }
+
+        public static int Tab
+        {
+            get
+            {
+                var p = Panel;
+                if (p == null || TabField == null) return -1;
+                try { return (int)TabField.GetValue(p); } catch { return -1; }
+            }
+        }
+
+        /// <summary>Exactly what the game's page buttons do: assign the fields (page flips reset the tab).</summary>
+        public static void SetPage(int page)
+        {
+            var p = Panel;
+            if (p == null || PageField == null || TabField == null) return;
+            try
+            {
+                PageField.SetValue(p, Enum.ToObject(PageField.FieldType, page));
+                TabField.SetValue(p, 0);
+            }
+            catch (Exception ex) { Log.Error("[panel] SetPage failed", ex); }
+        }
+
+        public static void SetTab(int tab)
+        {
+            var p = Panel;
+            if (p == null || TabField == null) return;
+            try { TabField.SetValue(p, tab); }
+            catch (Exception ex) { Log.Error("[panel] SetTab failed", ex); }
+        }
     }
 
     /// <summary>Page 0: the panel's home — Options / Controls / Exit, the clock, and Close.</summary>
@@ -177,8 +237,8 @@ namespace ExaAccess.Screens
 
         public override void Build(GraphBuilder b)
         {
-            Button(b, "panel.options", () => GameText.T("Options"), "panel.options.hint", () => ControlPanelApi.SetPage(1));
-            Button(b, "panel.controls", () => GameText.T("Controls"), "panel.controls.hint", () => ControlPanelApi.SetPage(2));
+            Button(b, "panel.options", () => GameText.T("Options"), "panel.options.hint", () => PanelState.SetPage(1));
+            Button(b, "panel.controls", () => GameText.T("Controls"), "panel.controls.hint", () => PanelState.SetPage(2));
             Button(b, "panel.exit", () => GameText.T("Exit Game"), "panel.exit.hint", () => GameApi.QuitGame());
             Button(b, "panel.close", () => Loc.T("panel.close"), "panel.close.hint", () => GameApi.PopScreen());
             TextRow(b, "panel.clock", () => Loc.T("panel.clock"), () => DateTime.Now.ToString("h:mm tt"));
@@ -201,7 +261,7 @@ namespace ExaAccess.Screens
                 ("tab.network", () => GameText.T("Network"), 3));
 
             b.BeginStop("content");
-            switch (ControlPanelApi.Tab)
+            switch (PanelState.Tab)
             {
                 case 0: BuildDisplay(b); break;
                 case 1: BuildSound(b); break;
@@ -213,108 +273,104 @@ namespace ExaAccess.Screens
 
         private static void BuildDisplay(GraphBuilder b)
         {
-            Func<bool> fullscreen = () => ControlPanelApi.GetCell("Fullscreen")?.GetBool() ?? true;
+            Func<bool> fullscreen = () => S.gclass52_4.method_0();
             RadioRow(b, "opts", "Display Mode",
-                "disp.fullscreen", "Fullscreen", fullscreen, () => ControlPanelApi.SetFullscreen(true),
-                "disp.windowed", "Windowed", () => !fullscreen(), () => ControlPanelApi.SetFullscreen(false));
+                "disp.fullscreen", "Fullscreen", fullscreen,
+                () => { S.gclass52_4.method_2(true); GameLogic.gameLogic_0.method_40(bool_7: true); },
+                "disp.windowed", "Windowed", () => !Safe(fullscreen),
+                () => { S.gclass52_4.method_2(false); GameLogic.gameLogic_0.method_40(bool_7: false); });
 
             // Window sizes: selectable only while windowed and only when they fit the desktop.
             b.PushContext(GameText.T("Window Size"));
-            var resolutions = ControlPanelApi.Resolutions();
-            for (int i = 0; i < resolutions.Count; i += 2)
+            var resolutions = GameLogic.index2_0;
+            for (int i = 0; i < resolutions.Length; i += 2)
             {
                 b.StartRow("res");
-                for (int j = i; j < Math.Min(i + 2, resolutions.Count); j++)
+                for (int j = i; j < Math.Min(i + 2, resolutions.Length); j++)
                 {
-                    var res = resolutions[j].Key;
-                    string label = resolutions[j].Value;
+                    var res = resolutions[j];
+                    string label = res.int_0 + " x " + res.int_1;
                     Radio(b, "res." + label,
                         () => label,
-                        () => !fullscreen() && Equals(ControlPanelApi.CurrentResolution(), res),
-                        () => ControlPanelApi.SetResolution(res),
-                        () => !fullscreen() && ControlPanelApi.ResolutionFits(res));
+                        () => !Safe(fullscreen) && S.method_2() == res,
+                        () => { S.method_3(res); GameLogic.gameLogic_0.bool_0 = true; },
+                        () => !Safe(fullscreen) && GameLogic.gameLogic_0.method_42(res));
                 }
                 b.EndRow();
             }
             b.PopContext();
 
-            Func<bool> capable = () => ControlPanelApi.Is4KCapable;
-            Func<bool> low = () => ControlPanelApi.GetCell("ForceLowQualityTextures")?.GetBool() ?? false;
+            Func<bool> capable = () => GameLogic.gameLogic_0.method_0();
+            Func<bool> low = () => S.gclass52_18.method_0();
             RadioRow(b, "opts", "Display Quality",
-                "qual.high", "High (4K)", () => capable() && !low(), () => ControlPanelApi.SetQualityLow(false),
-                "qual.low", "Low (2K)", () => low() || !capable(), () => ControlPanelApi.SetQualityLow(true),
+                "qual.high", "High (4K)", () => Safe(capable) && !Safe(low),
+                () => GameLogic.gameLogic_0.method_43(bool_7: false),
+                "qual.low", "Low (2K)", () => Safe(low) || !Safe(capable),
+                () => GameLogic.gameLogic_0.method_43(bool_7: true),
                 capable);
         }
 
         private static void BuildSound(GraphBuilder b)
         {
-            VolumeSlider(b, "vol.sfx", "SFX Volume", "Volume.Sound");
-            VolumeSlider(b, "vol.voice", "Voiceover Volume", "Volume.Voice");
-            VolumeSlider(b, "vol.music", "Music Volume", "Volume.Music");
+            // The game's slider writes the cell AND the live mixer static — mirror both.
+            VolumeSlider(b, "vol.sfx", "SFX Volume",
+                () => S.gclass52_5.method_0(), v => { S.gclass52_5.method_2(v); GClass1.float_1 = v; });
+            VolumeSlider(b, "vol.voice", "Voiceover Volume",
+                () => S.gclass52_6.method_0(), v => { S.gclass52_6.method_2(v); GClass1.float_2 = v; });
+            VolumeSlider(b, "vol.music", "Music Volume",
+                () => S.gclass52_7.method_0(), v => { S.gclass52_7.method_2(v); GClass1.float_0 = v; });
         }
 
         private static void BuildInterface(GraphBuilder b)
         {
             TextRow(b, "iface.hostname", () => GameText.T("Hostname"),
-                () => ControlPanelApi.Hostname() ?? Loc.T("value.unavailable"), "hostname.hint");
+                () => GameLogic.gameLogic_0.saveData_0.method_32(), "hostname.hint");
 
-            Cell("FilterProfanity", out var profanity);
             RadioRow(b, "opts", "Profanity",
-                "prof.show", "Show", () => !profanity(), () => Set("FilterProfanity", false),
-                "prof.hide", "Hide", profanity, () => Set("FilterProfanity", true));
+                "prof.show", "Show", () => !S.gclass52_15.method_0(), () => S.gclass52_15.method_2(false),
+                "prof.hide", "Hide", () => S.gclass52_15.method_0(), () => S.gclass52_15.method_2(true));
 
-            Cell("UseSoftwareCursor", out var software);
             RadioRow(b, "opts", "Mouse Cursor",
-                "cur.hw", "Hardware", () => !software(), () => Set("UseSoftwareCursor", false),
-                "cur.sw", "Software", software, () => Set("UseSoftwareCursor", true));
+                "cur.hw", "Hardware", () => !S.gclass52_9.method_0(), () => S.gclass52_9.method_2(false),
+                "cur.sw", "Software", () => S.gclass52_9.method_0(), () => S.gclass52_9.method_2(true));
 
-            Cell("UseLargeFonts", out var larger);
+            // The game's buttons also flip the live large-fonts flag.
             RadioRow(b, "opts", "Code Font Size",
-                "font.normal", "Normal", () => !larger(), () => { Set("UseLargeFonts", false); ControlPanelApi.SetLiveLargeFonts(false); },
-                "font.larger", "Larger", larger, () => { Set("UseLargeFonts", true); ControlPanelApi.SetLiveLargeFonts(true); });
+                "font.normal", "Normal", () => !S.gclass52_17.method_0(),
+                () => { S.gclass52_17.method_2(false); GClass1.bool_2 = false; },
+                "font.larger", "Larger", () => S.gclass52_17.method_0(),
+                () => { S.gclass52_17.method_2(true); GClass1.bool_2 = true; });
 
-            Cell("EnableCrtDistortion", out var crt);
             RadioRow(b, "opts", "HACK\\*MATCH\nCRT Effect",
-                "crt.normal", "Normal", crt, () => Set("EnableCrtDistortion", true),
-                "crt.off", "No Distortion", () => !crt(), () => Set("EnableCrtDistortion", false));
+                "crt.normal", "Normal", () => S.gclass52_16.method_0(), () => S.gclass52_16.method_2(true),
+                "crt.off", "No Distortion", () => !S.gclass52_16.method_0(), () => S.gclass52_16.method_2(false));
         }
 
         private static void BuildNetwork(GraphBuilder b)
         {
-            Cell("EnableHistograms", out var histograms);
             RadioRow(b, "opts", "Histograms",
-                "hist.show", "Show", histograms, () => Set("EnableHistograms", true),
-                "hist.hide", "Hide", () => !histograms(), () => Set("EnableHistograms", false));
+                "hist.show", "Show", () => S.gclass52_10.method_0(), () => S.gclass52_10.method_2(true),
+                "hist.hide", "Hide", () => !S.gclass52_10.method_0(), () => S.gclass52_10.method_2(false));
 
-            Cell("EnableLeaderboards", out var boards);
+            Func<bool> boards = () => S.gclass52_11.method_0();
             RadioRow(b, "opts", "Leaderboards",
-                "lead.show", "Show", boards, () => Set("EnableLeaderboards", true),
-                "lead.hide", "Hide", () => !boards(), () => Set("EnableLeaderboards", false));
+                "lead.show", "Show", boards, () => S.gclass52_11.method_2(true),
+                "lead.hide", "Hide", () => !Safe(boards), () => S.gclass52_11.method_2(false));
 
-            Cell("ShowTopPercentile", out var top);
             RadioRow(b, "opts", "Top Percentile",
-                "top.show", "Show", () => boards() && top(), () => Set("ShowTopPercentile", true),
-                "top.hide", "Hide", () => !top() || !boards(), () => Set("ShowTopPercentile", false),
+                "top.show", "Show", () => Safe(boards) && S.gclass52_13.method_0(), () => S.gclass52_13.method_2(true),
+                "top.hide", "Hide", () => !S.gclass52_13.method_0() || !Safe(boards), () => S.gclass52_13.method_2(false),
                 boards);
 
-            Cell("ShowTenthPercentile", out var tenth);
             RadioRow(b, "opts", "Tenth Percentile",
-                "tenth.show", "Show", () => boards() && tenth(), () => Set("ShowTenthPercentile", true),
-                "tenth.hide", "Hide", () => !tenth() || !boards(), () => Set("ShowTenthPercentile", false),
+                "tenth.show", "Show", () => Safe(boards) && S.gclass52_14.method_0(), () => S.gclass52_14.method_2(true),
+                "tenth.hide", "Hide", () => !S.gclass52_14.method_0() || !Safe(boards), () => S.gclass52_14.method_2(false),
                 boards);
 
-            Cell("EnableMultiplayer", out var multi);
             RadioRow(b, "opts", "Multiplayer",
-                "mp.on", "Enable", multi, () => Set("EnableMultiplayer", true),
-                "mp.off", "Disable", () => !multi(), () => Set("EnableMultiplayer", false));
+                "mp.on", "Enable", () => S.gclass52_12.method_0(), () => S.gclass52_12.method_2(true),
+                "mp.off", "Disable", () => !S.gclass52_12.method_0(), () => S.gclass52_12.method_2(false));
         }
-
-        private static void Cell(string key, out Func<bool> value)
-        {
-            value = () => ControlPanelApi.GetCell(key)?.GetBool() ?? false;
-        }
-
-        private static void Set(string key, bool v) => ControlPanelApi.GetCell(key)?.Set(v);
     }
 
     /// <summary>Page 2: Controls — the Redshift gamepad key bindings + the keyboard reference.</summary>
@@ -324,23 +380,22 @@ namespace ExaAccess.Screens
         public override string Key => "panel.controls";
         public override string ScreenName => GameText.T("Controls");
 
-        private ControlPanelApi.Cell _pendingCapture;
+        private GClass52<SDL.GEnum195> _pendingCapture;
 
         // The gamepad art labels these visually; the game has no strings for them — ours (ui.json).
-        private static readonly (string id, string labelKey, string configKey)[] Bindings =
+        private static (string id, string labelKey, Func<GClass52<SDL.GEnum195>> cell)[] Bindings => new (string, string, Func<GClass52<SDL.GEnum195>>)[]
         {
-            ("bind.up", "bind.up", "KeyMapping.Up"),
-            ("bind.down", "bind.down", "KeyMapping.Down"),
-            ("bind.left", "bind.left", "KeyMapping.Left"),
-            ("bind.right", "bind.right", "KeyMapping.Right"),
-            ("bind.x", "bind.x", "KeyMapping.X"),
-            ("bind.y", "bind.y", "KeyMapping.Y"),
-            ("bind.z", "bind.z", "KeyMapping.Z"),
-            ("bind.start", "bind.start", "KeyMapping.Start"),
+            ("bind.up", "bind.up", () => S.gclass52_19),
+            ("bind.down", "bind.down", () => S.gclass52_20),
+            ("bind.left", "bind.left", () => S.gclass52_21),
+            ("bind.right", "bind.right", () => S.gclass52_22),
+            ("bind.x", "bind.x", () => S.gclass52_23),
+            ("bind.y", "bind.y", () => S.gclass52_24),
+            ("bind.z", "bind.z", () => S.gclass52_25),
+            ("bind.start", "bind.start", () => S.gclass52_26),
         };
 
-        // The reference table IS game text (both columns; the game picks the platform variant in
-        // code — these are the Windows strings, which are also the loc keys).
+        // The reference table IS game text (both columns; these Windows strings are the loc keys).
         private static readonly (string id, string labelKey, string valueKey)[] Reference =
         {
             ("ref.sim", "Reset / Pause / Step / Run / Fast", "Escape / F3 / Tab / F4 / F5"),
@@ -359,12 +414,12 @@ namespace ExaAccess.Screens
                 ("tab.othercontrols", () => GameText.T("Other Controls"), 1));
 
             b.BeginStop("content");
-            if (ControlPanelApi.Tab == 0)
+            if (PanelState.Tab == 0)
             {
                 b.PushContext(Loc.T("controls.gamepad"));
-                foreach (var (id, labelKey, configKey) in Bindings)
+                foreach (var (id, labelKey, cell) in Bindings)
                 {
-                    string key = configKey;
+                    var getCell = cell;
                     string label = labelKey;
                     b.AddItem(ControlId.Structural(id), new NodeVtable
                     {
@@ -372,11 +427,11 @@ namespace ExaAccess.Screens
                         Announcements = new[]
                         {
                             new NodeAnnouncement(() => Loc.T(label), kind: AnnouncementKinds.Label),
-                            new NodeAnnouncement(() => ControlPanelApi.BindingKeyName(ControlPanelApi.GetCell(key)),
+                            new NodeAnnouncement(() => SDL.SDL_GetKeyName(getCell().method_0()),
                                 live: true, kind: AnnouncementKinds.Value),
                             new NodeAnnouncement(() => Loc.T("bind.hint"), kind: AnnouncementKinds.Tooltip),
                         },
-                        OnActivate = () => _pendingCapture = ControlPanelApi.GetCell(key),
+                        OnActivate = () => _pendingCapture = getCell(),
                     });
                 }
                 b.PopContext();
@@ -401,11 +456,11 @@ namespace ExaAccess.Screens
             if (_pendingCapture == null || Input.SdlKeyboard.AnyKeyHeld) return;
             var cell = _pendingCapture;
             _pendingCapture = null;
-            ControlPanelApi.PushKeyCapture(cell);
+            GameApi.PushScreen(new GClass21(cell));
         }
     }
 
-    /// <summary>The game's key-capture overlay (deob GClass21): announce the prompt and stand our
+    /// <summary>The game's key-capture overlay (GClass21, typed): announce the prompt and stand our
     /// input down — every key must reach the game's raw capture (Escape cancels natively).</summary>
     public sealed class GameKeyCaptureScreen : Screen
     {
@@ -414,11 +469,6 @@ namespace ExaAccess.Screens
         public override string ScreenName => Loc.T("capture.prompt");
         public override bool CapturesRawInput => true;
 
-        public override bool IsActive()
-        {
-            var top = GameState.TopScreen();
-            var t = ControlPanelApi.KeyCaptureType;
-            return top != null && t != null && top.GetType() == t;
-        }
+        public override bool IsActive() => GameState.TopScreen() is GClass21;
     }
 }

@@ -31,9 +31,31 @@
       <HintPath>..\third_party\harmony\0Harmony.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- THE GAME, typed: the local de4dot output (readable names; assembly name "Burbank", same as
+         shipping, so the reference binds to the loaded game at runtime). The host's load-time
+         remapper rewrites our deob-name references to the shipping obfuscated names via the
+         namemap.tsv generated below. BUILD PREREQUISITE: game/EXAPUNKS-deob.exe must exist locally
+         (never committed, never shipped — see CLAUDE.md "Analysis workspace"). -->
+    <Reference Include="EXAPUNKS-deob">
+      <HintPath>..\game\EXAPUNKS-deob.exe</HintPath>
+      <Private>false</Private>
+    </Reference>
     <!-- In-box framework assembly (nothing shipped): locale JSON parsing. -->
     <Reference Include="System.Web.Extensions" />
   </ItemGroup>
+
+  <Target Name="CheckDeobExists" BeforeTargets="CoreCompile">
+    <Error Condition="!Exists('..\game\EXAPUNKS-deob.exe') Or !Exists('..\game\EXAPUNKS.orig.exe')"
+           Text="game/EXAPUNKS-deob.exe + game/EXAPUNKS.orig.exe are required to build the module (typed game access). Run de4dot on a local copy of the shipping exe — see CLAUDE.md 'Analysis workspace'." />
+  </Target>
+
+  <!-- The deob → shipping rename table the host applies at module load. Regenerated only when the
+       game binaries change; deployed next to the locale files. -->
+  <Target Name="GenerateNameMap" AfterTargets="Build"
+          Inputs="..\game\EXAPUNKS.orig.exe;..\game\EXAPUNKS-deob.exe"
+          Outputs="$(IntermediateOutputPath)namemap.tsv">
+    <Exec Command="dotnet run --project &quot;$(MSBuildProjectDirectory)\..\tools\NameMap&quot; -- &quot;$(MSBuildProjectDirectory)\..\game\EXAPUNKS.orig.exe&quot; &quot;$(MSBuildProjectDirectory)\..\game\EXAPUNKS-deob.exe&quot; &quot;$(IntermediateOutputPath)namemap.tsv&quot;" />
+  </Target>
 
   <ItemGroup>
     <InternalsVisibleTo Include="ExaAccess.Tests" />
@@ -41,8 +63,9 @@
 
   <!-- Byte-loaded means never file-locked: this copy succeeds even while the game is running.
        That IS the hot-reload loop — build, then /reload. -->
-  <Target Name="DeployModule" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+  <Target Name="DeployModule" AfterTargets="GenerateNameMap" Condition="'$(Configuration)' == 'Debug'">
     <Copy SourceFiles="$(OutputPath)ExaAccess.Module.dll" DestinationFolder="$(GameDir)" />
+    <Copy SourceFiles="$(IntermediateOutputPath)namemap.tsv" DestinationFolder="$(GameDir)\ExaAccess" />
     <!-- Locale tables land under <game>\ExaAccess\locale\<lang>\*.json (the module is byte-loaded
          and has no disk location, so LocalizationManager roots off the host dll's folder). A module
          hot-reload re-reads them: edit a string, build, /reload, hear it. -->

@@ -58,23 +58,6 @@ namespace ExaAccess.Game
             public int Y;
         }
 
-        [DllImport(Dll, CallingConvention = CallingConvention.Cdecl, EntryPoint = "SDL_GetKeyName")]
-        private static extern IntPtr GetKeyNameRaw(int keycode);
-
-        /// <summary>SDL's display name for a keycode ("J", "Return", "Left Shift") — what the game
-        /// itself shows on its key-binding buttons.</summary>
-        public static string GetKeyName(int keycode)
-        {
-            IntPtr p = GetKeyNameRaw(keycode);
-            if (p == IntPtr.Zero) return "";
-            int len = 0;
-            while (Marshal.ReadByte(p, len) != 0) len++;
-            if (len == 0) return "";
-            var bytes = new byte[len];
-            Marshal.Copy(p, bytes, 0, len);
-            return System.Text.Encoding.UTF8.GetString(bytes);
-        }
-
         [DllImport(Dll, CallingConvention = CallingConvention.Cdecl, EntryPoint = "SDL_PushEvent")]
         private static extern int PushEventRaw(ref Event ev);
 

@@ -6,6 +6,7 @@
   "screen.title": "Title screen",
   "title.computer.hint": "Boot the computer and start the game",
   "title.tablet.hint": "Open the control panel: settings, controls, and exit",
+  "title.news.hint": "Read the TRASH WORLD NEWS zine",
 
   "screen.DesktopScreen": "Desktop",
   "screen.EditorScreen": "Editor",
