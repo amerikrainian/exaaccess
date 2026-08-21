@@ -58,6 +58,24 @@ to WrathAccess (`../wotr-access`) and SayTheSpire — reuse those patterns where
   shipping exe → `game/EXAPUNKS-deob.exe`, then `ilspycmd -p` into `game/decompiled/`
   (`~\.dotnet\tools\ilspycmd.exe`; de4dot downloads live outside the repo —
   `tools/de4dot/` is gitignored as a guard). Then re-verify every ordinal.
+- **Translating an obfuscated `#=q…` TYPE to its decompiled name** (types work like
+  members: row ORDER is preserved): get the live index via `/eval`
+  (`asm.ManifestModule.GetTypes().OrderBy(t => t.MetadataToken)`, IndexOf), then
+  `dotnet run --project tools/TypeMap -- game/EXAPUNKS-deob.exe` prints deob TypeDef
+  rows as `index<TAB>name`. Calibrate the offset with name-preserving anchors
+  (GetTypes omits `<Module>` and de4dot strips obfuscator types): THIS build,
+  deob row = live index − 14 (GameLogic 1205→1191; verified DesktopScreen 1148→1134,
+  LocString 1296→1282). NEVER reflection-load the deob exe (initializers stack-overflow).
+- **Title screen decoded** (deob `GClass368`, live type index 1055): the room scene.
+  Per-frame `imethod_1(float)` draws save-progress overlays (gated by
+  `saveData_0.method_13("ghast-1", 0)`-style story keys) and THREE mouse hotspots via
+  its `method_0` helper (hover fade + two LocString labels, click = act):
+  Sawayama Z7 computer → `GameLogic.method_12(new DesktopScreen())`;
+  TEC Constellation II tablet → `new ControlPanelScreen()` — ALSO opened by the
+  game's own Escape key handling; TRASH WORLD NEWS (only once "ghast-1" is done) →
+  `new GClass214(0)`. So: `GameLogic.method_12(IScreen)` = screen PUSH,
+  `GameLogic.method_6()` = active screen. The game's own localization is
+  `GClass7.smethod_5(key, …) → LocString` — labels are localized game-side.
 
 ## Build & deploy
 ```
@@ -100,7 +118,9 @@ launch `EXAPUNKS.exe`. A loopback HTTP server comes up on `127.0.0.1:8772`
 | `POST /say` | speak the body through the real speech path |
 | `GET /speech?since=N` | read back what was spoken (we can't hear TTS) |
 | `GET /screen` | active screen + full stack, by type name |
-| `POST /eval` | C# against the live game, main thread, persistent REPL state |
+| `GET /gui` | reflection dump of the active screen model — fields in TOKEN ORDER as `f[N]` (lines up with de4dot names/ordinals), collections expanded, depth-capped |
+| `GET /screenshot` | capture the game window to `%LOCALAPPDATA%\ExaAccess\screenshots\*.png`, path returned. In-process PrintWindow(PW_RENDERFULLCONTENT): NO focus change, works occluded, full render resolution. NEVER SetForegroundWindow for captures |
+| `POST /eval` | C# against the live game, main thread, persistent REPL state (C# 6 — no pattern matching) |
 
 `/eval` and `/screen` run on the game's main thread (queued, pumped from the tick
 prefix); `/say` and `/speech` answer directly off the HTTP thread. Reach live game

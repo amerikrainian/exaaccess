@@ -33,6 +33,7 @@
     <Compile Remove="third_party/**/*.cs" />
     <Compile Remove="tests/**/*.cs" />
     <Compile Remove="module/**/*.cs" />
+    <Compile Remove="tools/**/*.cs" />
   </ItemGroup>
 
   <!-- The unit-test project exercises internals; the reloadable module (module/) shares the host's
@@ -60,6 +61,11 @@
     <!-- In-box framework assemblies (nothing shipped): SAPI fallback + settings.json parsing. -->
     <Reference Include="System.Speech" />
     <Reference Include="System.Web.Extensions" />
+  </ItemGroup>
+
+  <!-- Dev-only /screenshot capture (PrintWindow → PNG). In-box; the whole feature is #if DEBUG. -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <Reference Include="System.Drawing" />
   </ItemGroup>
 
   <!-- Mono.CSharp powers the DEBUG-only dev server's /eval REPL (live introspection of the

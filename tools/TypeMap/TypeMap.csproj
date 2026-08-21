@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Dev tool: prints every TypeDef of a .NET assembly as "index<TAB>name", in metadata row order,
+       WITHOUT loading the assembly (System.Reflection.Metadata) — reflection-loading the deob exe
+       executes initializers and stack-overflows. Usage:
+         dotnet run - -project tools/TypeMap - - game/EXAPUNKS-deob.exe > deob-types.tsv
+       Join against the LIVE process (dev server /eval: ManifestModule.GetTypes() ordered by
+       MetadataToken) to translate an obfuscated #=q… type to its de4dot name: de4dot preserves
+       TypeDef ROW ORDER, so live index + offset == row index here (calibrate the small offset with
+       a name-preserving anchor like GameLogic; GetTypes omits the <Module> row this file includes). -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+</Project>
