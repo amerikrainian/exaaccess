@@ -16,7 +16,6 @@ namespace ExaAccess
     {
         private ModHost _host;
         private Harmony _harmony;
-        private bool _announcedReady;
 
         public void Load(ModHost host)
         {
@@ -40,21 +39,13 @@ namespace ExaAccess
             FrameLoop.Register("loc", LocalizationManager.Tick);
             FrameLoop.Register("screens", UI.ScreenAnnouncer.Instance.Tick);
 
-            // Boot load only — a hot reload mid-session shouldn't re-greet.
+            // One greeting, right at boot (the game window isn't even up yet), so the user knows the
+            // mod is alive before the splash prompt arrives. A hot reload mid-session doesn't re-greet.
             if (host.ModuleGeneration == 1)
-                Speech.Tts.Speak(Loc.T("app.starting"));
+                Speech.Tts.Speak(Loc.T("app.ready"));
         }
 
-        public void Tick()
-        {
-            if (!_announcedReady && _host.GameInitialized)
-            {
-                _announcedReady = true;
-                if (_host.ModuleGeneration == 1)
-                    Speech.Tts.Speak(Loc.T("app.ready"));
-            }
-            FrameLoop.Tick();
-        }
+        public void Tick() => FrameLoop.Tick();
 
         public void Dispose()
         {

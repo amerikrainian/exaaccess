@@ -142,7 +142,8 @@ Host:
 
 Module (each reload starts this half cold — statics are per-load):
 - `module/src/ExaAccessModule.cs` — `IModModule` implementation, module composition
-  root: loc first, then FrameLoop steps; greets/announces ready (generation 1 only).
+  root: loc first, then patches/hooks/FrameLoop steps; speaks "ExaAccess ready." once
+  at boot (generation 1 only — the splash prompt is the next thing the user hears).
 - `module/src/Localization/` — the WrathAccess loc layer: `Loc.T`, lazy `Message` with
   `{var}` substitution, `LocalizationManager` (enGB fallback manifest + per-frame
   language poll via the pluggable `LanguageSource`; game-language mapping is future
