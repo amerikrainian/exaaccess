@@ -1,0 +1,13 @@
+# Build output
+bin/
+obj/
+.vs/
+*.user
+
+# Deobfuscated / decompiled game code and copied game binaries — NEVER commit.
+# We ship no game code; this tree is a local analysis workspace only.
+game/
+
+# Local tool downloads (de4dot, etc.) live in the scratchpad, but guard anyway.
+tools/de4dot/
+*.nupkg
