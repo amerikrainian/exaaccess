@@ -73,10 +73,10 @@ namespace ExaAccess
                 game = Assembly.LoadFrom(Process.GetCurrentProcess().MainModule.FileName);
             Log.Info("Game assembly: " + game.FullName);
 
-            // Speech first, so we can announce even if patching later fails.
-            if (Speech.Tts.Init())
-                Speech.Tts.Speak("Exa Access starting.");
-            else
+            // Speech first, so failures further down can still be announced. The localized greeting
+            // itself comes from the module (localization is module-side); the host speaks only
+            // emergency strings — see the CLAUDE.md localization rule's host exemption.
+            if (!Speech.Tts.Init())
                 Log.Warning("Speech unavailable — continuing so the game still launches.");
 
             // The old loader exe stopped speech in a finally around the game's entry point; as a guest

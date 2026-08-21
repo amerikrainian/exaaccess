@@ -31,6 +31,8 @@
       <HintPath>..\third_party\harmony\0Harmony.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- In-box framework assembly (nothing shipped): locale JSON parsing. -->
+    <Reference Include="System.Web.Extensions" />
   </ItemGroup>
 
   <ItemGroup>
@@ -41,7 +43,15 @@
        That IS the hot-reload loop — build, then /reload. -->
   <Target Name="DeployModule" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
     <Copy SourceFiles="$(OutputPath)ExaAccess.Module.dll" DestinationFolder="$(GameDir)" />
-    <Message Importance="high" Text="ExaAccess.Module deployed to $(GameDir)" />
+    <!-- Locale tables land under <game>\ExaAccess\locale\<lang>\*.json (the module is byte-loaded
+         and has no disk location, so LocalizationManager roots off the host dll's folder). A module
+         hot-reload re-reads them: edit a string, build, /reload, hear it. -->
+    <ItemGroup>
+      <LocaleFiles Include="$(MSBuildProjectDirectory)\assets\locale\**\*.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(LocaleFiles)"
+          DestinationFiles="@(LocaleFiles->'$(GameDir)\ExaAccess\locale\%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Message Importance="high" Text="ExaAccess.Module + locale deployed to $(GameDir)" />
   </Target>
 
 </Project>

@@ -67,9 +67,10 @@ Tests: `dotnet test` from the repo root (`ExaAccess.sln` = mod + `tests/ExaAcces
 net48, InternalsVisibleTo). Game-independent logic (resolution, text mapping, loc, UI graph core)
 belongs there — grow the suite with each subsystem.
 
-User install (the future installer) = copy 6 files into the game folder:
+User install (the future installer) = copy 6 files into the game folder —
 `EXAPUNKS.exe.config`, `ExaAccess.dll`, `ExaAccess.Module.dll`, `0Harmony.dll`,
-`prism.dll`, `steam_appid.txt`. Uninstall = delete the config. The config binds the
+`prism.dll`, `steam_appid.txt` — plus the `ExaAccess\locale\` folder (the locale
+tables). Uninstall = delete the config. The config binds the
 host assembly by **full display name**, so the host's `AssemblyVersion` is pinned at
 **1.0.0.0** in its csproj — bump both in lockstep or the mod silently stops loading
 (release versioning goes in FileVersion instead).
@@ -120,15 +121,28 @@ Host:
   `MethodInfo`s (no `typeof(GameLogic)` at compile time).
 - `src/Modularity/` — `IModModule`/`ModHost` contract + `ModuleLoader`
   (byte-load, load-then-swap; the module dll is never file-locked).
-- `src/Speech/` — `PrismNative.cs` P/Invoke over `prism.dll`; `Tts.cs` facade. Host-side
-  because the native backend handle must survive module reloads.
+- `src/Speech/` — the WrathAccess handler stack, host-side because engines hold
+  native/OS resources that must survive module reloads: `Tts.cs` (the facade/chokepoint),
+  `SpeechManager` (priority chain Prism → SAPI → clipboard; lazy Detect/Load; auto
+  fallback — never strand a blind user voiceless), `PrismHandler`+`PrismNative`,
+  `SapiHandler` (in-box System.Speech — replaces WotR's 500 lines of manual COM),
+  `ClipboardHandler` (raw user32). Output choice: `speech.output` in
+  `%LOCALAPPDATA%\ExaAccess\settings.json` (flat dotted-key JSON, `src/HostConfig.cs`)
+  or the `EXAACCESS_SPEECH` env var for dev runs; default auto.
 - `src/Dev/` — DEBUG-only dev server (+ `/reload`); `src/Log.cs` — file logger.
 
 Module (each reload starts this half cold — statics are per-load):
 - `module/src/ExaAccessModule.cs` — `IModModule` implementation, module composition
-  root: registers FrameLoop steps, announces readiness (generation 1 only).
+  root: loc first, then FrameLoop steps; greets/announces ready (generation 1 only).
+- `module/src/Localization/` — the WrathAccess loc layer: `Loc.T`, lazy `Message` with
+  `{var}` substitution, `LocalizationManager` (enGB fallback manifest + per-frame
+  language poll via the pluggable `LanguageSource`; game-language mapping is future
+  work). Tables load from `<game>\ExaAccess\locale\<lang>\<table>.json` — rooted off
+  the HOST dll (the module is byte-loaded, it has no disk location). Module-side so a
+  hot reload re-reads the JSON: edit a string, build/copy, /reload, hear it.
 - `module/src/FrameLoop.cs` — ordered, defensive per-frame step registry.
-- `module/src/UI/` — `ScreenNames` (labels + obfuscation filter), `ScreenAnnouncer`.
+- `module/src/UI/` — `ScreenNames` (locale-backed labels + obfuscation filter),
+  `ScreenAnnouncer`.
 
 ## Hot reload (DEBUG loop for feature work)
 The module is `Assembly.Load(byte[])`'d, so `dotnet build module/ExaAccess.Module.csproj`
@@ -139,6 +153,10 @@ resets on reload so `/eval` sees the new types. Host/contract changes still need
 game restart (the host is file-locked and loaded once). Rules for module code are in
 `src/Modularity/IModModule.cs` — notably: module Harmony patches use a per-load unique
 id + `UnpatchSelf` in Dispose, and native handles live host-side only.
+`/eval` gotcha: after a reload, every module generation is still loaded, and a bare
+type reference (`Loc.T(...)`) may bind to an OLD generation. When it matters, resolve
+through the newest copy:
+`AppDomain.CurrentDomain.GetAssemblies().Where(a => a.GetName().Name == "ExaAccess.Module").Last()`.
 
 ## Hard rules
 - **Never commit or ship game code.** `game/` (deob exe, decompiled source, copied game
@@ -155,10 +173,14 @@ id + `UnpatchSelf` in Dispose, and native handles live host-side only.
   metadata tokens into the mod — both are meaningless on the shipping exe.
 - **Never speak `#=q…`** — filter obfuscated names (`GameLogicPatches.IsObfuscated`)
   before anything reaches `Tts`; map screens to friendly labels as they're identified.
+- **Localize every string the mod speaks** — `Loc.T(key[, args])` / `Message` + an
+  entry in `module/assets/locale/enGB/ui.json` (the complete translation manifest;
+  another language = a dropped-in folder under `<game>\ExaAccess\locale\`). Named
+  `{placeholders}`, not string.Format. Exemptions: HOST emergency strings (spoken when
+  the module itself failed to load — localization is module-side) and dev-only tooling.
 - **Speech never interrupts by default** (SayTheSpire house preference), and all
   user-facing output flows through `Tts.Speak` — the single chokepoint (it also feeds
-  the dev `/speech` tap). Localization is deferred until WrathAccess's Loc layer is
-  ported; until then keep speakable strings few and easy to sweep.
+  the dev `/speech` tap).
 - **All dev tooling is `#if DEBUG` and loopback-only.** Release builds ship zero dev
   surface (no server, no Mono.CSharp, no speech tap).
 - **`AssemblyVersion` stays 1.0.0.0** unless `deploy/EXAPUNKS.exe.config` is updated in

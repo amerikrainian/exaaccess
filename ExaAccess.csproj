@@ -57,6 +57,9 @@
       <HintPath>$(ThirdParty)\harmony\0Harmony.dll</HintPath>
       <Private>true</Private>
     </Reference>
+    <!-- In-box framework assemblies (nothing shipped): SAPI fallback + settings.json parsing. -->
+    <Reference Include="System.Speech" />
+    <Reference Include="System.Web.Extensions" />
   </ItemGroup>
 
   <!-- Mono.CSharp powers the DEBUG-only dev server's /eval REPL (live introspection of the

@@ -1,0 +1,14 @@
+{
+  "app.starting": "Exa Access starting.",
+  "app.ready": "ExaAccess ready.",
+
+  "screen.DesktopScreen": "Desktop",
+  "screen.EditorScreen": "Editor",
+  "screen.ControlPanelScreen": "Control panel",
+  "screen.PuzzleCompletionScreen": "Puzzle complete",
+  "screen.BattleCompletionScreen": "Battle complete",
+  "screen.SolitaireScreen": "Solitaire",
+  "screen.OpponentBrowserScreen": "Opponent browser",
+  "screen.CustomPuzzleScreen": "Custom puzzle",
+  "screen.GifRecorderScreen": "GIF recorder"
+}

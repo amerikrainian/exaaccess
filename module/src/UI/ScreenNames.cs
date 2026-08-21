@@ -11,26 +11,20 @@ namespace ExaAccess.UI
     /// </summary>
     internal static class ScreenNames
     {
-        /// <summary>Speakable label for a screen type name. Known screens get a curated label; anything
-        /// else is de-CamelCased so it's at least intelligible. Callers filter obfuscated names first.</summary>
+        /// <summary>Speakable label for a screen type name. Curated screens live in the locale table
+        /// ("screen.&lt;TypeName&gt;" in ui.json — the localizable manifest); anything unmapped is
+        /// de-CamelCased so it's at least intelligible. Callers filter obfuscated names first.</summary>
         public static string Friendly(string typeName)
         {
-            switch (typeName)
-            {
-                case "DesktopScreen": return "Desktop";
-                case "EditorScreen": return "Editor";
-                case "ControlPanelScreen": return "Control panel";
-                case "PuzzleCompletionScreen": return "Puzzle complete";
-                case "BattleCompletionScreen": return "Battle complete";
-                case "SolitaireScreen": return "Solitaire";
-                case "OpponentBrowserScreen": return "Opponent browser";
-                case "CustomPuzzleScreen": return "Custom puzzle";
-                case "GifRecorderScreen": return "GIF recorder";
-                default:
-                    string s = typeName;
-                    if (s.EndsWith("Screen", StringComparison.Ordinal)) s = s.Substring(0, s.Length - "Screen".Length);
-                    return DeCamel(s);
-            }
+            return Localization.LocalizationManager.GetOrDefault("ui", "screen." + typeName, FallbackLabel(typeName));
+        }
+
+        /// <summary>The label for a screen with no locale entry: strip the Screen suffix, de-camel.</summary>
+        internal static string FallbackLabel(string typeName)
+        {
+            string s = typeName;
+            if (s.EndsWith("Screen", StringComparison.Ordinal)) s = s.Substring(0, s.Length - "Screen".Length);
+            return DeCamel(s);
         }
 
         /// <summary>True when a type name is (or contains) Eazfuscator gibberish that de4dot could not

@@ -22,4 +22,12 @@
     <ProjectReference Include="..\..\module\ExaAccess.Module.csproj" />
   </ItemGroup>
 
+  <!-- The real locale tables, so label tests run against shipping data (a curated label can't
+       drift out of ui.json unnoticed). -->
+  <ItemGroup>
+    <None Include="..\..\module\assets\locale\**\*.json"
+          Link="assets\locale\%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
