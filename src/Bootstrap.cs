@@ -71,6 +71,11 @@ namespace ExaAccess
             else
                 Log.Warning("Speech unavailable — continuing so the game still launches.");
 
+            // The old loader exe stopped speech in a finally around the game's entry point; as a guest
+            // in the game's own process, the equivalent seam is process exit. Gives COM/SAPI-style
+            // backends an orderly release instead of relying on process teardown.
+            AppDomain.CurrentDomain.ProcessExit += (s, e) => Speech.Tts.Shutdown();
+
             GameState.Bind(game);
             if (!ApplyPatches(game))
                 Log.Warning("Harmony patches failed to attach — the game will still run, just without accessibility hooks.");
