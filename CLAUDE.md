@@ -54,10 +54,10 @@ to WrathAccess (`../wotr-access`) and SayTheSpire — reuse those patterns where
 - Known ordinals (`GameLogic`): method[8]=init, method[25]=per-frame tick,
   field[0]=static self-reference, field[21]=`Class5<IScreen>` screen stack (top = last
   element; its single `List<>` field is matched by type, not name).
-- **Re-analyzing** (after a game update — none in years): run de4dot on a copy of the
-  shipping exe → `game/EXAPUNKS-deob.exe`, then `ilspycmd -p` into `game/decompiled/`
-  (`~\.dotnet\tools\ilspycmd.exe`; de4dot downloads live outside the repo —
-  `tools/de4dot/` is gitignored as a guard). Then re-verify every ordinal.
+- **Re-analyzing** (after a game update — none in years): `tools\prepare-game.ps1
+  -Force -Decompile` regenerates orig + deob + `game/decompiled/` (de4dot is vendored
+  and pinned; ilspycmd via `dotnet tool install -g ilspycmd`). Then re-verify every
+  ordinal and the NameMap anchors (the module build fails loudly if alignment broke).
 - **Translating an obfuscated `#=q…` TYPE to its decompiled name** (types work like
   members: row ORDER is preserved): get the live index via `/eval`
   (`asm.ManifestModule.GetTypes().OrderBy(t => t.MetadataToken)`, IndexOf), then
@@ -108,9 +108,16 @@ shipping game at runtime once names are fixed up:
 dotnet build
 ```
 Building the solution (repo root) builds host + module + tests. BUILD PREREQUISITE:
-`game/EXAPUNKS-deob.exe` + `game/EXAPUNKS.orig.exe` must exist locally (the module
-compiles against the deob names and the build generates `namemap.tsv` from the pair —
-see "Typed game access"; a machine without a game copy cannot build the module).
+`game/EXAPUNKS-deob.exe` (the module compiles against the deob names and the build
+generates `namemap.tsv` — see "Typed game access"). Fresh-machine setup is ONE command
+with the game installed: `tools\prepare-game.ps1` — it copies the orig exe from the
+Steam dir, extracts the VENDORED de4dot (third_party/de4dot, version-pinned
+3.1.41592.3405, SHA-checked; the pin matters — de4dot's generated names ARE the
+module's source identifiers, and this version is verified to reproduce a byte-identical
+namemap), and runs it. `-Force` refreshes after a game update; `-Decompile` also
+rebuilds `game/decompiled/` (needs ilspycmd). The build itself auto-copies the orig exe
+when missing; only the deob half needs the script. A machine without a game install
+still cannot build the module.
 A Debug build deploys into the game folder: `ExaAccess.dll`, `ExaAccess.Module.dll`,
 `Mono.Cecil.dll` (the remapper), `0Harmony.dll`, `prism.dll` (native screen-reader
 bridge), `EXAPUNKS.exe.config`, `Mono.CSharp.dll` (dev REPL), `ExaAccess\namemap.tsv`

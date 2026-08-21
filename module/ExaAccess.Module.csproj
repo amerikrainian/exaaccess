@@ -44,9 +44,17 @@
     <Reference Include="System.Web.Extensions" />
   </ItemGroup>
 
+  <!-- The orig copy is just bytes from the installed game — fetch it automatically. -->
+  <Target Name="EnsureOrigExe" BeforeTargets="CheckDeobExists"
+          Condition="!Exists('..\game\EXAPUNKS.orig.exe') And Exists('$(GameDir)\EXAPUNKS.exe')">
+    <MakeDir Directories="..\game" />
+    <Copy SourceFiles="$(GameDir)\EXAPUNKS.exe" DestinationFiles="..\game\EXAPUNKS.orig.exe" />
+    <Message Importance="high" Text="Copied game\EXAPUNKS.orig.exe from $(GameDir)" />
+  </Target>
+
   <Target Name="CheckDeobExists" BeforeTargets="CoreCompile">
     <Error Condition="!Exists('..\game\EXAPUNKS-deob.exe') Or !Exists('..\game\EXAPUNKS.orig.exe')"
-           Text="game/EXAPUNKS-deob.exe + game/EXAPUNKS.orig.exe are required to build the module (typed game access). Run de4dot on a local copy of the shipping exe — see CLAUDE.md 'Analysis workspace'." />
+           Text="game/EXAPUNKS-deob.exe is required to build the module (typed game access — see CLAUDE.md). One-time setup: run tools\prepare-game.ps1 (needs the game installed; de4dot is vendored)." />
   </Target>
 
   <!-- The deob → shipping rename table the host applies at module load. Regenerated only when the
