@@ -22,9 +22,18 @@ to WrathAccess (`../wotr-access`) and SayTheSpire — reuse those patterns where
 - **Obfuscation**: Eazfuscator.NET. The shipping exe keeps real TYPE names
   (`GameLogic`, `IScreen`, `DesktopScreen`, `Sim`, …) but MEMBERS are `#=q…` gibberish.
   See "Analysis workspace" for how we target them anyway.
-- **Boot click-gate**: the loading screen blocks until a mouse click (SDL
-  `MOUSEBUTTONDOWN`) before init returns and the first screen appears — game behavior,
-  not a bug. Nothing ticks until then (our tick prefix included).
+- **Boot click-gate**: the loading screen blocks until a mouse click (SDL event type
+  1025, `MOUSEBUTTONDOWN`) before init returns and the first screen appears — game
+  behavior; nothing ticks until then (our tick prefix included). THE MOD FIXES THIS:
+  `module/src/Patches/SplashPatches.cs` announces a localized "Press any key to
+  continue" when the gate opens and advances it on any key press. Mechanics (from the
+  decompile): the gate waits on LOCALS (nothing to poke) but accepts any type-1025 SDL
+  event; its event loop DISCARDS key events, so `SDL_GetKeyboardState` is the only key
+  sensor there; we postfix the per-frame splash draw (the unique `void(float,bool)` on
+  `LoadingScreenRenderer`), edge-detect keys against a baseline, and `SDL_PushEvent` a
+  synthetic 1025 — the game then runs its own click path (music, sfx, fade) identically
+  to a real mouse click. Armed by `LoadingScreenRenderer` ordinal-2 postfix, disarmed by
+  `GameLogic` ordinal-24 prefix, so it can never fire during gameplay.
 - **Harmony**: vendored **2.4.2** net48 (`third_party/harmony/`) — the game ships no
   Harmony of its own (unlike WotR, where the game's 2.0.4 pins the API).
 - **Target framework**: `net48`, `PlatformTarget=x64` (must match the game exactly).
@@ -140,9 +149,28 @@ Module (each reload starts this half cold — statics are per-load):
   work). Tables load from `<game>\ExaAccess\locale\<lang>\<table>.json` — rooted off
   the HOST dll (the module is byte-loaded, it has no disk location). Module-side so a
   hot reload re-reads the JSON: edit a string, build/copy, /reload, hear it.
-- `module/src/FrameLoop.cs` — ordered, defensive per-frame step registry.
+- `module/src/FrameLoop.cs` — ordered, defensive per-frame step registry (steps:
+  keyboard snapshot → input → loc poll → screens). `FrameClock.cs` — Stopwatch clock.
 - `module/src/UI/` — `ScreenNames` (locale-backed labels + obfuscation filter),
-  `ScreenAnnouncer`.
+  `ScreenAnnouncer`, `ControlTypes` (the role-word/type registry).
+- `module/src/UI/Graph/` — the WrathAccess KEY-GRAPH CORE, ported verbatim (BCL-pure by
+  design — keep it that way; its 900+ lines of tests came over verbatim too): ControlId
+  two-tier identity, GraphTypes (nodes/vtables/stops/regions/parent chains), KeyGraph
+  (moves, Tab-stops, regions, trees, focus reconcile-on-rebuild), GraphBuilder
+  (menu/raw modes, groups, position stamping), GraphAnnouncer (path-diff speech;
+  wording hooks localized in module Load). Immediate-mode: screens re-declare controls
+  each render; focus persists by ControlId.
+- `module/src/Input/` — WrathAccess input substrate over SDL: `SdlKeyboard` (per-frame
+  snapshot of `SDL_GetKeyboardState` — no obfuscated members needed, independent of
+  what the game consumes), `Scancode`, `SdlKeyboardBinding` (exact-match modifiers),
+  `InputAction`/`InputBinding`/`InputCategory`/`InputManager` (category priority +
+  chord shadowing + OS typematic repeat via `OsKeyboard`). The navigator/screen-stack
+  hooks are pluggable funcs (`UiDispatcher`, `ActiveCategoriesProvider`,
+  `SuppressPoll`) — wired when GraphNavigator/ScreenManager land with the first screen.
+- `module/src/Game/SdlNative.cs` — P/Invoke over the game's own SDL2.dll: keyboard
+  state reads + `SDL_PushEvent` (56-byte union — the struct is Size=64 on purpose).
+- `module/src/Patches/SplashPatches.cs` — the any-key splash advance (see "Boot
+  click-gate" above).
 
 ## Hot reload (DEBUG loop for feature work)
 The module is `Assembly.Load(byte[])`'d, so `dotnet build module/ExaAccess.Module.csproj`
@@ -185,4 +213,27 @@ through the newest copy:
   surface (no server, no Mono.CSharp, no speech tap).
 - **`AssemblyVersion` stays 1.0.0.0** unless `deploy/EXAPUNKS.exe.config` is updated in
   the same commit.
+- **Keep `module/src/UI/Graph` BCL-pure** (no game/SDL/host-dev references) — its test
+  suite compiles it standalone in spirit; purity is what made the WotR port free.
+
+## Roadmap
+1. **(done)** In-process injection, Harmony on obfuscated members, Prism speech,
+   dev server, screen-change announcements.
+2. **(done)** Zero-loader: stock `EXAPUNKS.exe` boots the mod via AppDomainManager
+   config; mod ships as a DLL.
+3. **(done)** Host/module split with hot reload (build + /reload, no restart).
+4. **(done)** WrathAccess localization layer + handler-chain speech stack
+   (Prism → SAPI → clipboard); every module string localized.
+5. **(done)** Boot click-gate: localized "Press any key to continue" + any-key advance.
+6. **(done)** UI graph core + input substrate ported (with the WotR test suites).
+7. First screen: port GraphNavigator + Screen/ScreenManager against the EXAPUNKS
+   screen stack, wire `InputManager.UiDispatcher`/`ActiveCategoriesProvider`, add a
+   focus-mode key-suppression story (EXAPUNKS has no Keyboard.Disabled lever — swallow
+   keys via the game's key-set facade or SDL), then model the title/menu screen.
+8. Map the remaining obfuscated transition/overlay screens to friendly names.
+9. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
+   code editor for program text — this game is text-centric, a strong a11y target.
+10. Type-ahead search (WotR's TypeAheadSearch is pure — port with SDL TEXTINPUT), the
+    settings tree, and the mod menu.
+11. Installer (6 files + locale folder; uninstall = delete the config).
 

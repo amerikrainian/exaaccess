@@ -157,7 +157,7 @@ curl -s -X POST --data 'foreach (var n in ExaAccess.GameState.ScreenStackNames()
 
 ## Near-term next steps
 
-- Handle the boot click-gate (auto-advance or announce).
+- First screen over the ported UI graph (navigator + screen stack glue).
 - Map the obfuscated-name transition/overlay screens (major screens already have real names).
 - Read the **model**, not pixels: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay state, and
   the code editor for EXA program text — this game is unusually text-centric and a strong a11y target.

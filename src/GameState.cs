@@ -49,10 +49,15 @@ namespace ExaAccess
 
         public static bool Bound => _gameLogic != null;
 
+        /// <summary>The game assembly, for feature code (the module) that must resolve additional
+        /// obfuscated types/members. Set by Bind.</summary>
+        public static Assembly GameAssembly { get; private set; }
+
         /// <summary>Resolve the members we read/patch. Call once, right after the game assembly is loaded
         /// and before its entry point runs.</summary>
         public static void Bind(Assembly game)
         {
+            GameAssembly = game;
             _gameLogic = game.GetType("GameLogic");
             if (_gameLogic == null) { Log.Error("[gamestate] type 'GameLogic' not found — game layout changed?"); return; }
             _iScreen = game.GetType("IScreen");

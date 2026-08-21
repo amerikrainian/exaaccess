@@ -2,6 +2,8 @@
   "app.starting": "Exa Access starting.",
   "app.ready": "ExaAccess ready.",
 
+  "splash.press_any_key": "Press any key to continue",
+
   "screen.DesktopScreen": "Desktop",
   "screen.EditorScreen": "Editor",
   "screen.ControlPanelScreen": "Control panel",
@@ -10,5 +12,16 @@
   "screen.SolitaireScreen": "Solitaire",
   "screen.OpponentBrowserScreen": "Opponent browser",
   "screen.CustomPuzzleScreen": "Custom puzzle",
-  "screen.GifRecorderScreen": "GIF recorder"
+  "screen.GifRecorderScreen": "GIF recorder",
+
+  "role.button": "button",
+  "role.toggle": "toggle",
+  "role.slider": "slider",
+  "role.radio button": "radio button",
+  "role.combo box": "combo box",
+  "role.tab": "tab",
+  "role.expanded": "expanded",
+  "role.collapsed": "collapsed",
+
+  "nav.position": "{index} of {count}"
 }

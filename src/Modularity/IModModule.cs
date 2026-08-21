@@ -12,7 +12,7 @@ namespace ExaAccess.Modularity
     ///
     /// Rules a module implementation must follow (each learned the hard way in NVC):
     ///  • Any Harmony patching uses a PER-LOAD UNIQUE id (e.g. "com.exaaccess.module." + Guid) and
-    ///    UnpatchSelf() in Dispose. The host loads the NEW module before disposing the OLD one (so a
+    ///    UnpatchAll(ownId) in Dispose. The host loads the NEW module before disposing the OLD one (so a
     ///    failed reload keeps the old module running) — with a fixed id, the old module's teardown
     ///    would strip the fresh load's patches.
     ///  • Never cache game objects across frames beyond what a reload can cheaply rebuild; re-derive
