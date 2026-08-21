@@ -18,24 +18,31 @@ SDL2 + Direct3D11 engine. SDL2/`Renderer_D3D11.dll` are called from C# via P/Inv
 
 Because it's an ordinary managed exe, there is no native Unity player to bootstrap into, so the hard
 problem BepInEx exists to solve (Doorstop/IL2CPP interop/domain timing) simply doesn't apply. The
-patching library you actually want — **Harmony** — we use directly. Our loader *becomes* the process:
+patching library you actually want — **Harmony** — we use directly, and the CLR itself provides the
+injection point: an **`EXAPUNKS.exe.config`** dropped next to the game names `ExaAccess.Bootstrap`
+(`src/Bootstrap.cs`) as the process's **AppDomainManager**, which the runtime instantiates inside the
+**stock** `EXAPUNKS.exe` before the game's entry point — or any of its static ctors — runs:
 
-```
-Assembly game = Assembly.LoadFrom("EXAPUNKS.exe");
-GameState.Bind(game);              // resolve engine members (see "Obfuscation")
-new Harmony("...").Patch(...);     // patches in place before ANY game code runs
-game.EntryPoint.Invoke(null, ...); // hand control to the game
+```xml
+<runtime>
+  <appDomainManagerAssembly value="ExaAccess, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
+  <appDomainManagerType value="ExaAccess.Bootstrap" />
+</runtime>
 ```
 
-That gives the same "patched before frame one" guarantee BepInEx's chainloader gives on Unity, in three
-reflection calls — and a dead-simple install for users (drop files in the folder, run one exe).
+That gives the same "patched before frame one" guarantee BepInEx's chainloader gives on Unity, from one
+config file. Steam's Play button just works; no game file is modified, so "verify integrity" leaves the
+install alone, and deleting the config restores a fully vanilla launch. (The mod originally shipped as a
+loader exe that `Assembly.LoadFrom`'d the game and invoked its entry point in-process — same guarantee,
+but users had to launch the loader instead of the game. The config route made it redundant.)
 
 ## Architecture
 
 ```
 src/
-  Loader.cs              Entry point: locate game, set cwd, steam_appid, boot speech,
-                         LoadFrom + Harmony patch + invoke the game's entry point.
+  Bootstrap.cs           The mod's entry point: AppDomainManager the CLR instantiates inside the
+                         STOCK EXAPUNKS.exe (via deploy/EXAPUNKS.exe.config) before any game code
+                         runs — set cwd, steam_appid, boot speech, bind members, Harmony patch.
   Log.cs                 File logger → %LOCALAPPDATA%\ExaAccess\exaaccess.log (+ console).
   GameState.cs           Reflection-cached view of the live game; resolves engine members
                          by token-ordinal (see below). The seam every model read goes through.
@@ -46,6 +53,8 @@ src/
     GameLogicPatches.cs  Harmony hooks: postfix on init (announce ready), prefix on the
                          per-frame tick (main-thread pump + screen-change announcements).
   Dev/                   DEBUG-only loopback HTTP test server (see "Dev server").
+deploy/
+  EXAPUNKS.exe.config    The zero-loader hookup (appDomainManagerAssembly/Type → ExaAccess.Bootstrap).
 third_party/
   prism/                 prism.dll + header/license (screen-reader bridge). [committed]
   harmony/               0Harmony.dll 2.4.2 net48 (MIT). [committed]
@@ -88,18 +97,28 @@ dotnet build ExaAccess.csproj -c Debug
 ```
 
 A **Debug** build deploys into the game folder (override with `-p:GameDir="..."`): it copies
-`ExaAccess.exe`, `0Harmony.dll`, `prism.dll` (and `Mono.CSharp.dll` for the dev REPL), and writes
-`steam_appid.txt`. `dotnet build -c Release` compiles the shipping loader with no dev server.
+`ExaAccess.dll`, `0Harmony.dll`, `prism.dll`, `EXAPUNKS.exe.config` (and `Mono.CSharp.dll` for the dev
+REPL), and writes `steam_appid.txt`. `dotnet build -c Release` compiles the shipping build with no dev
+server.
 
 ## Running it
 
-The Steam client must be running. Then either:
+With the Steam client running, just start **`EXAPUNKS.exe`** — Steam Play button, shortcut, anything.
+The deployed `EXAPUNKS.exe.config` makes the CLR load `ExaAccess.Bootstrap` inside the stock process
+before the game runs. This is all the future installer sets up: copy `EXAPUNKS.exe.config`,
+`ExaAccess.dll`, `0Harmony.dll`, `prism.dll`, `steam_appid.txt` into the game folder — done.
 
-1. **Direct:** run `ExaAccess.exe` from inside the game folder. `steam_appid.txt` (written by the build,
-   and by the loader as a fallback) makes Steamworks accept the launch instead of bouncing to the vanilla
-   exe (`GameLogic` init calls `SteamAPI.RestartAppIfNecessary(716490)`).
-2. **Via Steam:** set the game's launch options to `"…\ExaAccess.exe" %command%` so Steam sets up its
-   environment and hands us the game exe path.
+Two things to know:
+
+- The config binds the mod assembly by **full display name**; `AssemblyVersion` is pinned at 1.0.0.0 in
+  the csproj so they can't drift apart.
+- `steam_appid.txt` (written by the build, and by Bootstrap as a fallback) stops `GameLogic` init's
+  `SteamAPI.RestartAppIfNecessary(716490)` from restarting a non-Steam launch through Steam. Even if
+  that bounce happens, the relaunched stock exe re-enters through the same config and still loads the
+  mod — it's cosmetic, not fatal.
+
+To play **vanilla**, delete `EXAPUNKS.exe.config` from the game folder; no game file is ever modified,
+so Steam's "verify integrity" is never needed to undo the mod.
 
 **Boot note:** EXAPUNKS' loading screen waits for a **mouse click** (SDL `MOUSEBUTTONDOWN`) before `init`
 returns and the game reaches its first screen — this is the game's own behavior. A blind player needs a
@@ -129,7 +148,8 @@ curl -s -X POST --data 'foreach (var n in ExaAccess.GameState.ScreenStackNames()
 
 ## What works today (proven)
 
-- Loader injects into the obfuscated game in-process; `steam_appid.txt` prevents the relaunch bounce.
+- **Zero-loader launch**: starting the stock `EXAPUNKS.exe` boots the mod via the AppDomainManager
+  config — verified end-to-end (patches fire, speech speaks, dev server drives the live game).
 - Harmony patches attach to obfuscated `GameLogic` methods (resolved by ordinal): init postfix and the
   per-frame tick prefix both fire.
 - Speech works: "ExaAccess ready" spoken through NVDA at boot.
@@ -143,4 +163,3 @@ curl -s -X POST --data 'foreach (var n in ExaAccess.GameState.ScreenStackNames()
   the code editor for EXA program text — this game is unusually text-centric and a strong a11y target.
 - Port the richer config-driven speech stack (SAPI/positional/settings) behind the existing `Tts` facade.
 - Shipping distribution: keep resolving the retail exe by ordinal (never redistribute the deob copy).
-```

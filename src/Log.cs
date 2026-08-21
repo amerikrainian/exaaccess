@@ -6,9 +6,10 @@ namespace ExaAccess
     /// <summary>
     /// The mod's logger. Unlike the WotR sibling (which routes through Unity's Debug log into
     /// Player.log), EXAPUNKS has no engine log surface we can borrow, so we write our own file under
-    /// %LOCALAPPDATA%\ExaAccess\ and mirror to the console the loader owns. A screen-reader user can
-    /// point support at one predictable path. Thread-safe: the game hooks (main thread) and the dev
-    /// HTTP server (its own thread) both log.
+    /// %LOCALAPPDATA%\ExaAccess\ and mirror to any attached console (a normal GUI launch has none;
+    /// Console.WriteLine is then a harmless no-op). A screen-reader user can point support at one
+    /// predictable path. Thread-safe: the game hooks (main thread) and the dev HTTP server (its own
+    /// thread) both log.
     /// </summary>
     public static class Log
     {

@@ -11,7 +11,7 @@ namespace ExaAccess.Patches
     ///   • <see cref="BeforeTick"/> — prefix on GameLogic.method_25() (the per-frame tick from Main's
     ///     while(true) loop). Our main-thread heartbeat: pumps the dev server and announces screen changes.
     ///
-    /// These are attached MANUALLY from <see cref="Loader"/> (harmony.Patch with reflected MethodInfos),
+    /// These are attached MANUALLY from <see cref="Bootstrap"/> (harmony.Patch with reflected MethodInfos),
     /// not via [HarmonyPatch] attributes, because we don't reference the obfuscated game assembly at
     /// compile time — there is no <c>typeof(GameLogic)</c> to name. Instance methods receive the live
     /// object as <c>object __instance</c> (Harmony's magic parameter), typed as object since we can't

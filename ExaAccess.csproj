@@ -3,12 +3,12 @@
   <!-- ExaAccess — screen-reader accessibility mod for EXAPUNKS (Zachtronics).
        EXAPUNKS is a single, self-contained .NET Framework 4.x x64 executable ("Burbank")
        running Zachtronics' own SDL2/D3D11 engine — NOT Unity. So there is no Unity player to
-       bootstrap into: this project builds a small LOADER exe that Assembly.LoadFrom's the game,
-       applies Harmony patches BEFORE the game's entry point runs, boots speech, then invokes the
-       game's entry point in-process. See README.md for the full rationale (and why not BepInEx). -->
+       bootstrap into: this project builds ExaAccess.dll, which the STOCK EXAPUNKS.exe loads by
+       itself via deploy/EXAPUNKS.exe.config (AppDomainManager → src/Bootstrap.cs) before any game
+       code runs. See README.md for the full rationale (and why not BepInEx). -->
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <TargetFramework>net48</TargetFramework>
     <!-- The game is x64; we host it in-process, so we must match its architecture exactly. -->
     <PlatformTarget>x64</PlatformTarget>
@@ -17,6 +17,10 @@
     <Nullable>disable</Nullable>
     <AssemblyName>ExaAccess</AssemblyName>
     <RootNamespace>ExaAccess</RootNamespace>
+    <!-- Pinned: deploy/EXAPUNKS.exe.config binds the AppDomainManager by FULL display name
+         (Version=1.0.0.0). Version releases via FileVersion/InformationalVersion instead; if you ever
+         bump AssemblyVersion, bump the config in lockstep or the zero-loader path silently dies. -->
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
@@ -55,22 +59,29 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Deploy into the game folder after a Debug build; then launch ExaAccess.exe (see README). -->
+  <!-- Deploy into the game folder after a Debug build; then just launch EXAPUNKS.exe (see README). -->
   <Target Name="DeployMod" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
     <ItemGroup>
-      <Payload Include="$(OutputPath)ExaAccess.exe" />
+      <Payload Include="$(OutputPath)ExaAccess.dll" />
       <Payload Include="$(OutputPath)0Harmony.dll" />
       <!-- Native screen-reader bridge (Prism → NVDA/JAWS/SAPI/OneCore). Must sit next to the exe
            whose working dir is the game folder so P/Invoke can resolve it. -->
       <Payload Include="$(ThirdParty)\prism\prism.dll" />
+      <!-- Zero-loader hookup: makes the STOCK EXAPUNKS.exe instantiate ExaAccess.Bootstrap
+           (AppDomainManager) before any game code runs, so launching the game normally loads the mod. -->
+      <Payload Include="$(MSBuildProjectDirectory)\deploy\EXAPUNKS.exe.config" />
     </ItemGroup>
     <Copy SourceFiles="@(Payload)" DestinationFolder="$(GameDir)" />
+    <!-- The mod shipped as a loader exe before it became a config-loaded dll; assembly probing tries
+         .dll before .exe, but a stale ExaAccess.exe would still invite users to run it. Clear it. -->
+    <Delete Files="$(GameDir)\ExaAccess.exe" />
     <!-- Mono.CSharp for the DEBUG-only /eval; harmless to place next to the game. -->
     <Copy SourceFiles="$(ThirdParty)\monocsharp\Mono.CSharp.dll" DestinationFolder="$(GameDir)"
           Condition="'$(Configuration)' == 'Debug'" />
-    <!-- steam_appid.txt so a direct launch of ExaAccess.exe is accepted by Steamworks and NOT
-         bounced back to the vanilla exe by SteamAPI.RestartAppIfNecessary (GameLogic.method_8).
-         The loader also writes this at runtime as a fallback. -->
+    <!-- steam_appid.txt so a launch that didn't come from Steam is accepted by Steamworks and NOT
+         restarted through Steam by SteamAPI.RestartAppIfNecessary (GameLogic.method_8) — the bounce
+         would only be a cosmetic double launch (the relaunched stock exe re-enters through the same
+         config), but skip the churn. Bootstrap also writes this at runtime as a fallback. -->
     <WriteLinesToFile File="$(GameDir)\steam_appid.txt" Lines="$(SteamAppId)" Overwrite="true" />
     <Message Importance="high" Text="ExaAccess deployed to $(GameDir)" />
   </Target>
