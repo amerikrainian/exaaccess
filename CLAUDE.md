@@ -61,6 +61,10 @@ REPL), writes `steam_appid.txt`, and deletes any stale pre-DLL `ExaAccess.exe`.
 `dotnet build -c Release` compiles without deploying and contains zero dev tooling.
 Override the install path with `-p:GameDir="…"`.
 
+Tests: `dotnet test` from the repo root (`ExaAccess.sln` = mod + `tests/ExaAccess.Tests`, xunit on
+net48, InternalsVisibleTo). Game-independent logic (resolution, text mapping, loc, UI graph core)
+belongs there — grow the suite with each subsystem.
+
 User install (the future installer) = copy 5 files into the game folder:
 `EXAPUNKS.exe.config`, `ExaAccess.dll`, `0Harmony.dll`, `prism.dll`, `steam_appid.txt`.
 Uninstall = delete the config. The config binds our assembly by **full display name**,

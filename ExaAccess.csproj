@@ -78,7 +78,10 @@
            (AppDomainManager) before any game code runs, so launching the game normally loads the mod. -->
       <Payload Include="$(MSBuildProjectDirectory)\deploy\EXAPUNKS.exe.config" />
     </ItemGroup>
-    <Copy SourceFiles="@(Payload)" DestinationFolder="$(GameDir)" />
+    <!-- ContinueOnError: the dll is locked while the game runs, and a test build (dotnet test also
+         builds this project) must not fail just because the game is open — the deploy is then stale
+         and the warning says so. -->
+    <Copy SourceFiles="@(Payload)" DestinationFolder="$(GameDir)" ContinueOnError="true" Retries="0" />
     <!-- The mod shipped as a loader exe before it became a config-loaded dll; assembly probing tries
          .dll before .exe, but a stale ExaAccess.exe would still invite users to run it. Clear it. -->
     <Delete Files="$(GameDir)\ExaAccess.exe" />

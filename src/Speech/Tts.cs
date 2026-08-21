@@ -140,7 +140,8 @@ namespace ExaAccess.Speech
 
         // EXAPUNKS labels aren't TMP rich text (that was WotR/Unity), but many strings carry embedded
         // newlines/tabs and runs of spaces — collapse them so speech doesn't stutter.
-        private static string Clean(string s)
+        // Internal for the unit tests.
+        internal static string Clean(string s)
         {
             if (string.IsNullOrEmpty(s)) return s;
             var sb = new StringBuilder(s.Length);
