@@ -6,7 +6,9 @@ obj/
 
 # Deobfuscated / decompiled game code and copied game binaries — NEVER commit.
 # We ship no game code; this tree is a local analysis workspace only.
-game/
+# Anchored to the repo root: an unanchored "game/" also swallowed module/src/Game/
+# (git on Windows matches ignore patterns case-insensitively).
+/game/
 
 # Local tool downloads (de4dot, etc.) live in the scratchpad, but guard anyway.
 tools/de4dot/
