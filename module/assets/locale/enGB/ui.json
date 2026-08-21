@@ -3,6 +3,15 @@
 
   "splash.press_any_key": "Press any key to continue",
 
+  "screen.title": "Title screen",
+  "title.computer": "Sawayama Z7 TurboLance computer",
+  "title.computer.hint": "Boot the computer and start the game",
+  "title.tablet": "TEC Constellation II tablet",
+  "title.tablet.hint": "Open the control panel: settings, sandbox, and extras",
+
+  "nav.no_tooltip": "No details",
+  "nav.no_details": "No details",
+
   "screen.DesktopScreen": "Desktop",
   "screen.EditorScreen": "Editor",
   "screen.ControlPanelScreen": "Control panel",

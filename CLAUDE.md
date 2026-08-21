@@ -173,7 +173,21 @@ Module (each reload starts this half cold — statics are per-load):
 - `module/src/FrameLoop.cs` — ordered, defensive per-frame step registry (steps:
   keyboard snapshot → input → loc poll → screens). `FrameClock.cs` — Stopwatch clock.
 - `module/src/UI/` — `ScreenNames` (locale-backed labels + obfuscation filter),
-  `ScreenAnnouncer`, `ControlTypes` (the role-word/type registry).
+  `ControlTypes` (the role-word/type registry), and the NAVIGATOR layer ported from
+  WrathAccess: `Navigator` (contract) / `Navigation` (static facade) /
+  `GraphNavigator` (pull-based announce differ over the graph core: per-frame
+  EnsureFocus, live-part watch, the ui.* input vocabulary; type-ahead and sound cues
+  deliberately deferred). `FocusMode` — plain flag, ON by default; suppression later.
+- `module/src/Screens/` — `Screen` base + `ScreenManager` (WrathAccess poll-and-diff
+  lifecycle; resolution = registered screens polling the GAME's screen stack via
+  GameState). Unmodeled game screens still announce by friendly name (the retired
+  ScreenAnnouncer's behavior, now the manager's fallback — obfuscated names logged,
+  never spoken). `TitleScreen` — the first modeled screen: resolves its obfuscated
+  game type BY SHAPE (the unique IScreen carrying bool(float,Texture,Vector2,
+  LocString,LocString,*,Vector2,Bounds2)), two buttons (computer → DesktopScreen,
+  tablet → ControlPanelScreen) activated via `Game/GameApi.PushScreen` —
+  `GameLogic.method_12(IScreen)` (ordinal 12, signature cross-checked, unique-scan
+  fallback), byte-identical to the game's own hotspot click.
 - `module/src/UI/Graph/` — the WrathAccess KEY-GRAPH CORE, ported verbatim (BCL-pure by
   design — keep it that way; its 900+ lines of tests came over verbatim too): ControlId
   two-tier identity, GraphTypes (nodes/vtables/stops/regions/parent chains), KeyGraph
@@ -247,14 +261,18 @@ through the newest copy:
    (Prism → SAPI → clipboard); every module string localized.
 5. **(done)** Boot click-gate: localized "Press any key to continue" + any-key advance.
 6. **(done)** UI graph core + input substrate ported (with the WotR test suites).
-7. First screen: port GraphNavigator + Screen/ScreenManager against the EXAPUNKS
-   screen stack, wire `InputManager.UiDispatcher`/`ActiveCategoriesProvider`, add a
-   focus-mode key-suppression story (EXAPUNKS has no Keyboard.Disabled lever — swallow
-   keys via the game's key-set facade or SDL), then model the title/menu screen.
-8. Map the remaining obfuscated transition/overlay screens to friendly names.
-9. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
-   code editor for program text — this game is text-centric, a strong a11y target.
-10. Type-ahead search (WotR's TypeAheadSearch is pure — port with SDL TEXTINPUT), the
+7. **(done)** Navigator glue: GraphNavigator + Screen/ScreenManager over the game's
+   screen stack, input wired, TitleScreen modeled (keyboard-only from launch into the
+   game, verified live).
+8. Model DesktopScreen — the in-game hub (AXIOM organizer window, CHATSUBO chat,
+   draggable windows; see the screenshots dir for what it looks like). Then the EXA
+   code editor. Along the way: the focus-mode key-suppression story (EXAPUNKS has no
+   Keyboard.Disabled lever — swallow keys via the game's key-set facade or SDL);
+   screens where the game actually uses the keyboard will need it.
+9. Map the remaining obfuscated transition/overlay screens to friendly names.
+10. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
+    code editor for program text — this game is text-centric, a strong a11y target.
+11. Type-ahead search (WotR's TypeAheadSearch is pure — port with SDL TEXTINPUT), the
     settings tree, and the mod menu.
-11. Installer (6 files + locale folder; uninstall = delete the config).
+12. Installer (6 files + locale folder; uninstall = delete the config).
 

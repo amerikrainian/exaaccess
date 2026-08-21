@@ -71,5 +71,6 @@ namespace ExaAccess.Input
         F10 = 67, F11 = 68, F12 = 69,
         Insert = 73, Home = 74, PageUp = 75, Delete = 76, End = 77, PageDown = 78,
         Right = 79, Left = 80, Down = 81, Up = 82,
+        KpEnter = 88,
     }
 }

@@ -1,0 +1,443 @@
+using System.Collections.Generic;
+using ExaAccess.Input;
+using ExaAccess.Localization;
+using ExaAccess.UI.Graph;
+
+namespace ExaAccess.UI
+{
+    /// <summary>
+    /// The graph-based navigator, ported from WrathAccess: every screen runs on the key-graph core
+    /// (<see cref="KeyGraph"/>), announce discipline is PULL-based — the graph is rebuilt per
+    /// operation and per frame, focus is reconciled by identity, and a focus change is announced
+    /// exactly once no matter what caused it (input, a screen moving focus, a content rebuild, the
+    /// game replacing objects). WrathAccess's type-ahead search is deliberately not ported yet (it
+    /// needs SDL TEXTINPUT plumbing — roadmap); its sound cues await an audio layer.
+    /// </summary>
+    public sealed class GraphNavigator : Navigator
+    {
+        // One GraphState per LIVE screen (focus cursor, per-stop memory, tree expansion): a screen
+        // covered by another keeps its state and restores exactly where you were when focus returns;
+        // a POPPED screen's state is dropped (ScreenClosed), so reopening starts fresh.
+        private readonly Dictionary<Screens.Screen, GraphState> _states =
+            new Dictionary<Screens.Screen, GraphState>();
+        private GraphState _state = new GraphState();
+        private KeyGraph _graph;
+
+        // The differ's memory: the node identity (and its render node, for context diffing) last spoken.
+        private ControlId _lastSpokenKey;
+        private GraphNode _lastSpokenNode;
+
+        // A focus request whose target isn't in the render yet (lazy content): applied by EnsureFocus.
+        private ControlId _pendingFocus;
+        private bool _pendingAnnounce;
+
+        // A pending land-on-stop request (applied by EnsureFocus once the stop has nodes): resolves to
+        // the stop's landing node at apply time, so it works when the caller can't know node keys.
+        private object _pendingStop;
+
+        /// <summary>Focus = a focused NODE.</summary>
+        public override bool HasFocus => _graph?.CurrentNode != null;
+
+        public override void Attach(Screens.Screen screen)
+        {
+            bool same = ReferenceEquals(screen, Screen);
+            Screen = screen;
+            if (!same)
+            {
+                // Swap to this screen's own state (creating it on first attach). The differ memory
+                // resets so the (possibly restored) landing announces itself on return.
+                if (screen != null)
+                {
+                    if (!_states.TryGetValue(screen, out _state))
+                    {
+                        _state = new GraphState();
+                        _states[screen] = _state;
+                    }
+                }
+                else
+                {
+                    _state = new GraphState();
+                }
+                _lastSpokenKey = null;
+                _lastSpokenNode = null;
+                _pendingFocus = null;
+                _pendingStop = null;
+                _liveKey = null;
+            }
+            _graph = screen != null ? new KeyGraph(() => BuildRender(screen), _state) : null;
+        }
+
+        public override void ScreenClosed(Screens.Screen screen)
+        {
+            if (screen != null) _states.Remove(screen);
+        }
+
+        public override void FocusNode(ControlId id, bool announce = true)
+        {
+            if (id == null) return;
+            _pendingFocus = id;
+            _pendingAnnounce = announce;
+        }
+
+        public override void FocusStop(object stopKey)
+        {
+            _pendingStop = stopKey;
+        }
+
+        public override object FocusedStopKey => _graph?.CurrentNode?.StopKey;
+
+        /// <summary>The live render + focused node id (DEBUG inspection).</summary>
+        internal GraphRender CurrentRender => _graph?.Current;
+        internal ControlId FocusedNodeId => _graph?.CurrentNode?.Id;
+
+        // Screens declare fresh from live game state on every render (immediate mode).
+        private GraphRender BuildRender(Screens.Screen screen)
+        {
+            var b = new GraphBuilder(_state.Expanded); // groups consult the persistent expansion set
+            screen.Build(b);
+            return b.Build();
+        }
+
+        public override void Blur()
+        {
+            _state.CurKey = null;
+            _lastSpokenKey = null;
+            _lastSpokenNode = null;
+            _pendingFocus = null;
+            _liveKey = null;
+        }
+
+        /// <summary>The per-frame pull: rebuild + reconcile, establish initial focus when content
+        /// appears, apply pending focus requests, and announce any focus-identity change exactly once.</summary>
+        public override void EnsureFocus()
+        {
+            if (Screen == null || _graph == null) return;
+
+            if (_state.CurKey == null && _pendingFocus == null)
+            {
+                // Unfocused screens stay unfocused until Tab seats a cursor.
+                if (Screen.StartUnfocused) return;
+                if (!_graph.Rerender()) return; // no content yet — Reconcile will seat the start node once there is
+                // Declared initial landing: seat the stop's landing node BEFORE the differ announces below.
+                var stop = Screen.InitialFocusStop;
+                if (stop != null)
+                {
+                    var land = KeyGraph.StopLanding(_graph.Current, _graph.State, stop);
+                    if (land != null) _graph.Focus(land.Id);
+                }
+            }
+            else
+            {
+                if (!_graph.Rerender()) return; // nothing focusable this frame — retry
+                if (_pendingFocus != null)
+                {
+                    // One retry frame for a target focused mid-build; a target that still isn't in the
+                    // render was removed — drop the request rather than re-seating every frame.
+                    if (_graph.Current.Nodes.ContainsKey(_pendingFocus))
+                    {
+                        _graph.Focus(_pendingFocus);
+                        if (!_pendingAnnounce) { _lastSpokenKey = _pendingFocus; _lastSpokenNode = _graph.CurrentNode; }
+                    }
+                    _pendingFocus = null;
+                }
+                if (_pendingStop != null)
+                {
+                    var land = KeyGraph.StopLanding(_graph.Current, _graph.State, _pendingStop);
+                    if (land != null) _graph.Focus(land.Id);
+                    _pendingStop = null; // announce rides the normal differ below
+                }
+            }
+
+            var node = _graph.CurrentNode;
+            if (node == null) return;
+
+            if (_lastSpokenKey == null || !_lastSpokenKey.Equals(node.Id))
+            {
+                // Queued (not interrupting): landings follow the screen name / preceding feedback.
+                if (FocusMode.Active) Speak(ComposeMove(_lastSpokenNode, node, entry: _lastSpokenNode == null));
+                _lastSpokenKey = node.Id;
+                _lastSpokenNode = node;
+            }
+
+            WatchLive(node);
+        }
+
+        // ---- live announcements: watch the FOCUSED node's Live parts and speak a part when its value
+        // changes (an async toggle settling, the game flipping a state). Baselines silently whenever
+        // focus lands on a new identity (the focus announcement already spoke the initial state).
+        private ControlId _liveKey;
+        private readonly List<string> _liveValues = new List<string>();
+
+        private void WatchLive(GraphNode node)
+        {
+            var anns = GraphAnnouncer.EffectiveAnnouncements(node);
+            if (anns.Count == 0) return;
+            bool baseline = _liveKey == null || !_liveKey.Equals(node.Id) || _liveValues.Count != anns.Count;
+            if (baseline) { _liveKey = node.Id; _liveValues.Clear(); }
+
+            for (int i = 0; i < anns.Count; i++)
+            {
+                if (anns[i] == null || !anns[i].Live)
+                {
+                    if (baseline) _liveValues.Add(null);
+                    continue;
+                }
+                string v = null;
+                try { v = anns[i].Text?.Invoke(); } catch { }
+                if (baseline) { _liveValues.Add(v); continue; }
+                if (!string.Equals(_liveValues[i], v))
+                {
+                    _liveValues[i] = v;
+                    if (!string.IsNullOrEmpty(v) && FocusMode.Active) Speak(v, interrupt: false);
+                }
+            }
+        }
+
+        public override void AnnounceCurrent()
+        {
+            if (_graph == null) return;
+            if (_state.CurKey == null && Screen != null && Screen.StartUnfocused) return;
+            if (!_graph.Rerender()) return;
+            var node = _graph.CurrentNode;
+            if (node == null) return;
+            Speak(ComposeMove(null, node, entry: true));
+            _lastSpokenKey = node.Id;
+            _lastSpokenNode = node;
+        }
+
+        // ---- input ----
+
+        public override bool OnInputJustPressed(InputAction action)
+        {
+            switch (action.Key)
+            {
+                case "ui.up": return Arrow(NavDirection.Up);
+                case "ui.down": return Arrow(NavDirection.Down);
+                case "ui.left": return Arrow(NavDirection.Left);
+                case "ui.right": return Arrow(NavDirection.Right);
+                case "ui.next": return Tab(1);
+                case "ui.prev": return Tab(-1);
+                case "ui.home": return JumpEdge(first: true);
+                case "ui.end": return JumpEdge(first: false);
+                // Region jumps consume only when the focused node is IN a region — elsewhere they bubble.
+                case "ui.regionPrev": return _graph?.CurrentNode?.RegionKey != null && RegionJump(-1);
+                case "ui.regionNext": return _graph?.CurrentNode?.RegionKey != null && RegionJump(1);
+                case "ui.activate":
+                {
+                    if (_graph?.CurrentNode == null) return false;
+                    VtableActivate();
+                    return true;
+                }
+                case "ui.secondary":
+                {
+                    var node = _graph?.CurrentNode;
+                    if (node == null) return false;
+                    if (node.Vtable.OnSecondary != null) _graph.Secondary();
+                    return true;
+                }
+                case "ui.back":
+                    return Screen != null && Screen.InvokeAction(ActionIds.Back);
+                case "ui.tooltip":
+                {
+                    var node = _graph?.CurrentNode;
+                    if (node == null) return false;
+                    if (node.Vtable.OnTooltip != null) { _graph.Tooltip(); return true; }
+                    Speak(Loc.T("nav.no_tooltip"));
+                    return true;
+                }
+                default:
+                    return false;
+            }
+        }
+
+        private static GraphDir ToDir(NavDirection dir)
+        {
+            switch (dir)
+            {
+                case NavDirection.Up: return GraphDir.Up;
+                case NavDirection.Down: return GraphDir.Down;
+                case NavDirection.Left: return GraphDir.Left;
+                default: return GraphDir.Right;
+            }
+        }
+
+        private bool Arrow(NavDirection dir)
+        {
+            var focusNode = _graph?.CurrentNode;
+            if (focusNode == null) return false;
+
+            // A focused slider/dropdown adjusts on Left/Right (priority over any navigation).
+            if (dir == NavDirection.Left || dir == NavDirection.Right)
+            {
+                if (VtableAdjust(dir == NavDirection.Right ? 1 : -1)) return true;
+            }
+
+            // Edge-wired movement first (rows/grids/flattened tree rows all ride edges).
+            var move = _graph.Move(ToDir(dir));
+            if (move.Moved) { AnnounceMove(move); return true; }
+
+            // At an edge. Left/Right get tree semantics: expand/collapse a group, descend into an
+            // expanded one, ascend from a child.
+            if (dir == NavDirection.Left || dir == NavDirection.Right)
+            {
+                var tr = dir == NavDirection.Right ? _graph.TreeRight() : _graph.TreeLeft();
+                switch (tr.Kind)
+                {
+                    case KeyGraph.TreeMove.Expanded:
+                    case KeyGraph.TreeMove.Collapsed:
+                        SpeakFocusedState();
+                        return true;
+                    case KeyGraph.TreeMove.EmptyGroup:
+                        Speak(Loc.T("nav.no_details"), interrupt: true);
+                        return true;
+                    case KeyGraph.TreeMove.Descended:
+                    case KeyGraph.TreeMove.Ascended:
+                        AnnounceMove(tr.Move);
+                        return true;
+                    case KeyGraph.TreeMove.Leaf:
+                        return true; // inside a tree; nothing that way — consume
+                }
+            }
+
+            // Nothing moved: consume edges inside trees; bubble from plain lists so an unfocused
+            // screen's arrows can fall through to global handlers.
+            return KeyGraph.InTree(focusNode);
+        }
+
+        // Speak the focused group's post-toggle state (its full readout includes expanded/collapsed)
+        // and rebaseline the differ + live watch so the toggle isn't re-announced.
+        private void SpeakFocusedState()
+        {
+            var node = _graph.CurrentNode;
+            if (node == null) return;
+            Speak(GraphAnnouncer.LeafText(node), interrupt: true);
+            _lastSpokenKey = node.Id;
+            _lastSpokenNode = node;
+            _liveKey = null;
+        }
+
+        private bool Tab(int step)
+        {
+            // Snapshot BEFORE rerendering: Reconcile auto-seats a null cursor at the start node, and an
+            // unfocused screen's Tab must enter at the first stop, not step from that phantom seat.
+            bool wasUnfocused = _state.CurKey == null;
+            if (_graph == null || !_graph.Rerender()) return false;
+
+            var stops = new List<object>();
+            foreach (var n in _graph.Current.Order)
+                if (n.StopKey != null && !stops.Contains(n.StopKey)) stops.Add(n.StopKey);
+            if (stops.Count == 0) return false;
+
+            var curNode = wasUnfocused ? null : _graph.CurrentNode;
+            int idx = curNode != null ? stops.IndexOf(curNode.StopKey) : -1;
+
+            if (idx < 0)
+            {
+                // Unfocused: Tab enters at the first/last stop.
+                return LandOnStop(stops[step >= 0 ? 0 : stops.Count - 1]);
+            }
+
+            int ni = idx + step;
+            if (ni < 0 || ni >= stops.Count)
+            {
+                if (Screen != null && Screen.StartUnfocused)
+                {
+                    Blur(); // truly unfocused → a later re-entry stays unfocused
+                    if (!string.IsNullOrEmpty(Screen.ScreenName)) Speak(Screen.ScreenName, interrupt: true);
+                    return true;
+                }
+                if (Screen != null && Screen.Wrap)
+                    ni = ((ni % stops.Count) + stops.Count) % stops.Count;
+                else
+                    return true; // at the end; consume, no wrap
+            }
+            return LandOnStop(stops[ni]);
+        }
+
+        private bool LandOnStop(object stopKey)
+        {
+            // Remembered position → SELECTED member → first node (the shared StopLanding).
+            var land = KeyGraph.StopLanding(_graph.Current, _graph.State, stopKey);
+            if (land == null || !_graph.Focus(land.Id)) return true;
+
+            var node = _graph.CurrentNode;
+            Speak(ComposeMove(_lastSpokenNode, node, entry: false), interrupt: true);
+            _lastSpokenKey = node.Id;
+            _lastSpokenNode = node;
+            return true;
+        }
+
+        private bool JumpEdge(bool first)
+        {
+            var focusNode = _graph?.CurrentNode;
+            if (focusNode == null) return false;
+
+            // In a tree: first/last sibling at the current depth.
+            if (KeyGraph.InTree(focusNode))
+            {
+                var sib = _graph.MoveToSiblingEdge(first);
+                if (sib.Moved) AnnounceMove(sib);
+                return true;
+            }
+
+            // First/last along the vertical axis of the current structure.
+            var move = _graph.MoveToEdge(first ? GraphDir.Up : GraphDir.Down);
+            if (move.Moved) AnnounceMove(move);
+            return true;
+        }
+
+        private bool RegionJump(int dir)
+        {
+            var result = _graph.MoveRegion(dir);
+            if (!result.Moved) return true; // no region that way → consume
+            AnnounceMove(result);
+            return true;
+        }
+
+        private void AnnounceMove(MoveResult result)
+        {
+            var node = result.To;
+            if (node == null) return;
+            Speak(ComposeMove(result.From, node, entry: false, transitionLabel: result.TransitionLabel), interrupt: true);
+            _lastSpokenKey = node.Id;
+            _lastSpokenNode = node;
+        }
+
+        // Run the focused node's vtable activation; speak its StateText as immediate feedback when it
+        // declares one, and rebaseline the live watch so the same change isn't spoken twice.
+        private bool VtableActivate()
+        {
+            var node = _graph.CurrentNode;
+            if (node?.Vtable.OnActivate == null) return false;
+            _graph.Activate();
+            node = _graph.CurrentNode;
+            var st = node?.Vtable.StateText;
+            if (st != null)
+            {
+                Speak(st(), interrupt: true);
+                _liveKey = null; // rebaseline: the change was just spoken synchronously
+            }
+            return true;
+        }
+
+        private bool VtableAdjust(int sign)
+        {
+            var node = _graph.CurrentNode;
+            if (node?.Vtable.OnAdjust == null) return false;
+            _graph.TryAdjust(sign, large: false);
+            node = _graph.CurrentNode;
+            var st = node?.Vtable.StateText;
+            if (st != null)
+            {
+                Speak(st(), interrupt: true);
+                _liveKey = null;
+            }
+            return true;
+        }
+
+        private string ComposeMove(GraphNode from, GraphNode to, bool entry, string transitionLabel = null)
+        {
+            return GraphAnnouncer.Compose(entry ? null : from, to, transitionLabel);
+        }
+    }
+}
