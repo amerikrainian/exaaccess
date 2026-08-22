@@ -1278,8 +1278,21 @@ namespace ExaAccess.Screens
             StatRow(b, "pc.size", () => ScoreManager.locString_1.ToString(), () => Stat(s, 1));
             StatRow(b, "pc.activity", () => ScoreManager.locString_2.ToString(), () => Stat(s, 2));
             b.PopContext();
-            StatRow(b, "pc.resume", () => GameText.T("Continue Editing"), () => Loc.T("key.escape"));
-            StatRow(b, "pc.leave", () => GameText.T("Return to Desktop"), () => Loc.T("key.enter"));
+        }
+
+        // The options are announced once on entry (user rule) — the browsable rows are the stats.
+        public override void OnFocus()
+        {
+            base.OnFocus();
+            try
+            {
+                Speech.Tts.Speak(Loc.T("editor.complete.options", new
+                {
+                    resume = GameText.T("Continue Editing"),
+                    leave = GameText.T("Return to Desktop"),
+                }));
+            }
+            catch { }
         }
 
         private static void StatRow(GraphBuilder b, string id, Func<string> label, Func<string> value)

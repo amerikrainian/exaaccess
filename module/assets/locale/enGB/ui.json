@@ -69,8 +69,7 @@
   "editor.mbus": "{exa} M-bus",
   "editor.exa.deleted": "{exa} deleted",
   "editor.goal.file": "File {id} at {host}: {values}.",
-  "key.escape": "Escape",
-  "key.enter": "Enter",
+  "editor.complete.options": "Escape: {resume}. Enter: {leave}.",
   "text.newline": "new line",
 
   "desktop.details": "Task details",
