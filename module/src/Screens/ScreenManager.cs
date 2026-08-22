@@ -134,6 +134,8 @@ namespace ExaAccess.Screens
             if (_registered.Count > 0) return;
             Register(new TitleScreen());
             Register(new DesktopHubScreen());
+            Register(new CutsceneScreen());
+            Register(new TrashWorldNewsScreen());
             Register(new ControlPanelHomeScreen());
             Register(new ControlPanelOptionsScreen());
             Register(new ControlPanelControlsScreen());

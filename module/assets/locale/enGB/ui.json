@@ -16,6 +16,8 @@
   "screen.GifRecorderScreen": "GIF recorder",
   "screen.ArcadeScreen": "Arcade",
   "screen.Ember2CutsceneScreen": "Cutscene",
+  "screen.cutscene": "Cutscene",
+  "cutscene.line": "{name}: {text}",
 
   "role.button": "button",
   "role.toggle": "toggle",

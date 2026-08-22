@@ -89,9 +89,10 @@ shipping game at runtime once names are fixed up:
 - So module source reads like WrathAccess: `GameLogic.gameLogic_0.method_12(screen)`,
   `S.gclass52_5.method_2(v)`, `new GClass21(cell)` — compiler-checked, IntelliSense'd.
 - The two escape hatches: PRIVATE members can't compile — resolve by deob name via
-  `Game/Deobf` (reads the same namemap; only valid on name-preserved types); Harmony
-  targets for PUBLIC methods via `Game/Expr.MethodOf(() => …)` so the ldtoken remaps
-  (STRING-based reflection with deob names does NOT remap — never use it).
+  `Game/Deobf` (reads the same namemap; works on RENAMED types too — the map's T rows
+  translate the runtime shipping type name back to the deob name the M/F rows key by);
+  Harmony targets for PUBLIC methods via `Game/Expr.MethodOf(() => …)` so the ldtoken
+  remaps (STRING-based reflection with deob names does NOT remap — never use it).
 - **Title screen decoded** (deob `GClass368`, live type index 1055): the room scene.
   Per-frame `imethod_1(float)` draws save-progress overlays (gated by
   `saveData_0.method_13("ghast-1", 0)`-style story keys) and THREE mouse hotspots via
@@ -312,6 +313,17 @@ Module (each reload starts this half cold — statics are per-load):
   focus would swallow the queued lines the game flushes on re-expose. Deferred:
   leaderboards/histograms, the multiplayer opponent table, side-jobs tab live-verify
   (needs an ember-7 save), the custom-win hold-button.
+- `module/src/Screens/CutsceneScreens.cs` — `CutsceneScreen` over the visual-novel
+  cutscene player (deob GClass255, obfuscated live — the nivas/ghast/isadora scenes;
+  FULLY LINEAR: vignette script + current-line int, no choices): ANNOUNCE-ONLY with
+  CapturesRawInput — the game's own Space/Tab/Enter/click advance and Escape skip stay
+  live; OnUpdate watches the line index (privates via Deobf's T-row bridge) and speaks
+  each line in full as it appears, speaker-prefixed per the drawn name plate (Moss =
+  the player's plate-less narration, spoken bare; non-Moss lines are VOICE-ACTED and
+  TTS currently reads them anyway, subtitle-style). Plus `TrashWorldNewsScreen` —
+  name-only over the zine reader (deob GClass214, obfuscated live; ghast-1/2 cutscenes
+  end by pushing it): announces the game's own hotspot label, content reading is
+  future work.
 - `module/src/Patches/GameKeySuppression.cs` — the focus-mode key-suppression seam:
   Harmony prefixes on `GClass64.smethod_17/22` (via `Expr.MethodOf`; positional `__0`
   binding — shipping param names are obfuscated) return not-pressed for the navigator's
@@ -406,10 +418,12 @@ through the newest copy:
    Deferred on the desktop: leaderboards/histograms + the multiplayer opponent table
    (post-solve detail-pane content), the side-jobs tab live-verify (needs an ember-7
    save), the custom-win press-and-hold button.
-10. Model the EXA code editor (`EditorScreen` — the desktop's puzzle tasks open
-    straight into it) and the destination screens the desktop pushes
-    (`Ember2CutsceneScreen`, `SolitaireScreen`, `ArcadeScreen`, `CustomPuzzleScreen`
-    currently announce by friendly name only).
+10. **(partly done)** Desktop destinations: the visual-novel cutscene player is fully
+    accessible (`CutsceneScreens.cs` — every line spoken as it appears, game keys
+    native) and TRASH WORLD NEWS announces by name. Still to model: the EXA code
+    editor (`EditorScreen` — the big one), the news reader's CONTENT, and
+    `Ember2CutsceneScreen`/`SolitaireScreen`/`ArcadeScreen`/`CustomPuzzleScreen`
+    (friendly name only today).
 11. Map the remaining obfuscated transition/overlay screens to friendly names.
 12. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
     code editor for program text — this game is text-centric, a strong a11y target.
