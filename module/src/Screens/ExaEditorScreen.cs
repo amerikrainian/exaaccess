@@ -824,7 +824,8 @@ namespace ExaAccess.Screens
             }
             _stepEcho = false;
             Invoke(AdvanceMethod, e, fast, (Maybe<int>)GStruct10.gstruct10_0);
-            Speech.Tts.Speak(Loc.T(fast ? "editor.fast" : "editor.running"));
+            // The run-start confirmation comes from the state transition in OnUpdate — one
+            // announcement whether the run began from our buttons or the native F4/F5.
         }
 
         private void PauseSim()
@@ -963,6 +964,10 @@ namespace ExaAccess.Screens
                 _runCycles = 0;
                 _goalStates = null;
             }
+            // A free run started by the NATIVE F4/F5 gets the same "Running." confirmation our
+            // buttons give (stepping stays quiet — its cycle echo is the feedback).
+            if (running && !_wasRunning && !_stepEcho)
+                Speech.Tts.Speak(Loc.T("editor.running"));
             _wasRunning = running;
 
             int cycles = 0;
@@ -989,7 +994,9 @@ namespace ExaAccess.Screens
 
             bool solved = false;
             try { solved = sim != null && sim.method_47(); } catch { }
-            if (solved && !_wasSolved)
+            // Voiced while STEPPING only — Run/Fast sweeps all 100 runs and would repeat this
+            // per run (user rule: free runs voice failures only).
+            if (solved && !_wasSolved && _stepEcho)
                 Speech.Tts.Speak(GameText.T("Test Run Complete"));
             _wasSolved = solved;
         }
@@ -1049,7 +1056,10 @@ namespace ExaAccess.Screens
                 for (int i = 0; i < goals.Count; i++)
                 {
                     int state = (int)goals[i].imethod_1(sim, sim.list_5).genum152_0;
-                    if (state != _goalStates[i] && state != 0)
+                    // Free runs (Run/Fast) voice FAILURES only — the per-run completes across
+                    // 100 auto-advancing test runs were pure spam (user rule). Stepping keeps
+                    // both directions; the completion screen announces overall success.
+                    if (state != _goalStates[i] && state != 0 && (_stepEcho || state != 1))
                         Speech.Tts.Speak(GoalLabel(i) + ", "
                             + Loc.T(state == 1 ? "value.complete" : "value.failed"));
                     _goalStates[i] = state;
