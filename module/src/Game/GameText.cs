@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace ExaAccess.Game
 {
@@ -29,8 +29,16 @@ namespace ExaAccess.Game
         public static string TSpeech(string key) => Speech(T(key));
 
         /// <summary>The same speech massage for a game string obtained some other way (a LocString
-        /// read off a game object rather than looked up by key).</summary>
+        /// read off a game object rather than looked up by key). Also strips the game's inline
+        /// emphasis markup (*bold* / _italic_) — but keeps backslash-ESCAPED literals ("HACK\*MATCH"
+        /// keeps its asterisk): the escaped forms are shelved on placeholders before the strip.</summary>
         public static string Speech(string s)
-            => s == null ? null : s.Replace(" / ", ", ").Replace("\n", " ").Replace("\\", "");
+        {
+            if (s == null) return null;
+            s = s.Replace("\\*", "\u0001").Replace("\\_", "\u0002");
+            s = s.Replace("*", "").Replace("_", "");
+            s = s.Replace("\u0001", "*").Replace("\u0002", "_");
+            return s.Replace(" / ", ", ").Replace("\n", " ").Replace("\\", "");
+        }
     }
 }

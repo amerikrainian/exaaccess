@@ -126,6 +126,33 @@ shipping game at runtime once names are fixed up:
   it), smethod_22(key) = pressed-with-repeat (arrows + numpad aliases),
   smethod_23(GEnum1 0–3) = left/right/up/down actions over smethod_22.
 
+- **EXA editor decoded** (`EditorScreen`, ~3700 lines; deep notes re-derivable from the
+  decompile — the load-bearing facts): ONE window model `dictionary_1 =
+  Dictionary<EntityID, EditorWindow>`; `EntityID` (Exa/MovableFile/ImmovableFile) is
+  the ONLY identity that survives — while editing, the whole `Sim` (every
+  SimExa/SimFile) is REBUILT EVERY FRAME (`method_25`). Code: one flat '\n' string per
+  EXA (`SolutionExa.string_1`, max 1000 lines × 24 cols — enforced by SILENT ROLLBACK
+  after the edit), caret = char offsets in `CodeEditorWidget` (`int_0` anchor/`int_1`
+  caret; line/col derived), typed chars UPPERCASED + font-filtered, undo = Solution-
+  level snapshots. The game's one focus notion: `EditorScreen.maybe_3 =
+  Maybe<(EntityID, name|code)>`; focused-window walk = Ctrl+Up/Down (EXAs only).
+  NATIVE KEYS: full text editing (arrows/Home/End/PgUp/Dn/clipboard/Ctrl+A, Shift
+  select), Tab=step (hold=repeat), F3=pause, F4=run, F5=fast, Esc=reset-or-leave,
+  F1(HELD)=show goal (alternate render from `sim.list_5` DiffReportEntry), Ctrl+Enter=
+  new EXA, Ctrl+O=solution browser, Ctrl+Z/Y undo, Ctrl+Shift+F11=dev skip-win.
+  MOUSE-ONLY: window collapse/expand/pop-out/delete, M-bus Local/Global, test-run
+  arrows + field, Create New EXA button (alias exists), scrollbar, map inspection,
+  error-hover tooltips. Sim state: SimExa `int_0` current instr (indexes the MACRO-
+  EXPANDED pass `gclass286_1`; map back via `GClass286.dictionary_0`), X=`exaValue_0`
+  T=`exaValue_1`, F=held `maybe_3`+cursor `int_1`, M=`maybe_4`+`mbusMode_0`; errors:
+  `bool_0`+`string_1` (localized, Class37) live ~ONE CYCLE before the sim deletes the
+  EXA. Hosts `sim.list_0`, entities `list_1`, goals `list_2` (label `imethod_0()` +
+  GClass234 state), cycles `method_52()`, activity `method_53()`; completion pushes
+  PuzzleCompletionScreen. Nearly EVERYTHING user-facing is REAL DRAWN TEXT (task
+  locString, goal rows, registers, host names, file plates, error text, tooltips —
+  the game even ships tooltip LocStrings for the art-only sim buttons); art is just
+  chrome/sprites/buttons. Files: `SimFile.list_0 = List<ExaValue>` (int-or-string).
+
 ## Build & deploy
 ```
 dotnet build

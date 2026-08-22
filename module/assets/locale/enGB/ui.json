@@ -38,6 +38,13 @@
   "value.unavailable": "unavailable",
   "value.percent": "{value} percent",
   "value.complete": "complete",
+  "value.failed": "failed",
+
+  "editor.task": "Task",
+  "editor.stats": "Scores",
+  "editor.solution": "Solution",
+  "editor.solution.name": "Solution name",
+  "editor.exas": "EXAs",
 
   "desktop.details": "Task details",
   "desktop.detail.location": "Location",
