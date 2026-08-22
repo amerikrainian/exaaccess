@@ -865,7 +865,7 @@ namespace ExaAccess.Screens
         // ---- per-frame: step-cycle echo, run-stop and test-run-complete announcements ----
 
         private object _instance;
-        private bool _wasRunning, _wasSolved, _wasCodeFocused;
+        private bool _wasRunning, _wasSolved, _wasCodeFocused, _wasShowGoal;
 
         public override void OnUpdate()
         {
@@ -888,6 +888,12 @@ namespace ExaAccess.Screens
 
             // Leaving the solution-name field commits it, like the game's click-away.
             if (NameArmed(e) && !Navigation.TextEntryFocused) CommitName(e);
+
+            // The native F1 hold (Show Goal) speaks the goal details on press, same as our button.
+            bool showGoal = false;
+            try { showGoal = e.method_7(); } catch { }
+            if (showGoal && !_wasShowGoal) SpeakGoalDetails();
+            _wasShowGoal = showGoal;
 
             var sim = TheSim(e);
             bool running = false;
