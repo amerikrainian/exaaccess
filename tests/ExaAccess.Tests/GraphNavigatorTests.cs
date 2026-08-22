@@ -276,6 +276,104 @@ namespace ExaAccess.Tests
             Assert.DoesNotContain("selected", _speech.Spoken[_speech.Spoken.Count - 1]); // ...silently
         }
 
+        // ---- text-entry nodes (typing-first fields) ----
+
+        private sealed class TextFieldHarness
+        {
+            public string Value = "";
+            public int Armed;
+            public NodeVtable Vt(string label) => new NodeVtable
+            {
+                Announcements = new[] { NodeAnnouncement.Static(label) },
+                TextEntry = true,
+                TextValue = () => Value,
+                OnSelect = () => Armed++,
+            };
+        }
+
+        [Fact]
+        public void TextEntryFocusBubblesSpaceAndBackspace()
+        {
+            var h = new TextFieldHarness();
+            var screen = new TestScreen { Declare = b => b.AddItem(ControlId.Structural("f"), h.Vt("Field")) };
+            _nav.Attach(screen);
+            _nav.EnsureFocus();
+
+            Assert.True(_nav.TextEntryFocused);
+            Assert.False(_nav.OnInputJustPressed(Action("ui.tooltip")));   // Space types into the field
+            Assert.False(_nav.OnInputJustPressed(Action("ui.secondary"))); // Backspace edits the field
+        }
+
+        [Fact]
+        public void TypingEchoSpeaksAppendedAndDeletedCharacters()
+        {
+            var h = new TextFieldHarness();
+            var screen = new TestScreen { Declare = b => b.AddItem(ControlId.Structural("f"), h.Vt("Field")) };
+            _nav.Attach(screen);
+            _nav.EnsureFocus(); // baseline (announces "Field")
+
+            h.Value = "a";
+            _nav.EnsureFocus();
+            Assert.Equal("a", _speech.Spoken[_speech.Spoken.Count - 1]);
+
+            h.Value = "ab";
+            _nav.EnsureFocus();
+            Assert.Equal("b", _speech.Spoken[_speech.Spoken.Count - 1]);
+
+            h.Value = "a"; // deletion echoes the removed character bare
+            _nav.EnsureFocus();
+            Assert.Equal("b", _speech.Spoken[_speech.Spoken.Count - 1]);
+        }
+
+        [Fact]
+        public void CapsOffFieldsEchoUppercaseBare()
+        {
+            // TextEchoCaps=false: the widget normalizes case, so its buffer holds no capitals to
+            // report — an uppercase buffer char echoes bare, on both typing and deleting.
+            string value = "";
+            var screen = new TestScreen
+            {
+                Declare = b => b.AddItem(ControlId.Structural("f"), new NodeVtable
+                {
+                    Announcements = new[] { NodeAnnouncement.Static("Field") },
+                    TextEntry = true,
+                    TextValue = () => value,
+                    TextEchoCaps = false,
+                }),
+            };
+            _nav.Attach(screen);
+            _nav.EnsureFocus();
+
+            value = "A";
+            _nav.EnsureFocus();
+            Assert.Equal("A", _speech.Spoken[_speech.Spoken.Count - 1]);
+
+            value = "";
+            _nav.EnsureFocus();
+            Assert.Equal("A", _speech.Spoken[_speech.Spoken.Count - 1]);
+        }
+
+        [Fact]
+        public void TabLandingArmsATextField()
+        {
+            var h = new TextFieldHarness();
+            var screen = new TestScreen
+            {
+                Declare = b =>
+                {
+                    b.AddItem(ControlId.Structural("a"), Vt("Alpha"));
+                    b.BeginStop();
+                    b.AddItem(ControlId.Structural("f"), h.Vt("Field"));
+                },
+            };
+            _nav.Attach(screen);
+            _nav.EnsureFocus();
+            Assert.Equal(0, h.Armed);
+
+            Assert.True(_nav.OnInputJustPressed(Action("ui.next"))); // Tab into the form stop
+            Assert.Equal(1, h.Armed); // fields DO arm on stop landings — ready to type
+        }
+
         [Fact]
         public void HomeEndJumpTriggersOnSelect()
         {

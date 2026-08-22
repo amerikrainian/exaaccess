@@ -110,6 +110,24 @@ namespace ExaAccess.UI.Graph
         /// stays a separate gesture -- a list row can select on scroll and open on Enter.</summary>
         public Action OnSelect;
 
+        /// <summary>Optional (with <see cref="TextValue"/>). Marks a LIVE TYPE-TARGET: while this
+        /// node is focused, printable keys belong to a text field (the host game's or ours) — the
+        /// input pipeline stands its Space/Backspace bindings down so characters flow, and speaks
+        /// typed/deleted characters by watching <see cref="TextValue"/>. Unlike other OnSelect
+        /// nodes, Tab-stop landings and programmatic focus DO run OnSelect here: focus on a text
+        /// field means "ready to type". Navigation keys (arrows, Tab, Home/End) keep navigating —
+        /// pair only with append-style fields that don't need them for caret movement.</summary>
+        public bool TextEntry;
+
+        /// <summary>The live text buffer of a <see cref="TextEntry"/> node, for typing echo.</summary>
+        public Func<string> TextValue;
+
+        /// <summary>Echo capital letters as "Cap X" (default), from the BUFFER's case — right for
+        /// widgets that store what you type. Set false on widgets that normalize case at insert:
+        /// their model holds no capitals, so none are announced — never infer case from the Shift
+        /// key; that would report state the field doesn't remember (user rule, 2026-08-22).</summary>
+        public bool TextEchoCaps = true;
+
         /// <summary>Optional. ENGINE-level selection state: stop landings (Tab into a stop, initial
         /// entry) prefer the selected member. Declared here, it is NOT spoken -- the pairing for
         /// OnSelect controls (tabs, list rows), where selection always follows focus and announcing

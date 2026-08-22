@@ -86,7 +86,15 @@ namespace ExaAccess.UI
             Order = StandardOrder,
         };
 
+        /// <summary>An editable text field (pairs with NodeVtable.TextEntry).</summary>
+        public static readonly ControlType TextField = new ControlType
+        {
+            Key = "text_field",
+            Order = StandardOrder,
+            Common = () => RoleWord("text field"),
+        };
+
         /// <summary>Every registered type (future per-type announcement settings key off this).</summary>
-        public static readonly ControlType[] All = { Button, Toggle, Slider, RadioButton, ComboBox, Tab, Group, Text };
+        public static readonly ControlType[] All = { Button, Toggle, Slider, RadioButton, ComboBox, Tab, Group, Text, TextField };
     }
 }

@@ -76,6 +76,9 @@ namespace ExaAccess.Patches
         {
             try
             {
+                // A focused text field owns Backspace (the append widget's one keycode poll);
+                // printable characters ride the TEXTINPUT channel, which is never suppressed.
+                if ((int)__0 == 8 && UI.Navigation.TextEntryFocused) return true;
                 if (Keys.Contains((int)__0) && Suppressing())
                 {
                     __result = false;

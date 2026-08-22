@@ -259,8 +259,15 @@ Module (each reload starts this half cold — statics are per-load):
   needed (Enter/OnActivate stays separate — task rows open on it). Such controls
   declare `NodeVtable.Selected` (engine-only — drives stop/entry landings) INSTEAD of
   a spoken Selected part: selection that always follows focus is never announced
-  (user rules, 2026-08-22); radio options keep speaking theirs. `FocusMode` — plain
-  flag, ON by default; its game-side half is `Patches/GameKeySuppression.cs`.
+  (user rules, 2026-08-22); radio options keep speaking theirs. TEXT ENTRY
+  (`NodeVtable.TextEntry` + `TextValue`): a typing-first field — focus arriving ANY
+  way (arrows, Tab-stop landing, programmatic) runs OnSelect to arm the game's field,
+  printable keys flow via SDL TEXTINPUT (a channel suppression never touches), the
+  navigator stands its Space/Backspace bindings down and passes keycode 8 through the
+  suppression seam, and typed/DELETED characters echo bare — deletions speak just the
+  character, single capitals speak "Cap X" (user rules, 2026-08-22), suppressible per
+  node via `TextEchoCaps` for widgets that uppercase every insert. `FocusMode` —
+  plain flag, ON by default; its game-side half is `Patches/GameKeySuppression.cs`.
 - `module/src/Screens/` — `Screen` base + `ScreenManager` (WrathAccess poll-and-diff
   lifecycle; resolution = registered screens polling the GAME's screen stack via
   GameState). Unmodeled game screens still announce by friendly name (the retired
@@ -331,6 +338,18 @@ Module (each reload starts this half cold — statics are per-load):
   while FocusMode is on AND a modeled screen is focused AND it doesn't
   CapturesRawInput. Escape is deliberately NOT swallowed (native back/close paths
   stay). Unmodeled screens see every key — the game stays fully playable.
+- `module/src/Screens/WorkhouseScreen.cs` — the Workhouse (deob GClass50, the one-time
+  receipt-transcription minigame) — the first TEXT ENTRY screen, typing-first: field
+  nodes are TextEntry (landing arms the game's own field via its method_3+method_2
+  keyboard path; Enter hops to the next field; the game's append-only GClass60 widget
+  needs no arrows, so navigation and typing never collide). Receipt = nine read-only
+  rows mirroring the game's grading literal (the same lines the receipt art shows);
+  SUBMIT/EXIT (mouse-only in the game) replicate the click paths exactly, including
+  submit's normalize-then-Levenshtein grading via the game's own method_4; the
+  art-only dialogs (exit confirm / rejected / success) become tiny button graphs with
+  mirrored prompts, announced via flag watches; the fake-loading phase announces the
+  game's own three loc strings. Falling-edge field release: when OUR focus leaves the
+  fields, the game's field unfocuses like a click would (never fights a mouse user).
 - `module/src/Patches/SplashPatches.cs` — the any-key splash advance (see "Boot
   click-gate" above).
 
@@ -420,10 +439,12 @@ through the newest copy:
    save), the custom-win press-and-hold button.
 10. **(partly done)** Desktop destinations: the visual-novel cutscene player is fully
     accessible (`CutsceneScreens.cs` — every line spoken as it appears, game keys
-    native) and TRASH WORLD NEWS announces by name. Still to model: the EXA code
-    editor (`EditorScreen` — the big one), the news reader's CONTENT, and
-    `Ember2CutsceneScreen`/`SolitaireScreen`/`ArcadeScreen`/`CustomPuzzleScreen`
-    (friendly name only today).
+    native), the Workhouse is fully playable (`WorkhouseScreen.cs` — typing-first
+    text entry, the seam the EXA editor will build on), and TRASH WORLD NEWS
+    announces by name. Still to model: the EXA code editor (`EditorScreen` — the big
+    one), the news reader's CONTENT, and `Ember2CutsceneScreen` (name-preserved,
+    announces "Cutscene"; its animated lines are silent) /
+    `SolitaireScreen`/`ArcadeScreen`/`CustomPuzzleScreen` (friendly name only today).
 11. Map the remaining obfuscated transition/overlay screens to friendly names.
 12. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
     code editor for program text — this game is text-centric, a strong a11y target.

@@ -86,6 +86,8 @@ namespace ExaAccess.UI
 
         public override object FocusedStopKey => _graph?.CurrentNode?.StopKey;
 
+        public override bool TextEntryFocused => _graph?.CurrentNode?.Vtable?.TextEntry == true;
+
         /// <summary>The live render + focused node id (DEBUG inspection).</summary>
         internal GraphRender CurrentRender => _graph?.Current;
         internal ControlId FocusedNodeId => _graph?.CurrentNode?.Id;
@@ -136,6 +138,7 @@ namespace ExaAccess.UI
                     if (_graph.Current.Nodes.ContainsKey(_pendingFocus))
                     {
                         _graph.Focus(_pendingFocus);
+                        ArmTextEntry(_graph.CurrentNode); // programmatic focus on a field = ready to type
                         if (!_pendingAnnounce) { _lastSpokenKey = _pendingFocus; _lastSpokenNode = _graph.CurrentNode; }
                     }
                     _pendingFocus = null;
@@ -160,6 +163,7 @@ namespace ExaAccess.UI
             }
 
             WatchLive(node);
+            WatchTextEntry(node);
         }
 
         // ---- live announcements: watch the FOCUSED node's Live parts and speak a part when its value
@@ -232,6 +236,7 @@ namespace ExaAccess.UI
                 {
                     var node = _graph?.CurrentNode;
                     if (node == null) return false;
+                    if (node.Vtable.TextEntry) return false; // Backspace belongs to the text field
                     if (node.Vtable.OnSecondary != null) _graph.Secondary();
                     return true;
                 }
@@ -241,6 +246,7 @@ namespace ExaAccess.UI
                 {
                     var node = _graph?.CurrentNode;
                     if (node == null) return false;
+                    if (node.Vtable.TextEntry) return false; // Space belongs to the text field
                     if (node.Vtable.OnTooltip != null) { _graph.Tooltip(); return true; }
                     Speak(Loc.T("nav.no_tooltip"));
                     return true;
@@ -361,6 +367,9 @@ namespace ExaAccess.UI
             if (land == null || !_graph.Focus(land.Id)) return true;
 
             var node = _graph.CurrentNode;
+            // Stop landings deliberately skip OnSelect — EXCEPT text fields: Tab into a form
+            // means "focused field, ready to type" (armed before the announce).
+            ArmTextEntry(node);
             Speak(ComposeMove(_lastSpokenNode, node, entry: false), interrupt: true);
             _lastSpokenKey = node.Id;
             _lastSpokenNode = node;
@@ -403,6 +412,61 @@ namespace ExaAccess.UI
             if (select == null) return;
             try { select(); }
             catch (System.Exception ex) { Log.Error("[nav] OnSelect threw", ex); }
+        }
+
+        // Text fields arm on EVERY way focus can arrive (stop landings and programmatic focus
+        // included — unlike ordinary OnSelect): a focused field is a field ready to type into.
+        private static void ArmTextEntry(GraphNode node)
+        {
+            var vt = node?.Vtable;
+            if (vt == null || !vt.TextEntry || vt.OnSelect == null) return;
+            try { vt.OnSelect(); }
+            catch (System.Exception ex) { Log.Error("[nav] text-entry arm threw", ex); }
+        }
+
+        // ---- typing echo: while a TextEntry node is focused, watch its TextValue and speak what
+        // was typed or deleted. Baselines silently whenever focus lands on a new identity.
+        private ControlId _textKey;
+        private string _textVal;
+
+        private void WatchTextEntry(GraphNode node)
+        {
+            var vt = node.Vtable;
+            if (vt == null || !vt.TextEntry || vt.TextValue == null) { _textKey = null; return; }
+
+            string v = null;
+            try { v = vt.TextValue(); } catch { }
+            v = v ?? string.Empty;
+
+            if (_textKey == null || !_textKey.Equals(node.Id)) { _textKey = node.Id; _textVal = v; return; }
+            if (v == _textVal) return;
+            string old = _textVal ?? string.Empty;
+            _textVal = v;
+            if (!FocusMode.Active) return;
+
+            // interrupt: fast typing should echo the newest key, not queue a backlog.
+            // Deletions echo the removed character(s) bare — same voice as typing them
+            // (user rule, 2026-08-22). Caps come from the BUFFER only: a widget that stores case
+            // announces "Cap X" truthfully; one that normalizes case has no capitals to report,
+            // and we never infer state the model doesn't hold (user rule, 2026-08-22).
+            bool caps = vt.TextEchoCaps;
+            if (v.Length > old.Length && v.StartsWith(old))
+                Speak(EchoText(v.Substring(old.Length), caps), interrupt: true);
+            else if (old.Length > v.Length && old.StartsWith(v))
+                Speak(EchoText(old.Substring(v.Length), caps), interrupt: true);
+            else
+                Speak(EchoText(v, caps), interrupt: true); // rewritten wholesale (normalization)
+        }
+
+        // A typed/deleted chunk, made speakable: spaces say "space", a single capital letter says
+        // "Cap <letter>" (user rule, 2026-08-22; suppressible for always-uppercase widgets),
+        // anything longer speaks as-is.
+        private static string EchoText(string s, bool caps)
+        {
+            if (string.IsNullOrEmpty(s)) return s;
+            if (s.Trim().Length == 0) return Loc.T("text.space");
+            if (caps && s.Length == 1 && char.IsUpper(s[0])) return Loc.T("text.capital", new { letter = s });
+            return s;
         }
 
         private void AnnounceMove(MoveResult result)

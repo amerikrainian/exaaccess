@@ -50,6 +50,10 @@ namespace ExaAccess.UI
         /// <summary>The Tab-stop the focused node belongs to, or null.</summary>
         public virtual object FocusedStopKey => null;
 
+        /// <summary>True while the focused node is a live type-target (NodeVtable.TextEntry) — the
+        /// input pipeline and the game-key suppression stand their printable keys down.</summary>
+        public virtual bool TextEntryFocused => false;
+
         // interrupt: true for focus MOVES (so held key-repeat reads the item you land on instead of
         // backing up a queue); false for screen-entry / landing readouts.
         protected static void Speak(string text, bool interrupt = false)
