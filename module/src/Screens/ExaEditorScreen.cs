@@ -654,15 +654,44 @@ namespace ExaAccess.Screens
                     + " " + (exa.mbusMode_0 == (MBusMode)1 ? GameText.T("Local") : GameText.T("Global"));
                 string readout = Loc.T("editor.exa.readout",
                     new { host = host ?? "?", x, t, f, m });
-                // The error line only means something while the sim RUNS — the per-frame edit-time
-                // rebuild marks empty EXAs errored on every build.
+                // Sim-only additions — the per-frame edit-time rebuild makes both meaningless
+                // there (every EXA at line one, empty EXAs errored on every build).
                 bool running = false;
                 try { running = Editor?.method_0() == true; } catch { }
-                if (running && exa.bool_0 && !string.IsNullOrEmpty(exa.string_1))
-                    readout += " " + Loc.T("editor.exa.error", new { message = GameText.Speech(exa.string_1) });
+                if (running)
+                {
+                    // The window's highlighted line, bare, up front; an error's message (the
+                    // game's own text, no added framing) splices in right behind the
+                    // instruction that raised it ("LINK -1, Link ID not found.").
+                    string line = PendingInstruction(exa);
+                    string error = exa.bool_0 && !string.IsNullOrEmpty(exa.string_1)
+                        ? GameText.Speech(exa.string_1)
+                        : null;
+                    string head = line == null ? error
+                        : error == null ? line
+                        : line + ", " + error;
+                    if (head != null) readout = head + ". " + readout;
+                }
                 return readout;
             }
             catch { return null; }
+        }
+
+        /// <summary>The instruction an EXA executes next (the game's highlighted line), read from
+        /// the macro-expanded source that actually runs; null when it has none to show.</summary>
+        private static string PendingInstruction(SimExa exa)
+        {
+            try
+            {
+                var instr = exa.method_10();
+                if (!instr.maybe_0.method_0()) return null;
+                var lines = (exa.method_9() ?? string.Empty).Split('\n');
+                int idx = instr.maybe_0.method_2();
+                if (idx >= 0 && idx < lines.Length && lines[idx].Trim().Length > 0)
+                    return lines[idx].Trim();
+            }
+            catch { }
+            return null;
         }
 
         private const int FileValuesSpoken = 60;
@@ -1082,14 +1111,8 @@ namespace ExaAccess.Screens
                     }
                 if (target != null)
                 {
-                    var instr = target.method_10();
-                    if (instr.maybe_0.method_0())
-                    {
-                        var lines = (target.method_9() ?? string.Empty).Split('\n');
-                        int idx = instr.maybe_0.method_2();
-                        if (idx >= 0 && idx < lines.Length && lines[idx].Trim().Length > 0)
-                            detail = target.string_0 + ": " + lines[idx].Trim();
-                    }
+                    string line = PendingInstruction(target);
+                    if (line != null) detail = target.string_0 + ": " + line;
                 }
             }
             catch { }

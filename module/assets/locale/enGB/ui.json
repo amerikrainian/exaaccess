@@ -58,7 +58,6 @@
   "editor.stopped.at": "Stopped at cycle {n}.",
   "editor.windows": "Windows",
   "editor.exa.readout": "on {host}. X {x}, T {t}, F {f}, M {m}.",
-  "editor.exa.error": "Error: {message}.",
   "editor.file": "File {id}",
   "editor.file.readout": "{count} values on {host}: {values}",
   "editor.file.more": "and {n} more",
