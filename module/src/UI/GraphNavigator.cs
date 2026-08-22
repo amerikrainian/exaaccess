@@ -88,6 +88,8 @@ namespace ExaAccess.UI
 
         public override bool TextEntryFocused => _graph?.CurrentNode?.Vtable?.TextEntry == true;
 
+        public override bool CaretTextEntryFocused => _graph?.CurrentNode?.Vtable?.TextEntryCaret == true;
+
         /// <summary>The live render + focused node id (DEBUG inspection).</summary>
         internal GraphRender CurrentRender => _graph?.Current;
         internal ControlId FocusedNodeId => _graph?.CurrentNode?.Id;
@@ -213,6 +215,26 @@ namespace ExaAccess.UI
 
         public override bool OnInputJustPressed(InputAction action)
         {
+            // A caret-owning editor node keeps every directional/edit key for its widget — only
+            // Tab-stop cycling and screen actions stay ours while it is focused.
+            if (_graph?.CurrentNode?.Vtable?.TextEntryCaret == true)
+            {
+                switch (action.Key)
+                {
+                    case "ui.up":
+                    case "ui.down":
+                    case "ui.left":
+                    case "ui.right":
+                    case "ui.home":
+                    case "ui.end":
+                    case "ui.activate":
+                    case "ui.secondary":
+                    case "ui.tooltip":
+                    case "ui.regionPrev":
+                    case "ui.regionNext":
+                        return false; // bubble to the game's widget
+                }
+            }
             switch (action.Key)
             {
                 case "ui.up": return Arrow(NavDirection.Up);
@@ -452,13 +474,24 @@ namespace ExaAccess.UI
             // (user rule, 2026-08-22). Caps come from the BUFFER only: a widget that stores case
             // announces "Cap X" truthfully; one that normalizes case has no capitals to report,
             // and we never infer state the model doesn't hold (user rule, 2026-08-22).
+            // Common-prefix/suffix diff, so caret editors that insert/delete MID-string echo just
+            // the changed characters (append-only widgets fall out as the suffix-empty case).
             bool caps = vt.TextEchoCaps;
-            if (v.Length > old.Length && v.StartsWith(old))
-                Speak(EchoText(v.Substring(old.Length), caps), interrupt: true);
-            else if (old.Length > v.Length && old.StartsWith(v))
-                Speak(EchoText(old.Substring(v.Length), caps), interrupt: true);
-            else
-                Speak(EchoText(v, caps), interrupt: true); // rewritten wholesale (normalization)
+            int prefix = 0;
+            int max = System.Math.Min(old.Length, v.Length);
+            while (prefix < max && old[prefix] == v[prefix]) prefix++;
+            int suffix = 0;
+            while (suffix < max - prefix
+                && old[old.Length - 1 - suffix] == v[v.Length - 1 - suffix]) suffix++;
+            string removed = old.Substring(prefix, old.Length - prefix - suffix);
+            string added = v.Substring(prefix, v.Length - prefix - suffix);
+
+            if (added.Length > 0 && removed.Length == 0)
+                Speak(EchoText(added, caps), interrupt: true);
+            else if (removed.Length > 0 && added.Length == 0)
+                Speak(EchoText(removed, caps), interrupt: true);
+            else if (added.Length > 0)
+                Speak(EchoText(added, caps), interrupt: true); // replaced (selection typed over)
         }
 
         // A typed/deleted chunk, made speakable: spaces say "space", a single capital letter says
@@ -467,6 +500,7 @@ namespace ExaAccess.UI
         private static string EchoText(string s, bool caps)
         {
             if (string.IsNullOrEmpty(s)) return s;
+            if (s == "\n") return Loc.T("text.newline");
             if (s.Trim().Length == 0) return Loc.T("text.space");
             if (caps && s.Length == 1 && char.IsUpper(s[0])) return Loc.T("text.capital", new { letter = s });
             return s;

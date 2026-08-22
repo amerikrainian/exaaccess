@@ -42,5 +42,8 @@ namespace ExaAccess.UI
 
         /// <summary>True while the focused node is a live type-target — see Navigator.</summary>
         public static bool TextEntryFocused => Active != null && Active.TextEntryFocused;
+
+        /// <summary>True while the focused node is a caret-owning editor — see Navigator.</summary>
+        public static bool CaretTextEntryFocused => Active != null && Active.CaretTextEntryFocused;
     }
 }

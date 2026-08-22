@@ -122,6 +122,12 @@ namespace ExaAccess.UI.Graph
         /// <summary>The live text buffer of a <see cref="TextEntry"/> node, for typing echo.</summary>
         public Func<string> TextValue;
 
+        /// <summary>With <see cref="TextEntry"/>: this field is a FULL EDITOR whose widget owns the
+        /// caret — arrows, Home/End, Enter, Delete and the rest belong to it, so while focused the
+        /// navigator bubbles every directional/activation input and only Tab-stop cycling (and
+        /// screen actions) remain ours. Landing on it means "you are editing".</summary>
+        public bool TextEntryCaret;
+
         /// <summary>Echo capital letters as "Cap X" (default), from the BUFFER's case — right for
         /// widgets that store what you type. Set false on widgets that normalize case at insert:
         /// their model holds no capitals, so none are announced — never infer case from the Shift

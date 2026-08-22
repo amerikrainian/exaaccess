@@ -54,6 +54,10 @@ namespace ExaAccess.UI
         /// input pipeline and the game-key suppression stand their printable keys down.</summary>
         public virtual bool TextEntryFocused => false;
 
+        /// <summary>True while the focused node is a full caret-owning editor
+        /// (NodeVtable.TextEntryCaret) — the game keeps every key except Tab.</summary>
+        public virtual bool CaretTextEntryFocused => false;
+
         // interrupt: true for focus MOVES (so held key-repeat reads the item you land on instead of
         // backing up a queue); false for screen-entry / landing readouts.
         protected static void Speak(string text, bool interrupt = false)

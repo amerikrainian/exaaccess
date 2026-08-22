@@ -76,6 +76,14 @@ namespace ExaAccess.Patches
         {
             try
             {
+                // A caret-owning editor (the EXA code editor) keeps EVERY key except Tab — its
+                // widget needs arrows/Home/End/Enter/Delete/Backspace, and Tab stays ours so
+                // stop-navigation is consistent everywhere (F2 is the step key there).
+                if (UI.Navigation.CaretTextEntryFocused)
+                {
+                    if ((int)__0 == 9) { __result = false; return false; }
+                    return true;
+                }
                 // A focused text field owns Backspace (the append widget's one keycode poll);
                 // printable characters ride the TEXTINPUT channel, which is never suppressed.
                 if ((int)__0 == 8 && UI.Navigation.TextEntryFocused) return true;

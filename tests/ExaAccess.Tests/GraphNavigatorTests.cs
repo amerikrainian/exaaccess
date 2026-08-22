@@ -354,6 +354,58 @@ namespace ExaAccess.Tests
         }
 
         [Fact]
+        public void CaretEditorBubblesNavigationKeysButKeepsTab()
+        {
+            string value = "";
+            var screen = new TestScreen
+            {
+                Declare = b => b.AddItem(ControlId.Structural("code"), new NodeVtable
+                {
+                    Announcements = new[] { NodeAnnouncement.Static("Code") },
+                    TextEntry = true,
+                    TextEntryCaret = true,
+                    TextValue = () => value,
+                }),
+            };
+            _nav.Attach(screen);
+            _nav.EnsureFocus();
+
+            Assert.True(_nav.CaretTextEntryFocused);
+            Assert.False(_nav.OnInputJustPressed(Action("ui.up")));       // caret's
+            Assert.False(_nav.OnInputJustPressed(Action("ui.left")));     // caret's
+            Assert.False(_nav.OnInputJustPressed(Action("ui.home")));     // caret's
+            Assert.False(_nav.OnInputJustPressed(Action("ui.activate"))); // Enter = newline
+            Assert.True(_nav.OnInputJustPressed(Action("ui.next")));      // Tab stays ours
+        }
+
+        [Fact]
+        public void MidStringEditsEchoJustTheChangedCharacters()
+        {
+            string value = "ABC\nDEF";
+            var screen = new TestScreen
+            {
+                Declare = b => b.AddItem(ControlId.Structural("code"), new NodeVtable
+                {
+                    Announcements = new[] { NodeAnnouncement.Static("Code") },
+                    TextEntry = true,
+                    TextEntryCaret = true,
+                    TextEchoCaps = false,
+                    TextValue = () => value,
+                }),
+            };
+            _nav.Attach(screen);
+            _nav.EnsureFocus(); // baseline
+
+            value = "ABXC\nDEF"; // insert mid-string
+            _nav.EnsureFocus();
+            Assert.Equal("X", _speech.Spoken[_speech.Spoken.Count - 1]);
+
+            value = "ABC\nDEF"; // delete it again
+            _nav.EnsureFocus();
+            Assert.Equal("X", _speech.Spoken[_speech.Spoken.Count - 1]);
+        }
+
+        [Fact]
         public void TabLandingArmsATextField()
         {
             var h = new TextFieldHarness();

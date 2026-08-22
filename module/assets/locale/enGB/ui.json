@@ -59,6 +59,8 @@
   "editor.file": "File {id}",
   "editor.file.readout": "{count} values on {host}: {values}",
   "editor.file.more": "and {n} more",
+  "editor.code": "{exa} code",
+  "text.newline": "new line",
 
   "desktop.details": "Task details",
   "desktop.detail.location": "Location",

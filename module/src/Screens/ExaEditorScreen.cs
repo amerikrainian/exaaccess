@@ -96,9 +96,112 @@ namespace ExaAccess.Screens
             if (e == null) return;
             BuildTask(b, e);
             BuildWindows(b, e);
+            BuildCode(b, e);
             BuildStats(b, e);
             BuildControls(b);
             BuildSolution(b, e);
+        }
+
+        // ---- the CODE stop: one caret-owning node mirroring the game's focused EXA editor.
+        // Tab in = the game's real code focus arms and you are typing (arrows/Home/End/Enter/
+        // Delete/clipboard all native); Tab/Shift+Tab out = disarmed, back to browsing. The
+        // game's own Ctrl+Up/Down switches which EXA is focused; the node follows. ----
+
+        private static readonly FieldInfo FocusField = Deobf.Field(typeof(EditorScreen), "maybe_3");
+        private static readonly FieldInfo FocusQueueField = Deobf.Field(typeof(EditorScreen), "maybe_4");
+        private static readonly MethodInfo FocusExaMethod = Deobf.Method(typeof(EditorScreen), "method_58");
+        private static readonly FieldInfo CaretField = Deobf.Field(typeof(CodeEditorWidget), "int_1");
+
+        /// <summary>The SolutionExa whose CODE the game currently focuses, else null.</summary>
+        private static SolutionExa FocusedCodeExa(EditorScreen e)
+        {
+            try
+            {
+                var focus = (Maybe<GStruct9>)FocusField.GetValue(e);
+                if (!focus.method_0() || focus.method_2().genum13_0 != (GEnum13)1) return null;
+                var id = focus.method_2().entityID_0;
+                foreach (var exa in e.solution_0.list_0)
+                    if (EntityID.Exa(exa.method_0()) == id) return exa;
+            }
+            catch { }
+            return null;
+        }
+
+        private void BuildCode(GraphBuilder b, EditorScreen e)
+        {
+            if (e.solution_0.list_0.Count == 0) return;
+            b.BeginStop("code");
+            b.AddItem(ControlId.Structural("ed.code"), new NodeVtable
+            {
+                ControlType = ControlTypes.TextField,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() =>
+                    {
+                        var exa = FocusedCodeExa(Editor) ?? FirstExa(Editor);
+                        return exa == null ? null : Loc.T("editor.code", new { exa = exa.string_0 });
+                    }, kind: AnnouncementKinds.Label),
+                    new NodeAnnouncement(() => CurrentLineText(), kind: AnnouncementKinds.Value),
+                },
+                TextEntry = true,
+                TextEntryCaret = true,
+                TextEchoCaps = false, // the widget uppercases every insert
+                TextValue = () =>
+                {
+                    var exa = FocusedCodeExa(Editor);
+                    return exa == null ? null : exa.string_1;
+                },
+                OnSelect = () => ArmCode(Editor),
+            });
+        }
+
+        private static SolutionExa FirstExa(EditorScreen e)
+        {
+            try { return e != null && e.solution_0.list_0.Count > 0 ? e.solution_0.list_0[0] : null; }
+            catch { return null; }
+        }
+
+        private static void ArmCode(EditorScreen e)
+        {
+            if (e == null) return;
+            try
+            {
+                if (FocusedCodeExa(e) != null) return; // already armed
+                var exa = FirstExa(e);
+                if (exa == null) return;
+                var id = EntityID.Exa(exa.method_0());
+                // The game QUEUES focus changes (maybe_4, applied next frame); method_58 is only
+                // the scroll-into-view half — both mirror the game's own Ctrl+Up/Down path.
+                FocusQueueField?.SetValue(e, (Maybe<GStruct9>)new GStruct9(id, (GEnum13)1));
+                FocusExaMethod?.Invoke(e, new object[] { id, true, true });
+            }
+            catch (Exception ex) { Log.Error("[editor] code arm failed", ex); }
+        }
+
+        private static void DisarmCode(EditorScreen e)
+        {
+            try { FocusField?.SetValue(e, (Maybe<GStruct9>)GStruct10.gstruct10_0); }
+            catch (Exception ex) { Log.Error("[editor] code disarm failed", ex); }
+        }
+
+        /// <summary>The text of the line the caret sits on ("blank" for an empty line).</summary>
+        private static string CurrentLineText()
+        {
+            var e = Editor;
+            var exa = FocusedCodeExa(e) ?? FirstExa(e); // arming is queued; read the target
+            if (exa == null) return null;
+            try
+            {
+                int caret = (int)CaretField.GetValue(exa.codeEditorWidget_0);
+                string text = exa.string_1 ?? string.Empty;
+                if (caret > text.Length) caret = text.Length;
+                int start = text.LastIndexOf('\n', Math.Max(0, caret - 1)) + 1;
+                int end = text.IndexOf('\n', caret);
+                if (end < 0) end = text.Length;
+                string line = start <= end ? text.Substring(start, end - start) : string.Empty;
+                return line.Length == 0 ? Loc.T("text.blank") : line;
+            }
+            catch { return null; }
         }
 
         // ---- the window column: one row per player EXA (registers + location + error) and one
@@ -427,7 +530,7 @@ namespace ExaAccess.Screens
         // ---- per-frame: step-cycle echo, run-stop and test-run-complete announcements ----
 
         private object _instance;
-        private bool _wasRunning, _wasSolved;
+        private bool _wasRunning, _wasSolved, _wasCodeFocused;
 
         public override void OnUpdate()
         {
@@ -436,9 +539,15 @@ namespace ExaAccess.Screens
             if (!ReferenceEquals(_instance, e))
             {
                 _instance = e;
-                _wasRunning = _wasSolved = _stepEcho = false;
+                _wasRunning = _wasSolved = _stepEcho = _wasCodeFocused = false;
                 _lastCycle = -1;
             }
+
+            // Leaving the code stop releases the game's real code focus (falling edge only, so a
+            // mouse user's own click-focus is never fought over).
+            bool codeFocused = Navigation.CaretTextEntryFocused;
+            if (_wasCodeFocused && !codeFocused && FocusedCodeExa(e) != null) DisarmCode(e);
+            _wasCodeFocused = codeFocused;
 
             var sim = TheSim(e);
             bool running = false;
