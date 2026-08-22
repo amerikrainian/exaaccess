@@ -318,9 +318,18 @@ namespace ExaAccess.Screens
             else
             {
                 BuildChatLog(b, d);
-                BuildUserList(b, d);
             }
             b.PopContext();
+
+            // The user roster is its own Tab stop (user request, 2026-08-22): Tab order runs
+            // tasks -> details -> chat -> users -> programs -> close. Its "EXAPUNKS (n)" channel
+            // header is context enough — no CHATSUBO wrapper, so Tab between chat and users
+            // doesn't re-announce the window.
+            if (!tasksTab)
+            {
+                b.BeginStop("users");
+                BuildUserList(b, d);
+            }
         }
 
         private static void ChatTab(GraphBuilder b, DesktopScreen d, string id, string gameKey, bool tasks)
@@ -345,7 +354,6 @@ namespace ExaAccess.Screens
         {
             var log = ChatLog(d);
             if (log == null || log.Count == 0) return;
-            b.SetRegion("chat.log");
             // A log reads oldest -> newest; positions would be noise on a growing stream.
             b.PushContext(Loc.T("desktop.chat.log"), positions: false);
             int first = Math.Max(0, log.Count - ChatLinesShown);
@@ -362,7 +370,6 @@ namespace ExaAccess.Screens
                 });
             }
             b.PopContext();
-            b.SetRegion(null);
         }
 
         private void BuildUserList(GraphBuilder b, DesktopScreen d)
@@ -386,7 +393,6 @@ namespace ExaAccess.Screens
                 shown.Add(t);
             }
 
-            b.SetRegion("chat.users");
             // The channel header the game draws: "EXAPUNKS (n)".
             b.PushContext("EXAPUNKS (" + shown.Count + ")");
             foreach (var t in shown)
@@ -405,7 +411,6 @@ namespace ExaAccess.Screens
                 });
             }
             b.PopContext();
-            b.SetRegion(null);
         }
 
         // The right-edge launcher icons: each opens a special campaign item, visible only once
