@@ -103,11 +103,12 @@ namespace ExaAccess.Screens
         {
             var e = Editor;
             if (e == null) return;
+            // Stop order (user preference): task -> windows -> hosts -> links -> code -> ...
             BuildTask(b, e);
             BuildWindows(b, e);
-            BuildCode(b, e);
             BuildHosts(b, e);
             BuildLinks(b, e);
+            BuildCode(b, e);
             BuildStats(b, e);
             BuildControls(b);
             BuildSolution(b, e);
