@@ -436,6 +436,44 @@ namespace ExaAccess.Tests
         }
 
         [Fact]
+        public void BufferSwapReBaselinesInsteadOfDiffing()
+        {
+            // ONE code node fronts whichever EXA the game focuses (TextIdentity = the EXA). The
+            // game's Ctrl+Up/Down swap must re-baseline silently — diffing XA's code against XB's
+            // would speak one whole program as "deleted" (the reported bug: switching to an empty
+            // XB read back all of XA's code, trampling the switch announce).
+            string value = "LINK 800\nHALT";
+            int exa = 0;
+            var screen = new TestScreen
+            {
+                Declare = b => b.AddItem(ControlId.Structural("code"), new NodeVtable
+                {
+                    Announcements = new[] { NodeAnnouncement.Static("Code") },
+                    TextEntry = true,
+                    TextEntryCaret = true,
+                    TextEchoCaps = false,
+                    TextValue = () => value,
+                    TextIdentity = () => exa,
+                }),
+            };
+            _nav.Attach(screen);
+            _nav.EnsureFocus(); // baseline on XA
+            int spoken = _speech.Spoken.Count;
+
+            exa = 1; value = ""; // the game switches focus to the empty XB
+            _nav.EnsureFocus();
+            Assert.Equal(spoken, _speech.Spoken.Count); // silent — no "deleted XA's code" echo
+
+            exa = 0; value = "LINK 800\nHALT"; // and back
+            _nav.EnsureFocus();
+            Assert.Equal(spoken, _speech.Spoken.Count); // silent — no "typed XA's code" echo
+
+            value = "LINK 800\nHALTX"; // a real edit on the same EXA still echoes
+            _nav.EnsureFocus();
+            Assert.Equal("X", _speech.Spoken[_speech.Spoken.Count - 1]);
+        }
+
+        [Fact]
         public void TabLandingArmsATextField()
         {
             var h = new TextFieldHarness();

@@ -122,6 +122,13 @@ namespace ExaAccess.UI.Graph
         /// <summary>The live text buffer of a <see cref="TextEntry"/> node, for typing echo.</summary>
         public Func<string> TextValue;
 
+        /// <summary>Optional (with <see cref="TextValue"/>). Identity of the UNDERLYING BUFFER when
+        /// one node fronts more than one (the EXA code node follows the game's focused EXA). When
+        /// the returned value changes between frames the typing echo re-baselines SILENTLY instead
+        /// of diffing — two different buffers diffed against each other would speak one whole text
+        /// as "deleted" and the other as "typed". Compared with Equals; null is a valid identity.</summary>
+        public Func<object> TextIdentity;
+
         /// <summary>With <see cref="TextEntry"/>: this field is a FULL EDITOR whose widget owns the
         /// caret — arrows, Home/End, Enter, Delete and the rest belong to it, so while focused the
         /// navigator bubbles every directional/activation input and only Tab-stop cycling (and

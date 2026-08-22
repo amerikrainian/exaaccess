@@ -65,7 +65,7 @@
   "editor.f.held": "{id}, cursor at {cursor}",
   "editor.file.held": "{count} values held by {exa}, cursor at {cursor}: {values}",
   "editor.cursor.end": "end",
-  "editor.code": "{exa} code",
+  "editor.code": "{exa}",
   "editor.hosts": "Hosts",
   "editor.links": "{host} links",
   "editor.link.oneway": "One way",

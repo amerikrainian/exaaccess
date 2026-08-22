@@ -278,6 +278,13 @@ namespace ExaAccess.Screens
                     var exa = FocusedCodeExa(Editor);
                     return exa == null ? null : exa.string_1;
                 },
+                // The one code node fronts whichever EXA the game focuses — the echo must
+                // re-baseline on the game's Ctrl+Up/Down switch, not diff XA's code against XB's.
+                TextIdentity = () =>
+                {
+                    var exa = FocusedCodeExa(Editor);
+                    return exa == null ? null : (object)exa.method_0();
+                },
                 OnSelect = () => ArmCode(Editor),
             });
         }

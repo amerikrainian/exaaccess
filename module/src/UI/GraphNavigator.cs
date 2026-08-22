@@ -453,6 +453,7 @@ namespace ExaAccess.UI
         // was typed or deleted. Baselines silently whenever focus lands on a new identity.
         private ControlId _textKey;
         private string _textVal;
+        private object _textIdent;
 
         private void WatchTextEntry(GraphNode node)
         {
@@ -461,14 +462,20 @@ namespace ExaAccess.UI
 
             string v = null;
             try { v = vt.TextValue(); } catch { }
+            object ident = null;
+            try { ident = vt.TextIdentity?.Invoke(); } catch { }
 
             // A NULL value means "no data yet" (an arm still queued, a field not yet bound) —
             // never diff against it, or the buffer appearing a frame after entry reads as the
-            // whole text having been typed. Diffs run only between two non-null reads.
-            if (_textKey == null || !_textKey.Equals(node.Id) || v == null || _textVal == null)
+            // whole text having been typed. Diffs run only between two non-null reads — and only
+            // over the SAME underlying buffer (TextIdentity): a node that fronts whichever buffer
+            // the game focuses must re-baseline on a swap, not diff two unrelated texts.
+            if (_textKey == null || !_textKey.Equals(node.Id) || v == null || _textVal == null
+                || !Equals(ident, _textIdent))
             {
                 _textKey = node.Id;
                 _textVal = v;
+                _textIdent = ident;
                 return;
             }
             if (v == _textVal) return;
