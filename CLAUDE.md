@@ -405,9 +405,12 @@ game restart (the host is file-locked and loaded once). Rules for module code ar
 `src/Modularity/IModModule.cs` — notably: module Harmony patches use a per-load unique
 id + `UnpatchSelf` in Dispose, and native handles live host-side only.
 `/eval` gotcha: after a reload, every module generation is still loaded, and a bare
-type reference (`Loc.T(...)`) may bind to an OLD generation. When it matters, resolve
-through the newest copy:
-`AppDomain.CurrentDomain.GetAssemblies().Where(a => a.GetName().Name == "ExaAccess.Module").Last()`.
+type reference (`Loc.T(...)`) may bind to an OLD generation. `GetAssemblies()...Last()`
+is NOT reliable either (with dozens of generations loaded it has picked a stale copy).
+Ask the host which module actually runs:
+`typeof(ExaAccess.Bootstrap).GetField("_moduleLoader", NonPublic|Static).GetValue(null)`,
+then `.GetType().GetProperty("Module").GetValue(...)` → `.GetType().Assembly` is the
+live generation.
 
 ## Hard rules
 - **Never commit or ship game code.** `game/` (deob exe, decompiled source, copied game
