@@ -247,6 +247,7 @@ namespace ExaAccess.Screens
         private static readonly FieldInfo FocusQueueField = Deobf.Field(typeof(EditorScreen), "maybe_4");
         private static readonly MethodInfo FocusExaMethod = Deobf.Method(typeof(EditorScreen), "method_58");
         private static readonly FieldInfo CaretField = Deobf.Field(typeof(CodeEditorWidget), "int_1");
+        private static readonly FieldInfo AnchorField = Deobf.Field(typeof(CodeEditorWidget), "int_0");
 
         /// <summary>The SolutionExa whose CODE the game currently focuses, else null.</summary>
         private static SolutionExa FocusedCodeExa(EditorScreen e)
@@ -414,7 +415,27 @@ namespace ExaAccess.Screens
                     Input.SdlKeyboard.Held((int)Input.Scancode.Home)
                     || Input.SdlKeyboard.Held((int)Input.Scancode.End)
                     || Input.SdlKeyboard.Held(95) || Input.SdlKeyboard.Held(89); // KP_7 / KP_1
-                if (vertical && line != _caretLine)
+                if (Input.SdlKeyboard.ShiftHeld)
+                {
+                    // Shift = the game's native selection. Speak the TRUE delta — the span
+                    // between the old and new caret — + "selected" ("unselected" when the
+                    // caret moved back toward the anchor). This holds for vertical moves too:
+                    // Shift+Up from mid-line selects tail-of-upper + head-of-lower (" EOF
+                    // TJMP"), not the whole line — speaking the line would misreport the
+                    // clipboard (user report, 2026-08-22).
+                    int anchor = caret;
+                    try { anchor = (int)AnchorField.GetValue(exa.codeEditorWidget_0); } catch { }
+                    bool shrank = Math.Abs(caret - anchor) < Math.Abs(_caretOffset - anchor);
+                    int at = Math.Min(caret, _caretOffset);
+                    int len = Math.Abs(caret - _caretOffset);
+                    string sel = len > 0 && at >= 0 && at + len <= text.Length
+                        ? text.Substring(at, len) : null;
+                    if (sel != null && sel.Length == 1) sel = CaretText.CharAt(sel, 0);
+                    if (sel != null)
+                        Speech.Tts.Speak(Loc.T(shrank ? "text.unselected" : "text.selected",
+                            new { text = sel }), interrupt: true);
+                }
+                else if (vertical && line != _caretLine)
                     Speech.Tts.Speak(CurrentLineText(), interrupt: true);
                 else if (homeEnd || Math.Abs(caret - _caretOffset) == 1)
                     Speech.Tts.Speak(CaretText.CharAt(text, caret), interrupt: true);

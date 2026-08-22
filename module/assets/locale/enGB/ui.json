@@ -129,6 +129,8 @@
   "text.blank": "blank",
   "text.space": "space",
   "text.capital": "Cap {letter}",
+  "text.selected": "{text} selected",
+  "text.unselected": "{text} unselected",
 
   "screen.controlpanel": "Control panel",
   "panel.close": "Close control panel",
