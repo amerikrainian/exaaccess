@@ -350,7 +350,10 @@ namespace ExaAccess.Screens
             }
             else if (caret != _caretOffset)
             {
-                Speech.Tts.Speak(CharAt(text, caret), interrupt: true);
+                // Single-character moves echo the character; larger same-line jumps (Ctrl word
+                // moves, Home/End) read the whole word landed on (user rule, 2026-08-22).
+                Speech.Tts.Speak(Math.Abs(caret - _caretOffset) == 1
+                    ? CharAt(text, caret) : WordAt(text, caret), interrupt: true);
             }
 
             _caretExa = exaNum;
@@ -375,6 +378,17 @@ namespace ExaAccess.Screens
             if (caret >= text.Length || text[caret] == '\n') return Loc.T("text.endofline");
             char c = text[caret];
             return c == ' ' ? Loc.T("text.space") : c.ToString();
+        }
+
+        // The whole word the caret landed on (a word jump's destination) — the contiguous
+        // non-space run from the caret; a delimiter landing falls back to the character forms.
+        internal static string WordAt(string text, int caret)
+        {
+            if (caret >= text.Length || text[caret] == '\n') return Loc.T("text.endofline");
+            if (text[caret] == ' ') return Loc.T("text.space");
+            int end = caret;
+            while (end < text.Length && text[end] != ' ' && text[end] != '\n') end++;
+            return text.Substring(caret, end - caret);
         }
 
 
