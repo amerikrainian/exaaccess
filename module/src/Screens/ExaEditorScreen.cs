@@ -377,6 +377,7 @@ namespace ExaAccess.Screens
             return c == ' ' ? Loc.T("text.space") : c.ToString();
         }
 
+
         /// <summary>The text of the line the caret sits on ("blank" for an empty line).</summary>
         private static string CurrentLineText()
         {
@@ -733,8 +734,9 @@ namespace ExaAccess.Screens
             string exaName; CompileError error;
             if (FirstCompileError(e, expanded: true, out exaName, out error))
             {
-                // The game's step-with-errors path flips into the error view; announce the error.
-                try { ErrorViewField?.SetValue(e, true); } catch { }
+                // The game's step-with-errors path flips into bool_12 — the read-only error VIEW,
+                // which LOCKS the code editor until reset. Announcing the error carries the same
+                // information without trapping a blind user out of their own code.
                 SpeakCompileError(exaName, error);
                 return;
             }
@@ -762,7 +764,7 @@ namespace ExaAccess.Screens
             string exaName; CompileError error;
             if (FirstCompileError(e, expanded: true, out exaName, out error))
             {
-                try { ErrorViewField?.SetValue(e, true); } catch { }
+                // Announce only — never enter the editing-locked error view (see StepSim).
                 SpeakCompileError(exaName, error);
                 return;
             }
