@@ -344,16 +344,25 @@ namespace ExaAccess.Screens
             {
                 // An edit: the typing echo spoke it; just re-baseline below.
             }
-            else if (line != _caretLine)
+            else if (line != _caretLine || caret != _caretOffset)
             {
-                Speech.Tts.Speak(CurrentLineText(), interrupt: true);
-            }
-            else if (caret != _caretOffset)
-            {
-                // Single-character moves echo the character; larger same-line jumps (Ctrl word
-                // moves, Home/End) read the whole word landed on (user rule, 2026-08-22).
-                Speech.Tts.Speak(Math.Abs(caret - _caretOffset) == 1
-                    ? CaretText.CharAt(text, caret) : CaretText.WordAt(text, caret), interrupt: true);
+                // Screen-reader convention (user rules, 2026-08-22): ONLY vertical moves read the
+                // full line. Horizontal moves speak the character (a line boundary lands on the
+                // newline and says just that); larger horizontal jumps (Ctrl word moves,
+                // Home/End) speak the word landed on — even when they cross a line. The move
+                // type comes from the actual key held, not from what the caret happened to do.
+                bool vertical =
+                    Input.SdlKeyboard.Held((int)Input.Scancode.Up)
+                    || Input.SdlKeyboard.Held((int)Input.Scancode.Down)
+                    || Input.SdlKeyboard.Held((int)Input.Scancode.PageUp)
+                    || Input.SdlKeyboard.Held((int)Input.Scancode.PageDown)
+                    || Input.SdlKeyboard.Held(96) || Input.SdlKeyboard.Held(90); // KP_8 / KP_2
+                if (vertical && line != _caretLine)
+                    Speech.Tts.Speak(CurrentLineText(), interrupt: true);
+                else if (Math.Abs(caret - _caretOffset) == 1)
+                    Speech.Tts.Speak(CaretText.CharAt(text, caret), interrupt: true);
+                else
+                    Speech.Tts.Speak(CaretText.WordAt(text, caret), interrupt: true);
             }
 
             _caretExa = exaNum;

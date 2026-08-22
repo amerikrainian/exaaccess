@@ -72,7 +72,6 @@
   "editor.complete.stats": "Cycles {cycles}, size {size}, activity {activity}.",
   "editor.complete.options": "Escape: {resume}. Enter: {leave}.",
   "text.newline": "new line",
-  "text.endofline": "end of line",
 
   "desktop.details": "Task details",
   "desktop.detail.location": "Location",

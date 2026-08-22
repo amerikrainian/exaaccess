@@ -17,10 +17,11 @@ namespace ExaAccess.UI
             return line;
         }
 
-        /// <summary>The character to the right of the caret — the one the cursor "sits on".</summary>
+        /// <summary>The character to the right of the caret — the one the cursor "sits on".
+        /// A newline (or the text end) says just "new line" (user rule, 2026-08-22).</summary>
         public static string CharAt(string text, int caret)
         {
-            if (caret >= text.Length || text[caret] == '\n') return Loc.T("text.endofline");
+            if (caret >= text.Length || text[caret] == '\n') return Loc.T("text.newline");
             char c = text[caret];
             return c == ' ' ? Loc.T("text.space") : c.ToString();
         }
@@ -29,7 +30,7 @@ namespace ExaAccess.UI
         /// non-space run from the caret; delimiter landings fall back to the character forms.</summary>
         public static string WordAt(string text, int caret)
         {
-            if (caret >= text.Length || text[caret] == '\n') return Loc.T("text.endofline");
+            if (caret >= text.Length || text[caret] == '\n') return Loc.T("text.newline");
             if (text[caret] == ' ') return Loc.T("text.space");
             int end = caret;
             while (end < text.Length && text[end] != ' ' && text[end] != '\n') end++;
