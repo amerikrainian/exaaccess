@@ -353,7 +353,7 @@ namespace ExaAccess.Screens
                 // Single-character moves echo the character; larger same-line jumps (Ctrl word
                 // moves, Home/End) read the whole word landed on (user rule, 2026-08-22).
                 Speech.Tts.Speak(Math.Abs(caret - _caretOffset) == 1
-                    ? CharAt(text, caret) : WordAt(text, caret), interrupt: true);
+                    ? CaretText.CharAt(text, caret) : CaretText.WordAt(text, caret), interrupt: true);
             }
 
             _caretExa = exaNum;
@@ -362,34 +362,7 @@ namespace ExaAccess.Screens
             _caretText = text;
         }
 
-        internal static int LineIndexForTest(string text, int caret) => LineIndex(text, caret);
-
-        private static int LineIndex(string text, int caret)
-        {
-            int line = 0;
-            for (int i = 0; i < caret && i < text.Length; i++)
-                if (text[i] == '\n') line++;
-            return line;
-        }
-
-        // The character to the right of the caret — the one the cursor "sits on".
-        private static string CharAt(string text, int caret)
-        {
-            if (caret >= text.Length || text[caret] == '\n') return Loc.T("text.endofline");
-            char c = text[caret];
-            return c == ' ' ? Loc.T("text.space") : c.ToString();
-        }
-
-        // The whole word the caret landed on (a word jump's destination) — the contiguous
-        // non-space run from the caret; a delimiter landing falls back to the character forms.
-        internal static string WordAt(string text, int caret)
-        {
-            if (caret >= text.Length || text[caret] == '\n') return Loc.T("text.endofline");
-            if (text[caret] == ' ') return Loc.T("text.space");
-            int end = caret;
-            while (end < text.Length && text[end] != ' ' && text[end] != '\n') end++;
-            return text.Substring(caret, end - caret);
-        }
+        private static int LineIndex(string text, int caret) => CaretText.LineIndex(text, caret);
 
 
         /// <summary>The text of the line the caret sits on ("blank" for an empty line).</summary>
