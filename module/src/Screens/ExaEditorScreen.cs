@@ -1030,13 +1030,6 @@ namespace ExaAccess.Screens
             try { cycles = sim != null ? sim.method_52() : 0; } catch { }
             if (running && cycles > 0) _runCycles = cycles;
 
-            // Buffered sim events (errors captured by the SimNarration patch — the model deletes
-            // errored EXAs after one cycle, so polling could never catch them).
-            string ev;
-            int drained = 0;
-            while (drained++ < 4 && Patches.SimNarration.TryDequeue(out ev))
-                Speech.Tts.Speak(ev);
-
             if (_stepEcho && sim != null && cycles != _lastCycle)
             {
                 // Announce from cycle 0 too: the first step arms the sim paused, and hearing the
@@ -1045,6 +1038,15 @@ namespace ExaAccess.Screens
                     Speech.Tts.Speak(StepNarration(e, cycles), interrupt: true);
                 _lastCycle = cycles;
             }
+
+            // Buffered sim events (errors captured by the SimNarration patch — the model deletes
+            // errored EXAs after one cycle, so polling could never catch them). Drained AFTER the
+            // cycle echo: its interrupt would cut an error spoken first (a step onto an error
+            // lands both in the same frame), while errors queue behind the echo untouched.
+            string ev;
+            int drained = 0;
+            while (drained++ < 4 && Patches.SimNarration.TryDequeue(out ev))
+                Speech.Tts.Speak(ev);
 
             WatchGoals(e, sim, running, cycles);
 
