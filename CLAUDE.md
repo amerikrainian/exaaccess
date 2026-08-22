@@ -397,8 +397,8 @@ Module (each reload starts this half cold — statics are per-load):
 
 ## Hot reload (DEBUG loop for feature work)
 The module is `Assembly.Load(byte[])`'d, so `dotnet build module/ExaAccess.Module.csproj`
-works with the game RUNNING (the Debug build auto-deploys it), then `POST /reload` (or
-F6 in-game) swaps it in — no restart, no click-gate. Load-then-swap: a broken build
+works with the game RUNNING (the Debug build auto-deploys it), then `POST /reload`
+swaps it in — no restart, no click-gate. Load-then-swap: a broken build
 leaves the old module running. Old copies leak until exit (dev cost only). The REPL
 resets on reload so `/eval` sees the new types. Host/contract changes still need a full
 game restart (the host is file-locked and loaded once). Rules for module code are in

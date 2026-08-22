@@ -7,7 +7,7 @@ namespace ExaAccess.Modularity
     /// init/tick Harmony patches, the speech backend, the dev server) and the reloadable MODULE
     /// (ExaAccess.Module.dll — every feature: announcers, localization, input, UI). The split exists
     /// for hot reload (pattern ported from NonVisualCalculus): the module is byte-loaded so its dll is
-    /// never file-locked, and a rebuild + /reload (or F6) swaps features into the running game without
+    /// never file-locked, and a rebuild + /reload swaps features into the running game without
     /// a restart or another trip through the boot click-gate.
     ///
     /// Rules a module implementation must follow (each learned the hard way in NVC):

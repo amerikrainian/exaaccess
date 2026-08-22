@@ -2,7 +2,6 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using HarmonyLib;
 
 namespace ExaAccess
@@ -31,9 +30,6 @@ namespace ExaAccess
         private static Modularity.ModHost _modHost;
         private static Modularity.ModuleLoader _moduleLoader;
         private static bool _tickErrorLogged;
-#if DEBUG
-        private static bool _reloadKeyDown;
-#endif
 
         public override void InitializeNewDomain(AppDomainSetup appDomainInfo)
         {
@@ -111,7 +107,6 @@ namespace ExaAccess
 #if DEBUG
             try { Dev.DevServer.Instance.Pump(); }
             catch (Exception ex) { Log.Error("[host] dev pump failed", ex); }
-            CheckReloadKey();
 #endif
             var module = _moduleLoader?.Module;
             if (module == null) return;
@@ -137,7 +132,7 @@ namespace ExaAccess
         }
 
         /// <summary>Swap in the current on-disk module. Main thread only (the dev server routes
-        /// /reload through its main-thread queue; F6 fires from TickFrame). Returns a status line.</summary>
+        /// /reload through its main-thread queue). Returns a status line.</summary>
         internal static string ReloadModule()
         {
             if (_moduleLoader == null) return "[no module loader]\n";
@@ -149,23 +144,6 @@ namespace ExaAccess
 #endif
             return (ok ? "reloaded: generation " + _moduleLoader.Generation : "[reload failed] see the log") + "\n";
         }
-
-#if DEBUG
-        [DllImport("user32.dll")]
-        private static extern short GetAsyncKeyState(int vKey);
-        private const int VkF6 = 0x75;
-
-        private static void CheckReloadKey()
-        {
-            bool down = (GetAsyncKeyState(VkF6) & 0x8000) != 0;
-            if (down && !_reloadKeyDown)
-            {
-                Log.Info("[host] F6 — reloading module.");
-                ReloadModule();
-            }
-            _reloadKeyDown = down;
-        }
-#endif
 
         private static Assembly ResolveLoadedByName(object sender, ResolveEventArgs args)
         {
