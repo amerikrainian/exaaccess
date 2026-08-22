@@ -461,11 +461,18 @@ namespace ExaAccess.UI
 
             string v = null;
             try { v = vt.TextValue(); } catch { }
-            v = v ?? string.Empty;
 
-            if (_textKey == null || !_textKey.Equals(node.Id)) { _textKey = node.Id; _textVal = v; return; }
+            // A NULL value means "no data yet" (an arm still queued, a field not yet bound) —
+            // never diff against it, or the buffer appearing a frame after entry reads as the
+            // whole text having been typed. Diffs run only between two non-null reads.
+            if (_textKey == null || !_textKey.Equals(node.Id) || v == null || _textVal == null)
+            {
+                _textKey = node.Id;
+                _textVal = v;
+                return;
+            }
             if (v == _textVal) return;
-            string old = _textVal ?? string.Empty;
+            string old = _textVal;
             _textVal = v;
             if (!FocusMode.Active) return;
 

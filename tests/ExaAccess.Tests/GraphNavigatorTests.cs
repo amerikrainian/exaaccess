@@ -406,6 +406,36 @@ namespace ExaAccess.Tests
         }
 
         [Fact]
+        public void BufferAppearingAfterAQueuedArmDoesNotEchoTheWholeText()
+        {
+            // A caret editor whose arm is queued returns null until the game applies focus —
+            // the buffer appearing one frame later must baseline silently, not read as typed.
+            string value = null;
+            var screen = new TestScreen
+            {
+                Declare = b => b.AddItem(ControlId.Structural("code"), new NodeVtable
+                {
+                    Announcements = new[] { NodeAnnouncement.Static("Code") },
+                    TextEntry = true,
+                    TextEntryCaret = true,
+                    TextEchoCaps = false,
+                    TextValue = () => value,
+                }),
+            };
+            _nav.Attach(screen);
+            _nav.EnsureFocus(); // baseline while unarmed (null)
+            int spoken = _speech.Spoken.Count;
+
+            value = "LINK 800\nHALT"; // the arm applied; the buffer appears
+            _nav.EnsureFocus();
+            Assert.Equal(spoken, _speech.Spoken.Count); // silent baseline
+
+            value = "LINK 800\nHALTX"; // a real edit afterwards still echoes
+            _nav.EnsureFocus();
+            Assert.Equal("X", _speech.Spoken[_speech.Spoken.Count - 1]);
+        }
+
+        [Fact]
         public void TabLandingArmsATextField()
         {
             var h = new TextFieldHarness();
