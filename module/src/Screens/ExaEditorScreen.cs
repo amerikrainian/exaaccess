@@ -295,10 +295,26 @@ namespace ExaAccess.Screens
             catch { return null; }
         }
 
-        private static void ArmCode(EditorScreen e)
+        // The EXA last armed at the code stop (tracked by NarrateCaret while focused): Tab away
+        // and back re-arms IT, not the first EXA — the game's Ctrl+Up/Down choice survives.
+        private int _lastCodeExa = int.MinValue;
+
+        private void ArmCode(EditorScreen e)
         {
             if (e == null || FocusedCodeExa(e) != null) return; // already armed
-            ArmCodeFor(e, FirstExa(e));
+            ArmCodeFor(e, LastOrFirstExa(e));
+        }
+
+        private SolutionExa LastOrFirstExa(EditorScreen e)
+        {
+            try
+            {
+                if (_lastCodeExa != int.MinValue)
+                    foreach (var exa in e.solution_0.list_0)
+                        if (exa.method_0() == _lastCodeExa) return exa;
+            }
+            catch { }
+            return FirstExa(e); // never armed yet, or that EXA was deleted
         }
 
         private static void ArmCodeFor(EditorScreen e, SolutionExa exa)
@@ -389,6 +405,7 @@ namespace ExaAccess.Screens
             _caretOffset = caret;
             _caretLine = line;
             _caretText = text;
+            _lastCodeExa = exaNum; // survives Tab-away/back: re-arm this EXA, not the first
         }
 
         private static int LineIndex(string text, int caret) => CaretText.LineIndex(text, caret);
@@ -967,6 +984,7 @@ namespace ExaAccess.Screens
                 _instance = e;
                 _wasRunning = _wasSolved = _stepEcho = _wasCodeFocused = false;
                 _lastCycle = -1;
+                _lastCodeExa = int.MinValue;
             }
 
             // Leaving the code stop releases the game's real code focus (falling edge only, so a
