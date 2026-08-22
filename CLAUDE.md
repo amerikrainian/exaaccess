@@ -496,11 +496,17 @@ through the newest copy:
     suppression swallows ONLY Tab; arming = the game's focus QUEUE maybe_4 +
     method_58 scroll, released on falling edge), typing echo via prefix/suffix
     diff, caret narration (line on vertical moves, char on horizontal, end of
-    line, EXA-switch announce on the game's native Ctrl+Up/Down). REMAINING:
-    task 5 run narration (error/halt event capture — errors live ~1 cycle),
-    task 6 network-map browse (hosts/links), task 7 polish (test-run selector
-    adjust, M-bus toggle, delete/create EXA, solution+EXA rename via TextEntry,
-    Show Goal reading, PuzzleCompletionScreen).
+    line, EXA-switch announce on the game's native Ctrl+Up/Down); task 5 run
+    narration (Patches/SimNarration.cs — Harmony on the error seam Sim.smethod_16
+    buffers player-EXA errors with typed-line recovery; GATED on method_0()
+    because the edit-time per-frame rebuild re-errors empty EXAs every frame;
+    F2 narrates Cycle n + the pending instruction incl. cycle 0; goal flips
+    announce while running; Stopped at cycle n); task 6 network topology
+    (Hosts stop: name + terse occupants, selection follows focus; Links stop:
+    the selected host's links as id, destination — One way prefixed when the
+    far side has no return id, ids per team). REMAINING: task 7 polish
+    (test-run selector adjust, M-bus toggle, delete/create EXA, solution+EXA
+    rename via TextEntry, Show Goal reading, PuzzleCompletionScreen).
 11. Map the remaining obfuscated transition/overlay screens to friendly names.
 12. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
     code editor for program text — this game is text-centric, a strong a11y target.
