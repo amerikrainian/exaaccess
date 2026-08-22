@@ -610,7 +610,15 @@ namespace ExaAccess.Screens
                 string none = GameText.T("None");
                 string x = exa.exaValue_0.method_2(true);
                 string t = exa.exaValue_1.method_2(true);
-                string f = exa.maybe_3.method_0() ? FileId(exa.maybe_3.method_2()) : none;
+                // A held file reads with its CURSOR: the value F would read/write next
+                // ("200, cursor at 72"; "end" = the append position).
+                string f = exa.maybe_3.method_0()
+                    ? Loc.T("editor.f.held", new
+                    {
+                        id = FileId(exa.maybe_3.method_2()),
+                        cursor = CursorValue(exa),
+                    })
+                    : none;
                 string m = (exa.maybe_4.method_0() ? exa.maybe_4.method_2().method_2(true) : none)
                     + " " + (exa.mbusMode_0 == (MBusMode)1 ? GameText.T("Local") : GameText.T("Global"));
                 string readout = Loc.T("editor.exa.readout",
@@ -628,14 +636,45 @@ namespace ExaAccess.Screens
 
         private const int FileValuesSpoken = 60;
 
+        /// <summary>The value at an EXA's file cursor — what F reads/writes next; "end" when the
+        /// cursor sits past the last value (a write appends, per the zine).</summary>
+        private static string CursorValue(SimExa exa)
+        {
+            try
+            {
+                var file = exa.maybe_3.method_2();
+                int cursor = exa.int_1;
+                return cursor >= 0 && cursor < file.list_0.Count
+                    ? file.list_0[cursor].method_2(true)
+                    : Loc.T("editor.cursor.end");
+            }
+            catch { return null; }
+        }
+
+        /// <summary>The player EXA currently holding this file, else null.</summary>
+        private static SimExa HolderOf(SimFile file)
+        {
+            try
+            {
+                var sim = TheSim(Editor);
+                if (sim == null) return null;
+                foreach (var entity in sim.list_1)
+                {
+                    var exa = entity as SimExa;
+                    if (exa != null && exa.maybe_3.method_0()
+                        && ReferenceEquals(exa.maybe_3.method_2(), file)) return exa;
+                }
+            }
+            catch { }
+            return null;
+        }
+
         private static string FileReadout(string id)
         {
             var file = FindFile(id);
             if (file == null) return null;
             try
             {
-                string host = null;
-                try { host = HostName(file.method_0()); } catch { }
                 var parts = new System.Collections.Generic.List<string>();
                 int count = file.list_0.Count;
                 for (int i = 0; i < count && i < FileValuesSpoken; i++)
@@ -643,6 +682,19 @@ namespace ExaAccess.Screens
                 string values = string.Join(", ", parts);
                 if (count > FileValuesSpoken)
                     values += " " + Loc.T("editor.file.more", new { n = count - FileValuesSpoken });
+                // A HELD file reads with its holder and cursor instead of a host location —
+                // the zine's file window attached beneath the EXA.
+                var holder = HolderOf(file);
+                if (holder != null)
+                    return Loc.T("editor.file.held", new
+                    {
+                        count,
+                        exa = holder.string_0,
+                        cursor = CursorValue(holder),
+                        values,
+                    });
+                string host = null;
+                try { host = HostName(file.method_0()); } catch { }
                 return Loc.T("editor.file.readout", new { count, host = host ?? "?", values });
             }
             catch { return null; }
