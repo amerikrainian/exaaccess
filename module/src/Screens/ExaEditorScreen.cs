@@ -164,10 +164,12 @@ namespace ExaAccess.Screens
                 catch { continue; }
                 if (!localId.method_0()) continue; // no id from this side = not traversable from here
                 int id = localId.method_2();
-                string other = HostName(link.method_1(host));
+                var dest = link.method_1(host);
+                string other = HostName(dest);
                 bool oneWay;
-                try { oneWay = !link.method_2(link.method_1(host)).method_2(team).method_0(); }
+                try { oneWay = !link.method_2(dest).method_2(team).method_0(); }
                 catch { oneWay = false; }
+                int destIndex = sim.list_0.IndexOf(dest);
                 b.AddItem(ControlId.Structural("ed.link." + _selectedHost + "." + i), new NodeVtable
                 {
                     ControlType = ControlTypes.Text,
@@ -175,6 +177,17 @@ namespace ExaAccess.Screens
                     {
                         new NodeAnnouncement(() => (oneWay ? Loc.T("editor.link.oneway") + ", " : "")
                             + id + ", " + other, kind: AnnouncementKinds.Label),
+                    },
+                    // Enter = traverse, "as if you scrolled to the destination": it becomes the
+                    // selected host AND the hosts stop's remembered row (stop landings prefer
+                    // memory, so Shift+Tab must land on it), then focus re-parks on ITS links —
+                    // that landing is the one the differ announces.
+                    OnActivate = () =>
+                    {
+                        if (destIndex < 0) return;
+                        _selectedHost = destIndex;
+                        Navigation.FocusNode(ControlId.Structural("ed.host." + destIndex), announce: false);
+                        Navigation.FocusStop("links");
                     },
                 });
             }
