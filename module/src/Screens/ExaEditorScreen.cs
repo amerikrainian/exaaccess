@@ -103,11 +103,19 @@ namespace ExaAccess.Screens
         {
             var e = Editor;
             if (e == null) return;
-            // Stop order (user preference): task -> windows -> hosts -> links -> code -> ...
+            // The file-values popup is MODAL while open: it is the whole graph (Enter or
+            // Backspace closes it, back to the file row).
+            if (_popupFile != null)
+            {
+                if (BuildFilePopup(b)) return;
+                _popupFile = null; // the file vanished — fall through to the normal graph
+            }
+            // Stop order (user preference): task -> windows -> hosts -> links -> files -> code…
             BuildTask(b, e);
             BuildWindows(b, e);
             BuildHosts(b, e);
             BuildLinks(b, e);
+            BuildFiles(b, e);
             BuildCode(b, e);
             BuildStats(b, e);
             BuildControls(b);
@@ -487,21 +495,49 @@ namespace ExaAccess.Screens
                     OnActivate = () => ToggleMbus(n),
                 });
             }
+            b.PopContext();
+        }
+
+        // ---- files, grouped by host like the links stop: the SELECTED host's files (a held
+        // file counts as being where its holder is), label = the bare id, value = count +
+        // values. Enter = the values popup. No stop at all when the host holds nothing. ----
+
+        private void BuildFiles(GraphBuilder b, EditorScreen e)
+        {
+            var sim = TheSim(e);
+            if (sim == null || _selectedHost >= sim.list_0.Count) return;
+            var host = sim.list_0[_selectedHost];
+            var ids = new System.Collections.Generic.List<string>();
             foreach (var entity in sim.list_1)
             {
                 var file = entity as SimFile;
                 if (file == null) continue;
-                string id = FileId(file);
-                if (id == null) continue;
+                string fid = FileId(file);
+                if (fid == null) continue;
+                SimHost at = null;
+                try
+                {
+                    var holder = HolderOf(file);
+                    at = holder != null ? holder.method_0() : file.method_0();
+                }
+                catch { }
+                if (ReferenceEquals(at, host)) ids.Add(fid);
+            }
+            if (ids.Count == 0) return; // no files here — no stop at all
+            b.BeginStop("files");
+            b.PushContext(Loc.T("editor.files", new { host = HostName(host) }));
+            foreach (var id in ids)
+            {
                 string fid = id;
-                b.AddItem(ControlId.Structural("win.file." + fid), new NodeVtable
+                b.AddItem(ControlId.Structural("ed.file." + fid), new NodeVtable
                 {
                     ControlType = ControlTypes.Text,
                     Announcements = new[]
                     {
-                        new NodeAnnouncement(() => Loc.T("editor.file", new { id = fid }), kind: AnnouncementKinds.Label),
+                        new NodeAnnouncement(() => fid, kind: AnnouncementKinds.Label),
                         new NodeAnnouncement(() => FileReadout(fid), kind: AnnouncementKinds.Value),
                     },
+                    OnActivate = () => OpenFilePopup(fid),
                 });
             }
             b.PopContext();
@@ -755,8 +791,8 @@ namespace ExaAccess.Screens
                 string values = string.Join(", ", parts);
                 if (count > FileValuesSpoken)
                     values += " " + Loc.T("editor.file.more", new { n = count - FileValuesSpoken });
-                // A HELD file reads with its holder and cursor instead of a host location —
-                // the zine's file window attached beneath the EXA.
+                // The host is the stop's context now; a HELD file reads with its holder and
+                // cursor (the zine's file window attached beneath the EXA).
                 var holder = HolderOf(file);
                 if (holder != null)
                     return Loc.T("editor.file.held", new
@@ -766,9 +802,67 @@ namespace ExaAccess.Screens
                         cursor = CursorValue(holder),
                         values,
                     });
-                string host = null;
-                try { host = HostName(file.method_0()); } catch { }
-                return Loc.T("editor.file.readout", new { count, host = host ?? "?", values });
+                return Loc.T("editor.file.readout", new { count, values });
+            }
+            catch { return null; }
+        }
+
+        // ---- the file-values popup: Enter on a file row lists EVERY value, one row each (the
+        // 60-value cap is the ROW's compromise; here you arrow at your own pace). Enter or
+        // Backspace closes, focus back on the file row. ----
+
+        private string _popupFile;
+
+        private void OpenFilePopup(string id)
+        {
+            _popupFile = id;
+            Navigation.FocusStop("filepop");
+        }
+
+        private void CloseFilePopup()
+        {
+            string id = _popupFile;
+            _popupFile = null;
+            if (id != null) Navigation.FocusNode(ControlId.Structural("ed.file." + id));
+        }
+
+        private bool BuildFilePopup(GraphBuilder b)
+        {
+            var file = FindFile(_popupFile);
+            if (file == null) return false;
+            int count = 0;
+            try { count = file.list_0.Count; } catch { }
+            string fid = _popupFile;
+            // No context, no position counts (user rule): entering announces the VALUE alone,
+            // arrowing speaks each next value bare.
+            b.BeginStop("filepop");
+            int rows = Math.Max(1, count); // an empty file still gets its one "blank" row
+            for (int i = 0; i < rows; i++)
+            {
+                int vi = i;
+                b.AddItem(ControlId.Structural("ed.fpop." + i), new NodeVtable
+                {
+                    ControlType = ControlTypes.Text,
+                    SpeaksOwnPosition = true, // bare values — no "n of m" (user rule)
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => PopupValueAt(fid, vi), kind: AnnouncementKinds.Label),
+                    },
+                    OnActivate = CloseFilePopup,
+                    OnSecondary = CloseFilePopup,
+                });
+            }
+            return true;
+        }
+
+        private static string PopupValueAt(string id, int i)
+        {
+            var file = FindFile(id);
+            if (file == null) return null;
+            try
+            {
+                if (file.list_0.Count == 0) return Loc.T("text.blank"); // an empty file's one row
+                return i < file.list_0.Count ? file.list_0[i].method_2(true) : null;
             }
             catch { return null; }
         }
@@ -778,7 +872,14 @@ namespace ExaAccess.Screens
         public override System.Collections.Generic.IEnumerable<ElementAction> GetActions()
         {
             yield return new ElementAction("ui.step", StepSim);
+            // Escape closes the file-values popup (its game-side Escape is suppressed while
+            // ModalCapturesEscape holds — see GameKeySuppression).
+            if (_popupFile != null) yield return new ElementAction(ActionIds.Back, CloseFilePopup);
         }
+
+        /// <summary>The file-values popup is mod-side only — Escape must close IT, not act in
+        /// the game (reset-or-leave would close the whole task under the popup).</summary>
+        public override bool ModalCapturesEscape => _popupFile != null;
 
         // ---- sim controls: the five buttons, each invoking the game's own handler path ----
 
@@ -1027,6 +1128,7 @@ namespace ExaAccess.Screens
                 _wasRunning = _wasSolved = _stepEcho = _wasCodeFocused = false;
                 _lastCycle = -1;
                 _lastCodeExa = int.MinValue;
+                _popupFile = null;
             }
 
             // Leaving the code stop releases the game's real code focus (falling edge only, so a

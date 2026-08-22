@@ -19,7 +19,9 @@ namespace ExaAccess.Patches
     /// Both are PURE reads of the per-frame snapshot sets (decompile-verified: no consumption, no
     /// side effects), so skipping the original is safe. Only the keys in <see cref="Keys"/> are
     /// swallowed — Escape and everything else pass through untouched (Escape closing the desktop
-    /// is native behavior we keep). Suppression never applies while the focused screen
+    /// is native behavior we keep), with ONE exception: while the focused screen reports a
+    /// mod-side modal open (<see cref="Screens.Screen.ModalCapturesEscape"/>), Escape is
+    /// swallowed so it closes the modal, not the task under it. Suppression never applies while the focused screen
     /// CapturesRawInput (the key-capture overlay must see raw keys), on unmodeled screens (the
     /// game must stay fully playable), or with focus mode off.
     /// </summary>
@@ -76,6 +78,19 @@ namespace ExaAccess.Patches
         {
             try
             {
+                // Escape is never suppressed — EXCEPT while a mod-side modal is open (the file-
+                // values popup): the game acting on Escape there would reset-or-leave the task
+                // underneath the popup the user is merely closing.
+                if ((int)__0 == 27)
+                {
+                    var esc = Screens.ScreenManager.Current;
+                    if (FocusMode.Active && esc != null && esc.ModalCapturesEscape)
+                    {
+                        __result = false;
+                        return false;
+                    }
+                    return true;
+                }
                 // A caret-owning editor (the EXA code editor) keeps EVERY key except Tab — its
                 // widget needs arrows/Home/End/Enter/Delete/Backspace, and Tab stays ours so
                 // stop-navigation is consistent everywhere (F2 is the step key there).

@@ -68,6 +68,12 @@ namespace ExaAccess.Screens
         /// browse graph (the completion screen's Enter). Escape is never suppressed anyway.</summary>
         public virtual bool PassKeyToGame(int keycode) => false;
 
+        /// <summary>True while a MOD-SIDE modal (a virtual popup with no game counterpart) is open
+        /// on this screen: Escape then closes the modal (the screen's Back action) instead of
+        /// reaching the game — the ONE exception to Escape never being suppressed. A game-backed
+        /// overlay must never set this; the game's own Escape handling is its close path.</summary>
+        public virtual bool ModalCapturesEscape => false;
+
         private static readonly Input.InputCategory[] UiOnly = { Input.InputCategory.UI };
 
         /// <summary>The input categories this screen uses while active, in priority order.</summary>
