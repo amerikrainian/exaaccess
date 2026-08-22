@@ -95,9 +95,178 @@ namespace ExaAccess.Screens
             var e = Editor;
             if (e == null) return;
             BuildTask(b, e);
+            BuildWindows(b, e);
             BuildStats(b, e);
             BuildControls(b);
             BuildSolution(b, e);
+        }
+
+        // ---- the window column: one row per player EXA (registers + location + error) and one
+        // per file (location + contents). The Sim is rebuilt every frame, so rows are keyed by
+        // stable ids and every announcement re-finds its entity live. ----
+
+        private void BuildWindows(GraphBuilder b, EditorScreen e)
+        {
+            var sim = TheSim(e);
+            if (sim == null) return;
+            b.BeginStop("windows");
+            b.PushContext(Loc.T("editor.windows"));
+            foreach (var entity in sim.list_1)
+            {
+                var exa = entity as SimExa;
+                if (exa == null || !exa.maybe_2.method_0()) continue; // player-authored EXAs only
+                int number = 0;
+                try { number = exa.maybe_2.method_2().method_0(); } catch { }
+                int n = number;
+                b.AddItem(ControlId.Structural("win.exa." + n), new NodeVtable
+                {
+                    ControlType = ControlTypes.Text,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => FindExa(n)?.string_0, kind: AnnouncementKinds.Label),
+                        new NodeAnnouncement(() => ExaReadout(n), kind: AnnouncementKinds.Value),
+                    },
+                });
+            }
+            foreach (var entity in sim.list_1)
+            {
+                var file = entity as SimFile;
+                if (file == null) continue;
+                string id = FileId(file);
+                if (id == null) continue;
+                string fid = id;
+                b.AddItem(ControlId.Structural("win.file." + fid), new NodeVtable
+                {
+                    ControlType = ControlTypes.Text,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => Loc.T("editor.file", new { id = fid }), kind: AnnouncementKinds.Label),
+                        new NodeAnnouncement(() => FileReadout(fid), kind: AnnouncementKinds.Value),
+                    },
+                });
+            }
+            b.PopContext();
+        }
+
+        private static SimExa FindExa(int number)
+        {
+            try
+            {
+                var sim = TheSim(Editor);
+                if (sim == null) return null;
+                foreach (var entity in sim.list_1)
+                {
+                    var exa = entity as SimExa;
+                    if (exa != null && exa.maybe_2.method_0() && exa.maybe_2.method_2().method_0() == number)
+                        return exa;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        private static SimFile FindFile(string id)
+        {
+            try
+            {
+                var sim = TheSim(Editor);
+                if (sim == null) return null;
+                foreach (var entity in sim.list_1)
+                {
+                    var file = entity as SimFile;
+                    if (file != null && FileId(file) == id) return file;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        private static string FileId(SimFile file)
+        {
+            try { return file.vmethod_2(file.team_0); }
+            catch { return null; }
+        }
+
+        // The DISPLAYED host name: uppercased internal name, overridable by the game mode
+        // (the tutorial's home host is internally "player" but displays "RHIZOME"), then the
+        // map's #-suffix truncation.
+        private static string HostName(SimHost host)
+        {
+            if (host == null) return null;
+            try
+            {
+                string name = host.string_0.ToUpperInvariant();
+                // The player's home host displays the HOSTNAME setting — or, in puzzles played
+                // under a cover identity, that character's handle ("UNKNOWN" for Moss).
+                if (name == "PLAYER")
+                {
+                    var meta = Meta(Editor);
+                    if (meta != null && meta.bool_2)
+                        name = meta.vignetteCharacter_1 == VignetteCharacter.Moss
+                            ? "UNKNOWN"
+                            : Vignette.dictionary_0[meta.vignetteCharacter_1].Replace("\\", "");
+                    else
+                        name = GameLogic.gameLogic_0.saveData_0.method_32();
+                    name = name.ToUpperInvariant();
+                }
+                var sim = TheSim(Editor);
+                if (sim != null)
+                {
+                    var mode = sim.method_43();
+                    var over = mode.vmethod_10(host, false);
+                    if (over.method_0()) name = over.method_2();
+                }
+                int hash = name.IndexOf('#');
+                return hash >= 0 ? name.Substring(0, hash) : name;
+            }
+            catch { return null; }
+        }
+
+        // "on RHIZOME. X 0, T 0, F none, M none global." — the register plate as one readout,
+        // with the EXA's error line appended while it lasts (the sim keeps it ~one cycle).
+        private static string ExaReadout(int number)
+        {
+            var exa = FindExa(number);
+            if (exa == null) return null;
+            try
+            {
+                string host = null;
+                try { host = HostName(exa.method_0()); } catch { }
+                string none = GameText.T("None");
+                string x = exa.exaValue_0.method_2(true);
+                string t = exa.exaValue_1.method_2(true);
+                string f = exa.maybe_3.method_0() ? FileId(exa.maybe_3.method_2()) : none;
+                string m = (exa.maybe_4.method_0() ? exa.maybe_4.method_2().method_2(true) : none)
+                    + " " + (exa.mbusMode_0 == (MBusMode)1 ? GameText.T("Local") : GameText.T("Global"));
+                string readout = Loc.T("editor.exa.readout",
+                    new { host = host ?? "?", x, t, f, m });
+                if (exa.bool_0 && !string.IsNullOrEmpty(exa.string_1))
+                    readout += " " + Loc.T("editor.exa.error", new { message = GameText.Speech(exa.string_1) });
+                return readout;
+            }
+            catch { return null; }
+        }
+
+        private const int FileValuesSpoken = 60;
+
+        private static string FileReadout(string id)
+        {
+            var file = FindFile(id);
+            if (file == null) return null;
+            try
+            {
+                string host = null;
+                try { host = HostName(file.method_0()); } catch { }
+                var parts = new System.Collections.Generic.List<string>();
+                int count = file.list_0.Count;
+                for (int i = 0; i < count && i < FileValuesSpoken; i++)
+                    parts.Add(file.list_0[i].method_2(true));
+                string values = string.Join(", ", parts);
+                if (count > FileValuesSpoken)
+                    values += " " + Loc.T("editor.file.more", new { n = count - FileValuesSpoken });
+                return Loc.T("editor.file.readout", new { count, host = host ?? "?", values });
+            }
+            catch { return null; }
         }
 
         /// <summary>F2 steps the sim from anywhere on this screen (the game's own Tab-step is

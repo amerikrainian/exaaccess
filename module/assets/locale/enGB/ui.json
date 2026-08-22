@@ -53,6 +53,12 @@
   "editor.stopped": "Stopped.",
   "editor.cycle": "Cycle {n}",
   "editor.compile_error": "Compile error in {exa}, line {line}: {message}",
+  "editor.windows": "Windows",
+  "editor.exa.readout": "on {host}. X {x}, T {t}, F {f}, M {m}.",
+  "editor.exa.error": "Error: {message}.",
+  "editor.file": "File {id}",
+  "editor.file.readout": "{count} values on {host}: {values}",
+  "editor.file.more": "and {n} more",
 
   "desktop.details": "Task details",
   "desktop.detail.location": "Location",
