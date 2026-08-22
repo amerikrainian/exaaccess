@@ -254,15 +254,4 @@ namespace ExaAccess.Screens
         }
     }
 
-    /// <summary>The TRASH WORLD NEWS zine reader (deob GClass214 — obfuscated live, so the
-    /// unmodeled-screen fallback cannot name it). Name-only for now: announce it with the game's
-    /// own hotspot label and stand aside; reading the zine content is future work.</summary>
-    public sealed class TrashWorldNewsScreen : Screen
-    {
-        public override string Key => "news";
-        public override string ScreenName => GameText.TSpeech("TRASH\nWORLD") + " " + GameText.T("NEWS");
-        public override bool CapturesRawInput => true; // the game's own reader keys stay live
-
-        public override bool IsActive() => GameState.TopScreen() is GClass214;
-    }
 }
