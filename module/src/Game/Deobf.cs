@@ -79,5 +79,9 @@ namespace ExaAccess.Game
     {
         public static MethodInfo MethodOf(Expression<Action> call)
             => ((MethodCallExpression)call.Body).Method;
+
+        /// <summary>The value-returning variant (an Expression&lt;Action&gt; can't wrap those).</summary>
+        public static MethodInfo MethodOf<T>(Expression<Func<T>> call)
+            => ((MethodCallExpression)call.Body).Method;
     }
 }

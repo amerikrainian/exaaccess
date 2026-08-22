@@ -110,12 +110,19 @@ namespace ExaAccess.Screens
                 if (BuildFilePopup(b)) return;
                 _popupFile = null; // the file vanished — fall through to the normal graph
             }
+            if (_goalPopup)
+            {
+                if (BuildGoalPopup(b)) return;
+                _goalPopup = false; // content vanished — fall through to the normal graph
+                Patches.PanelCapture.SetArmed(false, false);
+            }
             // Stop order (user preference): task -> windows -> hosts -> links -> files -> code…
             BuildTask(b, e);
             BuildWindows(b, e);
             BuildHosts(b, e);
             BuildLinks(b, e);
             BuildFiles(b, e);
+            BuildRegisters(b, e);
             BuildCode(b, e);
             BuildStats(b, e);
             BuildControls(b);
@@ -230,10 +237,30 @@ namespace ExaAccess.Screens
                 }
                 string capacity = null;
                 try { capacity = parts.Count + " / " + host.method_0(); } catch { }
+                // Hardware registers, after the count — their cells are already outside method_0's
+                // capacity. Label first, the way the map stacks its badge over the plate ("CNS #NERV").
+                foreach (var reg in host.list_2)
+                {
+                    string name = RegName(reg);
+                    if (name != null) parts.Add(name);
+                }
                 if (parts.Count == 0) return capacity;
                 return capacity == null
                     ? string.Join(", ", parts)
                     : capacity + ", " + string.Join(", ", parts);
+            }
+            catch { return null; }
+        }
+
+        /// <summary>A hardware register as spoken: the game's badge label when the puzzle set one,
+        /// then the register name — "CNS #NERV".</summary>
+        private static string RegName(GClass265 reg)
+        {
+            try
+            {
+                return reg.maybe_0.method_0()
+                    ? reg.maybe_0.method_2() + " " + reg.string_0
+                    : reg.string_0;
             }
             catch { return null; }
         }
@@ -626,6 +653,64 @@ namespace ExaAccess.Screens
             b.PopContext();
         }
 
+        // ---- hardware registers, grouped by host like links and files: the SELECTED host's
+        // registers, one terse row each — label + name, value = the LIVE plate read (the
+        // sighted player's glance while stepping; goal-side values live in the goal popup;
+        // write-only plates draw none, so their row is the name alone). No stop when the
+        // selected host has no registers — the usual case. ----
+
+        private void BuildRegisters(GraphBuilder b, EditorScreen e)
+        {
+            var sim = TheSim(e);
+            if (sim == null || _selectedHost >= sim.list_0.Count) return;
+            var host = sim.list_0[_selectedHost];
+            if (host.list_2.Count == 0) return;
+            b.BeginStop("registers");
+            b.PushContext(Loc.T("editor.registers", new { host = HostName(host) }));
+            for (int r = 0; r < host.list_2.Count; r++)
+            {
+                int hi = _selectedHost, ri = r;
+                b.AddItem(ControlId.Structural("ed.reg." + hi + "." + r), new NodeVtable
+                {
+                    ControlType = ControlTypes.Text,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => RegName(RegAt(hi, ri)), kind: AnnouncementKinds.Label),
+                        new NodeAnnouncement(() => RegValue(hi, ri), kind: AnnouncementKinds.Value),
+                    },
+                });
+            }
+            b.PopContext();
+        }
+
+        /// <summary>Re-resolved per announce — the sim (and every register in it) is rebuilt each
+        /// frame while editing; captured instances go stale.</summary>
+        private static GClass265 RegAt(int hostIndex, int regIndex)
+        {
+            try
+            {
+                var sim = TheSim(Editor);
+                if (sim == null || hostIndex >= sim.list_0.Count) return null;
+                var regs = sim.list_0[hostIndex].list_2;
+                return regIndex < regs.Count ? regs[regIndex] : null;
+            }
+            catch { return null; }
+        }
+
+        private static string RegValue(int hostIndex, int regIndex)
+        {
+            try
+            {
+                var e = Editor;
+                var sim = TheSim(e);
+                var reg = RegAt(hostIndex, regIndex);
+                if (sim == null || reg == null) return null;
+                if (reg.genum160_0 != (GEnum160)0) return null; // only readable plates draw a value
+                return sim.method_43().vmethod_9(reg, false, e.method_24(), false).method_2(true);
+            }
+            catch { return null; }
+        }
+
         // ---- window-row actions (task 7) ----
 
         private static SolutionExa SolutionExaOf(int number)
@@ -955,14 +1040,15 @@ namespace ExaAccess.Screens
         public override System.Collections.Generic.IEnumerable<ElementAction> GetActions()
         {
             yield return new ElementAction("ui.step", StepSim);
-            // Escape closes the file-values popup (its game-side Escape is suppressed while
+            // Escape closes the popups (their game-side Escape is suppressed while
             // ModalCapturesEscape holds — see GameKeySuppression).
             if (_popupFile != null) yield return new ElementAction(ActionIds.Back, CloseFilePopup);
+            if (_goalPopup) yield return new ElementAction(ActionIds.Back, CloseGoalPopup);
         }
 
-        /// <summary>The file-values popup is mod-side only — Escape must close IT, not act in
-        /// the game (reset-or-leave would close the whole task under the popup).</summary>
-        public override bool ModalCapturesEscape => _popupFile != null;
+        /// <summary>The popups are mod-side only — Escape must close THEM, not act in the game
+        /// (reset-or-leave would close the whole task under the popup).</summary>
+        public override bool ModalCapturesEscape => _popupFile != null || _goalPopup;
 
         // ---- sim controls: the five buttons, each invoking the game's own handler path ----
 
@@ -1212,6 +1298,27 @@ namespace ExaAccess.Screens
                 _lastCycle = -1;
                 _lastCodeExa = int.MinValue;
                 _popupFile = null;
+                _goalPopup = false;
+                _goalPopupPending = 0;
+                Patches.PanelCapture.SetArmed(false, false);
+            }
+
+            // The panel capture publishes at tick time: the buffer holds the PREVIOUS frame's
+            // complete draw (our tick runs before this frame draws). The deferred popup open
+            // waits for that — the first published goal-view frame.
+            Patches.PanelCapture.Publish();
+            if (_goalPopupPending > 0 && --_goalPopupPending == 0)
+            {
+                if (GoalRowTexts(e).Count == 0)
+                {
+                    Patches.PanelCapture.SetArmed(false, false);
+                    Speech.Tts.Speak(Loc.T("nav.no_details"));
+                }
+                else
+                {
+                    _goalPopup = true;
+                    Navigation.FocusStop("goalpop");
+                }
             }
 
             // Leaving the code stop releases the game's real code focus (falling edge only, so a
@@ -1225,10 +1332,11 @@ namespace ExaAccess.Screens
             // Leaving the solution-name field commits it, like the game's click-away.
             if (NameArmed(e) && !Navigation.TextEntryFocused) CommitName(e);
 
-            // The native F1 hold (Show Goal) speaks the goal details on press, same as our button.
+            // The native F1 press opens the goal popup, same as our button (while the popup
+            // forces the flag, method_7 reads true — no re-trigger until a fresh press).
             bool showGoal = false;
             try { showGoal = e.method_7(); } catch { }
-            if (showGoal && !_wasShowGoal) SpeakGoalDetails();
+            if (showGoal && !_wasShowGoal) RequestGoalPopup();
             _wasShowGoal = showGoal;
 
             var sim = TheSim(e);
@@ -1378,8 +1486,8 @@ namespace ExaAccess.Screens
                         },
                     });
                 }
-            // The accessible Show Goal: reads the expected end-state (the required files the F1
-            // view places on the map) as text instead of the alternate rendering.
+            // The accessible Show Goal: opens the goal popup — the F1 view as text (required
+            // files, register goal readouts, and the special-puzzle panels via PanelCapture).
             b.AddItem(ControlId.Structural("ed.goalbtn"), new NodeVtable
             {
                 ControlType = ControlTypes.Button,
@@ -1387,18 +1495,73 @@ namespace ExaAccess.Screens
                 {
                     new NodeAnnouncement(() => GameText.T("Show Goal"), kind: AnnouncementKinds.Label),
                 },
-                OnActivate = SpeakGoalDetails,
+                OnActivate = RequestGoalPopup,
             });
             b.PopContext();
         }
 
-        private static void SpeakGoalDetails()
+        // ---- the goal popup: everything the game's F1 view shows, as bare terse rows. Opening
+        // forces the game's own show-goal flag (PanelCapture.ForceGoal — the screen visibly flips
+        // to the F1 view, same as a sighted player holding the key) and arms the panel-text
+        // capture; the open DEFERS two ticks so a full goal-view frame has been drawn and
+        // published before the first row speaks. Enter/Backspace/Escape close. ----
+
+        private bool _goalPopup;
+        private int _goalPopupPending;
+        private ControlId _goalReturnFocus;
+
+        private void RequestGoalPopup()
         {
+            if (_goalPopup || _goalPopupPending > 0) return;
+            // F1 opens from anywhere — closing returns to wherever the user was.
+            _goalReturnFocus = (Navigation.Active as GraphNavigator)?.FocusedNodeId;
+            _goalPopupPending = 2;
+            Patches.PanelCapture.SetArmed(true, forceGoal: true);
+        }
+
+        private void CloseGoalPopup()
+        {
+            _goalPopup = false;
+            _goalPopupPending = 0;
+            Patches.PanelCapture.SetArmed(false, false);
+            Navigation.FocusNode(_goalReturnFocus ?? ControlId.Structural("ed.goalbtn"));
+        }
+
+        private bool BuildGoalPopup(GraphBuilder b)
+        {
+            var rows = GoalRowTexts(Editor);
+            if (rows.Count == 0) return false;
+            // Bare rows, no context, no position counts — the file-popup precedent (user rule).
+            b.BeginStop("goalpop");
+            for (int i = 0; i < rows.Count; i++)
+            {
+                string text = rows[i];
+                b.AddItem(ControlId.Structural("ed.gpop." + i), new NodeVtable
+                {
+                    ControlType = ControlTypes.Text,
+                    SpeaksOwnPosition = true,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => text, kind: AnnouncementKinds.Label),
+                    },
+                    OnActivate = CloseGoalPopup,
+                    OnSecondary = CloseGoalPopup,
+                });
+            }
+            return true;
+        }
+
+        /// <summary>The popup's rows: required files (the model, structured), the register goal
+        /// readouts and host statuses (the GClass298 virtual API — vmethod_9's consume arg stays
+        /// false, a pure read; per-puzzle logics throw for registers they don't own), then the
+        /// captured panel lines. All game text.</summary>
+        private System.Collections.Generic.List<string> GoalRowTexts(EditorScreen e)
+        {
+            var rows = new System.Collections.Generic.List<string>();
             try
             {
-                var sim = TheSim(Editor);
-                if (sim == null) return;
-                var parts = new System.Collections.Generic.List<string>();
+                var sim = TheSim(e);
+                if (sim == null) return rows;
                 foreach (var host in sim.list_0)
                     foreach (var required in host.list_0)
                     {
@@ -1407,16 +1570,41 @@ namespace ExaAccess.Screens
                         var values = new System.Collections.Generic.List<string>();
                         for (int i = 0; i < required.exaValue_0.Length && i < FileValuesSpoken; i++)
                             values.Add(required.exaValue_0[i].method_2(true));
-                        parts.Add(Loc.T("editor.goal.file", new
+                        rows.Add(Loc.T("editor.goal.file", new
                         {
                             id,
                             host = HostName(host),
                             values = string.Join(", ", values),
                         }));
                     }
-                Speech.Tts.Speak(parts.Count == 0 ? Loc.T("nav.no_details") : string.Join(" ", parts));
+                var logic = sim.method_43();
+                if (logic != null)
+                    foreach (var host in sim.list_0)
+                    {
+                        foreach (var reg in host.list_2)
+                        {
+                            string id = RegName(reg);
+                            string value = null;
+                            if (reg.genum160_0 == (GEnum160)0) // the game only shows values on readable plates
+                                try { value = logic.vmethod_9(reg, true, e.method_24(), false).method_2(true); }
+                                catch { } // per-puzzle logics throw for registers they don't own
+                            rows.Add(string.IsNullOrEmpty(value)
+                                ? Loc.T("editor.goal.register.plain", new { id, host = HostName(host) })
+                                : Loc.T("editor.goal.register", new { id, host = HostName(host), value }));
+                        }
+                        try
+                        {
+                            var status = logic.vmethod_10(host, true);
+                            if (status.method_0())
+                                rows.Add(HostName(host) + ": " + GameText.Speech(status.method_2()));
+                        }
+                        catch { }
+                    }
+                foreach (var line in Patches.PanelCapture.Lines)
+                    rows.Add(GameText.Speech(line));
             }
-            catch { Speech.Tts.Speak(Loc.T("nav.no_details")); }
+            catch { }
+            return rows;
         }
 
         // Mirrors the checklist draw: label (+ " (n/m)" when the goal has progress), and the

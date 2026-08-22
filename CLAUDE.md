@@ -512,8 +512,28 @@ live generation.
     rows; EXA row Enter = jump to its code, Backspace = delete via the public
     method_36, undoable; Create New EXA button mirroring the full handler
     incl. focus-jump to the new code; solution name is a TextEntry field over
-    the game's bool_7 inline field, commit on Enter/leave; Show Goal button
-    reads the required files as text; PuzzleCompleteScreen announces final
+    the game's bool_7 inline field, commit on Enter/leave; Show Goal
+    (button Enter OR a native F1 press) opens a MODAL GOAL POPUP — the F1
+    view as terse rows for EVERY puzzle type: required files, hardware
+    registers with their badge labels ("CNS #NERV at host: value";
+    write-only plates plain; registers also speak on host-stop rows, and a
+    Registers stop grouped by SELECTED host like links/files — after files,
+    absent when that host has none — reads the LIVE plate value while
+    stepping), and
+    the special-puzzle panels (I/O logs, uplink status, custom windows)
+    captured as TEXT. Mechanics: Patches/PanelCapture patches every
+    GClass298 draw-hook override (vmethod_0..3, found by slot at load — 33
+    in this build) with a depth toggle + the three GClass230 text statics
+    (smethod_33/34/36) recording (string, pos) while armed; UI/PanelText
+    (BCL-pure, tested) rebuilds reading order (rows cluster by y, y-up,
+    cells join left-to-right); while the popup is open
+    EditorScreen.method_7() is prefixed TRUE so the game ITSELF renders its
+    F1 view — draw-only by construction (the sim's own register reads
+    hardcode the flag false, GClass218) and visible parity for sighted
+    co-players. Open defers 2 ticks (a goal-view frame must publish first);
+    zero rows = "No details", no popup; Escape/Enter/Backspace close with
+    focus restored to wherever F1 was pressed; PuzzleCompleteScreen
+    announces final
     scores + the native Escape/Enter options). DEFERRED: EXA rename
     (cosmetic — names auto-assign XA..XZ). The code-node label reads the
     QUEUED focus target (focus applies a frame late — TargetCodeExa).

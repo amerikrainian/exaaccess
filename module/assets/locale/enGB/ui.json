@@ -72,6 +72,9 @@
   "editor.mbus": "{exa} M-bus",
   "editor.exa.deleted": "{exa} deleted",
   "editor.goal.file": "File {id} at {host}: {values}.",
+  "editor.goal.register": "{id} at {host}: {value}.",
+  "editor.goal.register.plain": "{id} at {host}.",
+  "editor.registers": "{host} registers",
   "editor.complete.options": "Escape: {resume}. Enter: {leave}.",
   "text.newline": "new line",
 
