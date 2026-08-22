@@ -18,6 +18,8 @@
   "screen.Ember2CutsceneScreen": "Cutscene",
   "screen.cutscene": "Cutscene",
   "cutscene.line": "{name}: {text}",
+  "cutscene.ember.name": "Ember",
+  "cutscene.choice": "{n}: {text}",
 
   "role.button": "button",
   "role.toggle": "toggle",

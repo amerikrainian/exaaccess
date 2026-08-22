@@ -69,5 +69,43 @@ namespace ExaAccess.Game
             var ev = new Event { Type = MouseButtonDownEvent, Button = 1, State = 1 };
             return PushEventRaw(ref ev) >= 1;
         }
+
+        // SDL_KeyboardEvent view of the same 56-byte union (SDL_KEYDOWN=0x300 / SDL_KEYUP=0x301).
+        [StructLayout(LayoutKind.Sequential, Size = 64)]
+        public struct KeyEvent
+        {
+            public uint Type;
+            public uint Timestamp;
+            public uint WindowId;
+            public byte State;   // 1 pressed / 0 released
+            public byte Repeat;
+            public byte Padding2;
+            public byte Padding3;
+            public int Scancode;
+            public int Sym;      // SDL keycode — what the game's key sets track
+            public ushort Mod;
+            public uint Unused;
+        }
+
+        [DllImport(Dll, CallingConvention = CallingConvention.Cdecl, EntryPoint = "SDL_PushEvent")]
+        private static extern int PushKeyEventRaw(ref KeyEvent ev);
+
+        /// <summary>Deposit a synthetic key event. The game's event pump adds/removes the SYM in its
+        /// own key sets, so its just-pressed polls fire exactly as for a real key. TWO traps,
+        /// both hit and verified live: the game ROUTES key events by the event's WINDOW ID
+        /// (an id it doesn't know is silently dropped — pass the real one), and the key-UP must
+        /// land in a LATER pump than the down or they cancel before the per-frame poll.</summary>
+        public static bool PushKey(int scancode, int sym, bool down, uint windowId)
+        {
+            var ev = new KeyEvent
+            {
+                Type = down ? 0x300u : 0x301u,
+                WindowId = windowId,
+                State = down ? (byte)1 : (byte)0,
+                Scancode = scancode,
+                Sym = sym,
+            };
+            return PushKeyEventRaw(ref ev) >= 1;
+        }
     }
 }

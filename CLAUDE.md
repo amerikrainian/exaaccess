@@ -293,7 +293,13 @@ Module (each reload starts this half cold — statics are per-load):
   hooks are pluggable funcs (`UiDispatcher`, `ActiveCategoriesProvider`,
   `SuppressPoll`) — wired when GraphNavigator/ScreenManager land with the first screen.
 - `module/src/Game/SdlNative.cs` — P/Invoke over the game's own SDL2.dll: keyboard
-  state reads, `SDL_GetKeyName`, + `SDL_PushEvent` (56-byte union — Size=64 on purpose).
+  state reads, `SDL_GetKeyName`, + `SDL_PushEvent` (56-byte union — Size=64 on
+  purpose): the splash's synthetic mouse click and `PushKey` (synthetic keyboard
+  events). TWO PushKey traps, both hit and diagnosed live: the game's event loop
+  ROUTES key events by the event's WINDOW ID through its private window map
+  (GameLogic dictionary_0 — wrong/zero id = silently dropped; read the real id via
+  Deobf, it is 1 in practice), and a key-DOWN and its key-UP processed in the same
+  event pump cancel before the game's per-frame poll — hold the up back two frames.
 - `module/src/Game/` — the thin typed game boundary (see "Typed game access"):
   `GameText` (the game's own localized strings — see Hard rules), `GameApi`
   (push/pop/quit wrappers over `GameLogic.method_12/15/32`), `Deobf` (private-member
@@ -327,10 +333,19 @@ Module (each reload starts this half cold — statics are per-load):
   live; OnUpdate watches the line index (privates via Deobf's T-row bridge) and speaks
   each line in full as it appears, speaker-prefixed per the drawn name plate (Moss =
   the player's plate-less narration, spoken bare; non-Moss lines are VOICE-ACTED and
-  TTS currently reads them anyway, subtitle-style). Plus `TrashWorldNewsScreen` —
-  name-only over the zine reader (deob GClass214, obfuscated live; ghast-1/2 cutscenes
-  end by pushing it): announces the game's own hotspot label, content reading is
-  future work.
+  TTS currently reads them anyway, subtitle-style). `EmberCutsceneScreen` over the
+  EMBER comic player (Ember2CutsceneScreen, name-preserved) — the game's only DIALOGUE
+  CHOICES: each script line carries a LIST of texts (Ember2 lines = response variants
+  picked by the player's previous choice int_2; non-Ember multi-text lines = answer
+  bubbles, natively choosable by mouse or the undocumented number keys 1-9).
+  Announce-only with CapturesRawInput EXCEPT while a choice is pending: then the
+  options become a MENU — bare labels "1: text" (no role word, no position counts —
+  user rule, 2026-08-22), arrows re-read, Enter picks by pushing the option's digit
+  as a synthetic SDL key so the game's own choice path runs byte-identically; native
+  digits keep working in parallel. Covers the fullscreen story mode. Plus
+  `TrashWorldNewsScreen` — name-only over the zine reader (deob GClass214, obfuscated
+  live; ghast-1/2 cutscenes end by pushing it): announces the game's own hotspot
+  label, content reading is future work.
 - `module/src/Patches/GameKeySuppression.cs` — the focus-mode key-suppression seam:
   Harmony prefixes on `GClass64.smethod_17/22` (via `Expr.MethodOf`; positional `__0`
   binding — shipping param names are obfuscated) return not-pressed for the navigator's
@@ -437,13 +452,14 @@ through the newest copy:
    Deferred on the desktop: leaderboards/histograms + the multiplayer opponent table
    (post-solve detail-pane content), the side-jobs tab live-verify (needs an ember-7
    save), the custom-win press-and-hold button.
-10. **(partly done)** Desktop destinations: the visual-novel cutscene player is fully
-    accessible (`CutsceneScreens.cs` — every line spoken as it appears, game keys
-    native), the Workhouse is fully playable (`WorkhouseScreen.cs` — typing-first
-    text entry, the seam the EXA editor will build on), and TRASH WORLD NEWS
-    announces by name. Still to model: the EXA code editor (`EditorScreen` — the big
-    one), the news reader's CONTENT, and `Ember2CutsceneScreen` (name-preserved,
-    announces "Cutscene"; its animated lines are silent) /
+10. **(partly done)** Desktop destinations: BOTH cutscene players are fully
+    accessible (`CutsceneScreens.cs` — the visual-novel player speaks every line as
+    it appears with native keys; the EMBER comic player additionally turns its
+    dialogue choices into an arrow-navigable menu with Enter/digit selection,
+    verified live through a real choice), the Workhouse is fully playable
+    (`WorkhouseScreen.cs` — typing-first text entry, the seam the EXA editor will
+    build on), and TRASH WORLD NEWS announces by name. Still to model: the EXA code
+    editor (`EditorScreen` — the big one), the news reader's CONTENT, and
     `SolitaireScreen`/`ArcadeScreen`/`CustomPuzzleScreen` (friendly name only today).
 11. Map the remaining obfuscated transition/overlay screens to friendly names.
 12. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA

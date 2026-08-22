@@ -135,6 +135,7 @@ namespace ExaAccess.Screens
             Register(new TitleScreen());
             Register(new DesktopHubScreen());
             Register(new CutsceneScreen());
+            Register(new EmberCutsceneScreen());
             Register(new TrashWorldNewsScreen());
             Register(new WorkhouseScreen());
             Register(new ControlPanelHomeScreen());
