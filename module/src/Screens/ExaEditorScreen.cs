@@ -357,9 +357,15 @@ namespace ExaAccess.Screens
                     || Input.SdlKeyboard.Held((int)Input.Scancode.PageUp)
                     || Input.SdlKeyboard.Held((int)Input.Scancode.PageDown)
                     || Input.SdlKeyboard.Held(96) || Input.SdlKeyboard.Held(90); // KP_8 / KP_2
+                // Home/End are caret PLACEMENTS: they speak only the character landed on
+                // (user rule, 2026-08-22) — only the Ctrl word jumps read whole words.
+                bool homeEnd =
+                    Input.SdlKeyboard.Held((int)Input.Scancode.Home)
+                    || Input.SdlKeyboard.Held((int)Input.Scancode.End)
+                    || Input.SdlKeyboard.Held(95) || Input.SdlKeyboard.Held(89); // KP_7 / KP_1
                 if (vertical && line != _caretLine)
                     Speech.Tts.Speak(CurrentLineText(), interrupt: true);
-                else if (Math.Abs(caret - _caretOffset) == 1)
+                else if (homeEnd || Math.Abs(caret - _caretOffset) == 1)
                     Speech.Tts.Speak(CaretText.CharAt(text, caret), interrupt: true);
                 else
                     Speech.Tts.Speak(CaretText.WordAt(text, caret), interrupt: true);
