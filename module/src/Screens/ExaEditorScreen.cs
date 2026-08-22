@@ -368,6 +368,28 @@ namespace ExaAccess.Screens
         private int _caretOffset = -1, _caretLine = -1;
         private string _caretText;
 
+        // Edge detection for the caret keys. Two jobs: (1) a press that had nowhere to go
+        // (Home at the line start, Up on the first line) re-announces one tick later (user
+        // request, 2026-08-22); (2) the edge's KIND classifies the caret move it causes —
+        // the game applies the move a frame after we see the press, and a fast tap releases
+        // the key before then, so held-state classification mis-reads a vertical move as a
+        // word jump ("LINK" instead of "LINK 800" — user report). Grouped by index range.
+        private static readonly int[] CaretKeys =
+        {
+            (int)Input.Scancode.Up, (int)Input.Scancode.Down,
+            (int)Input.Scancode.PageUp, (int)Input.Scancode.PageDown,
+            96, 90,  // KP_8 / KP_2                                    [0-5]  vertical
+            (int)Input.Scancode.Left, (int)Input.Scancode.Right,
+            92, 94,  // KP_4 / KP_6                                    [6-9]  horizontal
+            (int)Input.Scancode.Home, (int)Input.Scancode.End,
+            95, 89,  // KP_7 / KP_1                                    [10-13] home/end
+        };
+        private readonly bool[] _caretKeyWas = new bool[CaretKeys.Length];
+
+        private const int MoveNone = 0, MoveVertical = 1, MoveHorizontal = 2, MoveHomeEnd = 3;
+        private int _pendingMove = MoveNone; // the un-consumed key edge's kind
+        private int _pendingAge;             // ticks since that edge fired
+
         private void NarrateCaret(EditorScreen e, bool baseline)
         {
             var exa = FocusedCodeExa(e);
@@ -384,6 +406,21 @@ namespace ExaAccess.Screens
             if (caret > text.Length) caret = text.Length;
             int line = LineIndex(text, caret);
 
+            // Fresh press edges this frame (typematic repeat doesn't re-edge — one physical
+            // press, one announce). An edge becomes the PENDING move kind: the caret delta
+            // it causes shows up a tick later and consumes it for classification; a pending
+            // edge that never produces a delta becomes the re-land announce.
+            int edge = MoveNone;
+            for (int i = 0; i < CaretKeys.Length; i++)
+            {
+                bool held = Input.SdlKeyboard.Held(CaretKeys[i]);
+                if (held && !_caretKeyWas[i])
+                    edge = i < 6 ? MoveVertical : i < 10 ? MoveHorizontal : MoveHomeEnd;
+                _caretKeyWas[i] = held;
+            }
+            if (edge != MoveNone) { _pendingMove = edge; _pendingAge = 0; }
+            else if (_pendingMove != MoveNone) _pendingAge++;
+
             if (exaNum != _caretExa)
             {
                 // First arm is silent (the landing announce covered it); a real EXA switch
@@ -391,30 +428,36 @@ namespace ExaAccess.Screens
                 if (!baseline && _caretExa != int.MinValue)
                     Speech.Tts.Speak(Loc.T("editor.code", new { exa = exa.string_0 })
                         + ", " + (CurrentLineText() ?? ""), interrupt: true);
+                _pendingMove = MoveNone; // this edge's outcome is handled
             }
             else if (text != _caretText)
             {
                 // An edit: the typing echo spoke it; just re-baseline below.
+                _pendingMove = MoveNone;
             }
             else if (line != _caretLine || caret != _caretOffset)
             {
                 // Screen-reader convention (user rules, 2026-08-22): ONLY vertical moves read the
                 // full line. Horizontal moves speak the character (a line boundary lands on the
-                // newline and says just that); larger horizontal jumps (Ctrl word moves,
-                // Home/End) speak the word landed on — even when they cross a line. The move
-                // type comes from the actual key held, not from what the caret happened to do.
-                bool vertical =
-                    Input.SdlKeyboard.Held((int)Input.Scancode.Up)
-                    || Input.SdlKeyboard.Held((int)Input.Scancode.Down)
-                    || Input.SdlKeyboard.Held((int)Input.Scancode.PageUp)
-                    || Input.SdlKeyboard.Held((int)Input.Scancode.PageDown)
-                    || Input.SdlKeyboard.Held(96) || Input.SdlKeyboard.Held(90); // KP_8 / KP_2
-                // Home/End are caret PLACEMENTS: they speak only the character landed on
-                // (user rule, 2026-08-22) — only the Ctrl word jumps read whole words.
-                bool homeEnd =
-                    Input.SdlKeyboard.Held((int)Input.Scancode.Home)
-                    || Input.SdlKeyboard.Held((int)Input.Scancode.End)
-                    || Input.SdlKeyboard.Held(95) || Input.SdlKeyboard.Held(89); // KP_7 / KP_1
+                // newline and says just that); larger horizontal jumps (Ctrl word moves) speak
+                // the word landed on; Home/End are caret PLACEMENTS speaking the character.
+                // The move type is the KEY EDGE that caused this delta (a fast tap is released
+                // by now — held state alone mis-classifies); held state is the fallback for
+                // deltas with no recorded edge.
+                int kind = _pendingMove;
+                _pendingMove = MoveNone;
+                bool vertical = kind == MoveVertical ||
+                    (kind == MoveNone && (
+                        Input.SdlKeyboard.Held((int)Input.Scancode.Up)
+                        || Input.SdlKeyboard.Held((int)Input.Scancode.Down)
+                        || Input.SdlKeyboard.Held((int)Input.Scancode.PageUp)
+                        || Input.SdlKeyboard.Held((int)Input.Scancode.PageDown)
+                        || Input.SdlKeyboard.Held(96) || Input.SdlKeyboard.Held(90))); // KP_8 / KP_2
+                bool homeEnd = kind == MoveHomeEnd ||
+                    (kind == MoveNone && (
+                        Input.SdlKeyboard.Held((int)Input.Scancode.Home)
+                        || Input.SdlKeyboard.Held((int)Input.Scancode.End)
+                        || Input.SdlKeyboard.Held(95) || Input.SdlKeyboard.Held(89))); // KP_7 / KP_1
                 if (Input.SdlKeyboard.ShiftHeld)
                 {
                     // Shift = the game's native selection. Speak the TRUE delta — the span
@@ -435,12 +478,26 @@ namespace ExaAccess.Screens
                         Speech.Tts.Speak(Loc.T(shrank ? "text.unselected" : "text.selected",
                             new { text = sel }), interrupt: true);
                 }
-                else if (vertical && line != _caretLine)
+                else if (vertical)
+                    // Line-index change NOT required: Up on the first line (or Down on the
+                    // last) clamps the caret to the line's start/end WITHIN the same line —
+                    // a vertical intent still reads the line (user report, 2026-08-22).
                     Speech.Tts.Speak(CurrentLineText(), interrupt: true);
                 else if (homeEnd || Math.Abs(caret - _caretOffset) == 1)
                     Speech.Tts.Speak(CaretText.CharAt(text, caret), interrupt: true);
                 else
                     Speech.Tts.Speak(CaretText.WordAt(text, caret), interrupt: true);
+            }
+            else if (!baseline && _pendingMove != MoveNone && _pendingAge >= 1)
+            {
+                // The key fired a tick ago and no caret delta followed — it had nowhere to
+                // go (Home already at the line start, Up on the first line, Down on the
+                // last): re-announce as if landed anew — vertical keys the line, the rest
+                // the character (user request). The one-tick wait is what separates this
+                // from a real move whose delta arrives a frame behind the press.
+                if (_pendingMove == MoveVertical) Speech.Tts.Speak(CurrentLineText(), interrupt: true);
+                else Speech.Tts.Speak(CaretText.CharAt(text, caret), interrupt: true);
+                _pendingMove = MoveNone;
             }
 
             _caretExa = exaNum;
