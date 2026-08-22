@@ -69,6 +69,16 @@ namespace ExaAccess.Screens
         private static readonly MethodInfo CloseFieldsMethod = Deobf.Method(typeof(EditorScreen), "method_54");
         private static readonly FieldInfo NameActiveField = Deobf.Field(typeof(EditorScreen), "bool_7");
 
+        // maybe_0 = the run's STEP BUDGET: method_18 stores it (stepping passes Some(n), a free
+        // run None), method_20 pauses by setting Some(0). So "free-running" = armed AND no budget.
+        private static readonly FieldInfo StepBudgetField = Deobf.Field(typeof(EditorScreen), "maybe_0");
+
+        private static Maybe<int> StepBudget(EditorScreen e)
+        {
+            try { return (Maybe<int>)StepBudgetField.GetValue(e); }
+            catch { return (Maybe<int>)0; } // a budget — never mistaken for a free run
+        }
+
         private static EditorScreen Editor => GameState.TopScreen() as EditorScreen;
 
         private static Sim TheSim(EditorScreen e)
@@ -1342,6 +1352,16 @@ namespace ExaAccess.Screens
             var sim = TheSim(e);
             bool running = false;
             try { running = e.method_0(); } catch { }
+
+            // A free run started NATIVELY (F4/F5) must stand the step echo down the way our Run
+            // button does, or the echo narrates every cycle of the run. This is also the
+            // F4-after-stepping "Running." — a stepped sim is already armed, so the
+            // not-running -> running announce below never fires for it.
+            if (_stepEcho && running && !StepBudget(e).method_0())
+            {
+                _stepEcho = false;
+                Speech.Tts.Speak(Loc.T("editor.running"));
+            }
 
             // Stop transition FIRST: a reset rebuilds the sim at cycle 0, and the echo below
             // must not read that as a step.
