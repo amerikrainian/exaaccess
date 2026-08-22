@@ -191,7 +191,8 @@ namespace ExaAccess.Screens
             catch { return null; }
         }
 
-        // Terse occupancy: "XA, file 200" — nothing when empty.
+        // Terse occupancy with capacity: "1 / 9, XA" — occupied cells against the host's usable
+        // cells (a full host blocks entry; the game shows this only as the grid filling up).
         private static string HostOccupants(int index)
         {
             var host = HostAt(index);
@@ -206,7 +207,12 @@ namespace ExaAccess.Screens
                     var file = entity as SimFile;
                     if (file != null) parts.Add(Loc.T("editor.file", new { id = FileId(file) }));
                 }
-                return parts.Count == 0 ? null : string.Join(", ", parts);
+                string capacity = null;
+                try { capacity = parts.Count + " / " + host.method_0(); } catch { }
+                if (parts.Count == 0) return capacity;
+                return capacity == null
+                    ? string.Join(", ", parts)
+                    : capacity + ", " + string.Join(", ", parts);
             }
             catch { return null; }
         }
@@ -858,6 +864,30 @@ namespace ExaAccess.Screens
             Speech.Tts.Speak(Loc.T("editor.reset"));
         }
 
+        // "1 / 5" — current EXA count against the effective cap (the same two limits the game's
+        // Create button greys out on: the per-team create cap and the storage limit).
+        private static string ExaCountText()
+        {
+            try
+            {
+                var e = Editor;
+                if (e == null) return null;
+                int count = e.solution_0.list_0.Count;
+                try
+                {
+                    var sim = TheSim(e);
+                    if (sim != null)
+                    {
+                        int cap = Math.Min(sim.dictionary_0[e.method_24()].int_0, sim.int_6);
+                        return count + " / " + cap;
+                    }
+                }
+                catch { }
+                return count.ToString();
+            }
+            catch { return null; }
+        }
+
         // ---- solution-name editing + Create New EXA (task 7) ----
 
         private static bool NameArmed(EditorScreen e)
@@ -1308,11 +1338,7 @@ namespace ExaAccess.Screens
                 Announcements = new[]
                 {
                     new NodeAnnouncement(() => Loc.T("editor.exas"), kind: AnnouncementKinds.Label),
-                    new NodeAnnouncement(() =>
-                    {
-                        try { return Editor?.solution_0.list_0.Count.ToString(); }
-                        catch { return null; }
-                    }, kind: AnnouncementKinds.Value),
+                    new NodeAnnouncement(ExaCountText, kind: AnnouncementKinds.Value),
                 },
             });
             b.PopContext();
