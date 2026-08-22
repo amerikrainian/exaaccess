@@ -60,6 +60,9 @@
   "editor.file.readout": "{count} values on {host}: {values}",
   "editor.file.more": "and {n} more",
   "editor.code": "{exa} code",
+  "editor.hosts": "Hosts",
+  "editor.links": "{host} links",
+  "editor.link.oneway": "One way",
   "text.newline": "new line",
   "text.endofline": "end of line",
 

@@ -97,9 +97,108 @@ namespace ExaAccess.Screens
             BuildTask(b, e);
             BuildWindows(b, e);
             BuildCode(b, e);
+            BuildHosts(b, e);
+            BuildLinks(b, e);
             BuildStats(b, e);
             BuildControls(b);
             BuildSolution(b, e);
+        }
+
+        // ---- network topology (task 6): a hosts stop (scroll over hosts, selection follows
+        // focus) and a links stop listing the SELECTED host's outgoing links — "800, INBOX",
+        // prefixed "One way" when the far side has no return id (the game's own marker: link ids
+        // are drawn per side only where they exist). ----
+
+        private int _selectedHost;
+
+        private void BuildHosts(GraphBuilder b, EditorScreen e)
+        {
+            var sim = TheSim(e);
+            if (sim == null || sim.list_0.Count == 0) return;
+            b.BeginStop("hosts");
+            b.PushContext(Loc.T("editor.hosts"));
+            for (int i = 0; i < sim.list_0.Count; i++)
+            {
+                int index = i;
+                b.AddItem(ControlId.Structural("ed.host." + i), new NodeVtable
+                {
+                    ControlType = ControlTypes.Text,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => HostName(HostAt(index)), kind: AnnouncementKinds.Label),
+                        new NodeAnnouncement(() => HostOccupants(index), kind: AnnouncementKinds.Value),
+                    },
+                    Selected = () => _selectedHost == index,
+                    OnSelect = () => _selectedHost = index,
+                });
+            }
+            b.PopContext();
+        }
+
+        private void BuildLinks(GraphBuilder b, EditorScreen e)
+        {
+            var sim = TheSim(e);
+            if (sim == null || _selectedHost >= sim.list_0.Count) return;
+            var host = sim.list_0[_selectedHost];
+            Team team;
+            try { team = e.method_24(); }
+            catch { return; }
+
+            b.BeginStop("links");
+            b.PushContext(Loc.T("editor.links", new { host = HostName(host) }));
+            for (int i = 0; i < host.list_1.Count; i++)
+            {
+                var link = host.list_1[i];
+                Maybe<int> localId;
+                try { localId = link.method_2(host).method_2(team); }
+                catch { continue; }
+                if (!localId.method_0()) continue; // no id from this side = not traversable from here
+                int id = localId.method_2();
+                string other = HostName(link.method_1(host));
+                bool oneWay;
+                try { oneWay = !link.method_2(link.method_1(host)).method_2(team).method_0(); }
+                catch { oneWay = false; }
+                b.AddItem(ControlId.Structural("ed.link." + _selectedHost + "." + i), new NodeVtable
+                {
+                    ControlType = ControlTypes.Text,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => (oneWay ? Loc.T("editor.link.oneway") + ", " : "")
+                            + id + ", " + other, kind: AnnouncementKinds.Label),
+                    },
+                });
+            }
+            b.PopContext();
+        }
+
+        private static SimHost HostAt(int index)
+        {
+            try
+            {
+                var sim = TheSim(Editor);
+                return sim != null && index < sim.list_0.Count ? sim.list_0[index] : null;
+            }
+            catch { return null; }
+        }
+
+        // Terse occupancy: "XA, file 200" — nothing when empty.
+        private static string HostOccupants(int index)
+        {
+            var host = HostAt(index);
+            if (host == null) return null;
+            try
+            {
+                var parts = new System.Collections.Generic.List<string>();
+                foreach (var entity in host.method_8())
+                {
+                    var exa = entity as SimExa;
+                    if (exa != null) { parts.Add(exa.string_0); continue; }
+                    var file = entity as SimFile;
+                    if (file != null) parts.Add(Loc.T("editor.file", new { id = FileId(file) }));
+                }
+                return parts.Count == 0 ? null : string.Join(", ", parts);
+            }
+            catch { return null; }
         }
 
         // ---- the CODE stop: one caret-owning node mirroring the game's focused EXA editor.
