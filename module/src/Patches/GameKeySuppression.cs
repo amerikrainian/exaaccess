@@ -59,13 +59,13 @@ namespace ExaAccess.Patches
             catch (Exception ex) { Log.Error("[patch] key suppression failed to apply", ex); }
         }
 
-        private static bool Suppressing()
+        private static bool Suppressing(int keycode)
         {
             try
             {
                 if (!FocusMode.Active) return false;
                 var cur = Screens.ScreenManager.Current;
-                return cur != null && !cur.CapturesRawInput;
+                return cur != null && !cur.CapturesRawInput && !cur.PassKeyToGame(keycode);
             }
             catch { return false; }
         }
@@ -87,7 +87,7 @@ namespace ExaAccess.Patches
                 // A focused text field owns Backspace (the append widget's one keycode poll);
                 // printable characters ride the TEXTINPUT channel, which is never suppressed.
                 if ((int)__0 == 8 && UI.Navigation.TextEntryFocused) return true;
-                if (Keys.Contains((int)__0) && Suppressing())
+                if (Keys.Contains((int)__0) && Suppressing((int)__0))
                 {
                     __result = false;
                     return false;

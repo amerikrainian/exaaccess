@@ -63,6 +63,11 @@ namespace ExaAccess.Screens
         /// keys reach the game (e.g. a key-binding capture dialog).</summary>
         public virtual bool CapturesRawInput => false;
 
+        /// <summary>Keys (SDL keycodes) the game keeps even while this modeled screen is focused
+        /// and suppression is active — for screens whose native shortcuts should coexist with the
+        /// browse graph (the completion screen's Enter). Escape is never suppressed anyway.</summary>
+        public virtual bool PassKeyToGame(int keycode) => false;
+
         private static readonly Input.InputCategory[] UiOnly = { Input.InputCategory.UI };
 
         /// <summary>The input categories this screen uses while active, in priority order.</summary>

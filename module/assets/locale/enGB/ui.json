@@ -69,8 +69,8 @@
   "editor.mbus": "{exa} M-bus",
   "editor.exa.deleted": "{exa} deleted",
   "editor.goal.file": "File {id} at {host}: {values}.",
-  "editor.complete.stats": "Cycles {cycles}, size {size}, activity {activity}.",
-  "editor.complete.options": "Escape: {resume}. Enter: {leave}.",
+  "key.escape": "Escape",
+  "key.enter": "Enter",
   "text.newline": "new line",
 
   "desktop.details": "Task details",
