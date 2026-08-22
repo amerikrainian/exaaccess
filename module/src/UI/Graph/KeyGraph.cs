@@ -408,13 +408,23 @@ namespace ExaAccess.UI.Graph
             return null;
         }
 
-        /// <summary>The first node in a stop that reads as SELECTED â€” carries a non-empty selected-kind
-        /// announcement part (SelectionItem / ChoiceOption / Tab / radio all declare one), or null.</summary>
+        /// <summary>The first node in a stop that reads as SELECTED, or null. A node's vtable
+        /// Selected predicate is authoritative when declared (silent, engine-only selection — the
+        /// OnSelect controls); otherwise a non-empty Selected-kind announcement part counts (radio
+        /// options and other controls that SPEAK their selection).</summary>
         public static GraphNode SelectedNodeInStop(GraphRender render, object stopKey)
         {
             foreach (var n in render.Order)
             {
                 if (!Equals(n.StopKey, stopKey)) continue;
+                var selected = n.Vtable?.Selected;
+                if (selected != null)
+                {
+                    bool sel = false;
+                    try { sel = selected(); } catch { }
+                    if (sel) return n;
+                    continue; // declared selection state is authoritative — skip the announcement scan
+                }
                 var anns = n.Vtable?.Announcements;
                 if (anns == null) continue;
                 foreach (var a in anns)

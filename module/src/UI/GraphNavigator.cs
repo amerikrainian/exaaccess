@@ -274,7 +274,7 @@ namespace ExaAccess.UI
 
             // Edge-wired movement first (rows/grids/flattened tree rows all ride edges).
             var move = _graph.Move(ToDir(dir));
-            if (move.Moved) { AnnounceMove(move); return true; }
+            if (move.Moved) { SelectOnLanding(move); AnnounceMove(move); return true; }
 
             // At an edge. Left/Right get tree semantics: expand/collapse a group, descend into an
             // expanded one, ascend from a child.
@@ -376,13 +376,13 @@ namespace ExaAccess.UI
             if (KeyGraph.InTree(focusNode))
             {
                 var sib = _graph.MoveToSiblingEdge(first);
-                if (sib.Moved) AnnounceMove(sib);
+                if (sib.Moved) { SelectOnLanding(sib); AnnounceMove(sib); }
                 return true;
             }
 
             // First/last along the vertical axis of the current structure.
             var move = _graph.MoveToEdge(first ? GraphDir.Up : GraphDir.Down);
-            if (move.Moved) AnnounceMove(move);
+            if (move.Moved) { SelectOnLanding(move); AnnounceMove(move); }
             return true;
         }
 
@@ -390,8 +390,19 @@ namespace ExaAccess.UI
         {
             var result = _graph.MoveRegion(dir);
             if (!result.Moved) return true; // no region that way → consume
+            SelectOnLanding(result);
             AnnounceMove(result);
             return true;
+        }
+
+        // Selection-follows-focus (NodeVtable.OnSelect): run the landing node's select action
+        // BEFORE announcing it, so the announcement's live parts read the post-select state.
+        private static void SelectOnLanding(MoveResult result)
+        {
+            var select = result.To?.Vtable?.OnSelect;
+            if (select == null) return;
+            try { select(); }
+            catch (System.Exception ex) { Log.Error("[nav] OnSelect threw", ex); }
         }
 
         private void AnnounceMove(MoveResult result)

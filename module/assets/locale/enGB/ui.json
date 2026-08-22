@@ -4,9 +4,6 @@
   "splash.press_any_key": "Press any key to continue",
 
   "screen.title": "Title screen",
-  "title.computer.hint": "Boot the computer and start the game",
-  "title.tablet.hint": "Open the control panel: settings, controls, and exit",
-  "title.news.hint": "Read the TRASH WORLD NEWS zine",
 
   "screen.DesktopScreen": "Desktop",
   "screen.EditorScreen": "Editor",
@@ -17,6 +14,8 @@
   "screen.OpponentBrowserScreen": "Opponent browser",
   "screen.CustomPuzzleScreen": "Custom puzzle",
   "screen.GifRecorderScreen": "GIF recorder",
+  "screen.ArcadeScreen": "Arcade",
+  "screen.Ember2CutsceneScreen": "Cutscene",
 
   "role.button": "button",
   "role.toggle": "toggle",
@@ -34,15 +33,23 @@
   "value.selected": "selected",
   "value.unavailable": "unavailable",
   "value.percent": "{value} percent",
+  "value.complete": "complete",
+
+  "desktop.details": "Task details",
+  "desktop.detail.location": "Location",
+  "desktop.detail.host": "Network",
+  "desktop.detail.file": "File",
+  "desktop.chat.log": "Messages",
+  "desktop.chat.message": "{name}: {text}",
+  "desktop.task.new": "New task: {title}",
+  "desktop.task.done": "Task complete: {title}",
+  "desktop.user.operator": "operator",
+  "desktop.programs": "Programs",
+  "desktop.close": "Close desktop",
 
   "screen.controlpanel": "Control panel",
-  "panel.options.hint": "Display, sound, interface, and network settings",
-  "panel.controls.hint": "Redshift key bindings and the keyboard reference",
-  "panel.exit.hint": "Quit EXAPUNKS immediately",
   "panel.close": "Close control panel",
-  "panel.close.hint": "Return to the title screen. Escape also closes",
   "panel.clock": "Clock",
-  "panel.back.hint": "Return to the control panel home. Escape also goes back",
 
   "controls.gamepad": "Redshift gamepad bindings",
   "controls.reference": "Keyboard reference",
@@ -54,8 +61,5 @@
   "bind.y": "Y button",
   "bind.z": "Z button",
   "bind.start": "Start button",
-  "bind.hint": "Press Enter to reassign this key",
-  "capture.prompt": "Press a key to assign. Escape cancels",
-
-  "hostname.hint": "Editing from the keyboard is not supported yet; use the mouse to edit"
+  "capture.prompt": "Press a key to assign"
 }

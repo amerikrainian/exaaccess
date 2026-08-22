@@ -102,6 +102,28 @@ shipping game at runtime once names are fixed up:
   `new GClass214(0)`. So: `GameLogic.method_12(IScreen)` = screen PUSH,
   `GameLogic.method_6()` = active screen. The game's own localization is
   `GClass7.smethod_5(key, …) → LocString` — labels are localized game-side.
+- **Desktop decoded** (`DesktopScreen`, name-preserved; `game/decompiled/DesktopScreen.cs`):
+  a FIXED layout (no window system, nothing draggable) drawn immediate-mode — AXIOM
+  organizer (task list + detail pane + typed action button), CHATSUBO (chat log + the
+  10-character user roster; Chat/Tasks tabs appear after story flag "ember-7"),
+  right-edge program launchers (solitaire/sandbox/arcade/custom, unlock-gated) + close.
+  Campaign data: `GClass61.gclass290_0` (main) / `gclass290_1` (side jobs), each
+  `.list_0` of `CampaignItem` — ALL PUBLIC: locString_0/1/2 = title/date/description,
+  string_0 = id, genum20_0 = type (0 puzzle→EditorScreen, 1 cutscene, 3 solitaire,
+  5 arcade, 6 custom), maybe_0 = hostname/file, method_0() = completed,
+  method_6() = the action-button LocString ("PLAY CUTSCENE", …). Selection is GLOBAL:
+  `GameLogic.campaignItem_0`. Desktop privates (via `Deobf`): method_9(item) = select
+  (the game's own arrow/click path), method_11() = open selected (the double-click
+  path), list_0 = chat log (`List<GClass24>`), bool_2 = Chat/Tasks flag, tuple_0 =
+  roster. Task reveal/complete markers accumulate in `GameLogic.hashSet_0`
+  (GClass37 = task appeared, GClass38 = completed). Chat display names:
+  `Vignette.dictionary_0`; text through `Vignette.smethod_0` (profanity mask) + the
+  `<INSERT_RUN_TO_INSTRUCTION_KEY_COMBO>` platform substitution. THE GAME READS THE
+  KEYBOARD HERE (arrows/Enter/Home/End/PgUp/PgDn drive task selection) through its
+  input facade `GClass64` — pure per-frame snapshot reads, safe to prefix-skip:
+  smethod_17(key) = just-pressed (Enter/Escape/Home/End; smethod_15/16 compose over
+  it), smethod_22(key) = pressed-with-repeat (arrows + numpad aliases),
+  smethod_23(GEnum1 0–3) = left/right/up/down actions over smethod_22.
 
 ## Build & deploy
 ```
@@ -176,6 +198,13 @@ in lParam is the simpler route.)
 modifier state (SDL normalizes shift against the thread keyboard state, which
 PostMessage doesn't update) — so scripted Shift+chords (Shift+Tab) silently act
 unshifted. Real keyboards are unaffected; test chorded bindings by hand.
+Two more, learned the hard way: (1) keys posted while the game window is UNFOCUSED
+drop intermittently (SDL discards key events without window focus — the terminal
+running the script usually holds it), so `SetForegroundWindow` the game window before
+posting key SEQUENCES (screenshots must still never do this — `/screenshot` works
+occluded by design); (2) arrow keys need the EXTENDED-KEY bit in lParam
+(`1 << 24`, e.g. Down = `(1) | (0x50 << 16) | (1 << 24)`) or SDL maps them to numpad
+scancodes.
 
 ## Architecture (current): permanent HOST + reloadable MODULE
 Two assemblies (pattern ported from NonVisualCalculus). The HOST (`ExaAccess.dll`,
@@ -223,7 +252,14 @@ Module (each reload starts this half cold — statics are per-load):
   WrathAccess: `Navigator` (contract) / `Navigation` (static facade) /
   `GraphNavigator` (pull-based announce differ over the graph core: per-frame
   EnsureFocus, live-part watch, the ui.* input vocabulary; type-ahead and sound cues
-  deliberately deferred). `FocusMode` — plain flag, ON by default; suppression later.
+  deliberately deferred). SELECTION-FOLLOWS-FOCUS: a node with `NodeVtable.OnSelect`
+  runs it on every DIRECTIONAL landing (arrows/Home/End/region jumps — never Tab-stop
+  cycling), before the announce; tabs and list rows select as you scroll, no Enter
+  needed (Enter/OnActivate stays separate — task rows open on it). Such controls
+  declare `NodeVtable.Selected` (engine-only — drives stop/entry landings) INSTEAD of
+  a spoken Selected part: selection that always follows focus is never announced
+  (user rules, 2026-08-22); radio options keep speaking theirs. `FocusMode` — plain
+  flag, ON by default; its game-side half is `Patches/GameKeySuppression.cs`.
 - `module/src/Screens/` — `Screen` base + `ScreenManager` (WrathAccess poll-and-diff
   lifecycle; resolution = registered screens polling the GAME's screen stack via
   GameState). Unmodeled game screens still announce by friendly name (the retired
@@ -264,6 +300,25 @@ Module (each reload starts this half cold — statics are per-load):
   keys are up — it binds the first HELD key, which would otherwise be our Enter), the
   keyboard-reference table, and `GameKeyCaptureScreen` (CapturesRawInput, layer 10)
   over the game's capture overlay. Native mouse + Escape handling untouched throughout.
+- `module/src/Screens/DesktopScreens.cs` — the desktop hub (`DesktopHubScreen`, see
+  "Desktop decoded"): four Tab stops — organizer task list (rows ENUMERATED live from
+  the campaign lists, the first place the WotR items-from-collections pattern applies;
+  selection-follows-focus via OnSelect = the game's method_9, Enter opens via
+  method_11), detail pane (title/date/description/location-or-hostname + the game's
+  own action-button label), CHATSUBO (log + user roster as Ctrl+arrow regions; the
+  Chat/Tasks tabs once unlocked), program launchers + close. KeepStateOnPop (desktop
+  survives beneath cutscene/editor pushes). OnUpdate announces NEW chat lines and
+  task appeared/completed events, watermarked PER GAME-DESKTOP INSTANCE — priming on
+  focus would swallow the queued lines the game flushes on re-expose. Deferred:
+  leaderboards/histograms, the multiplayer opponent table, side-jobs tab live-verify
+  (needs an ember-7 save), the custom-win hold-button.
+- `module/src/Patches/GameKeySuppression.cs` — the focus-mode key-suppression seam:
+  Harmony prefixes on `GClass64.smethod_17/22` (via `Expr.MethodOf`; positional `__0`
+  binding — shipping param names are obfuscated) return not-pressed for the navigator's
+  keys (arrows + numpad, Enter/KP-Enter, Tab, Space, Backspace, Home/End/PgUp/PgDn)
+  while FocusMode is on AND a modeled screen is focused AND it doesn't
+  CapturesRawInput. Escape is deliberately NOT swallowed (native back/close paths
+  stay). Unmodeled screens see every key — the game stays fully playable.
 - `module/src/Patches/SplashPatches.cs` — the any-key splash advance (see "Boot
   click-gate" above).
 
@@ -309,7 +364,12 @@ through the newest copy:
   `GClass7.smethod_5(key, …) → LocString` — resolved by shape; six shipped languages,
   keys are literally the English text so failed lookups stay readable). `TSpeech`
   massages " / " separators/newlines for TTS. ui.json is ONLY for text the game
-  genuinely lacks: role words, hints, prompts, names for unlabeled/art-labeled things.
+  genuinely lacks: role words, prompts for otherwise-silent screens, names for
+  unlabeled/art-labeled things.
+- **No mod-authored hints. Ever.** If the game doesn't provide hint/description text
+  for a control, we don't invent it — sighted players get the art, blind players get
+  the same label + role + value and nothing more (user rule, 2026-08-21). The Tooltip
+  announcement channel exists only for tooltip text the game itself displays.
 - **Speech never interrupts by default** (SayTheSpire house preference), and all
   user-facing output flows through `Tts.Speak` — the single chokepoint (it also feeds
   the dev `/speech` tap).
@@ -336,17 +396,24 @@ through the newest copy:
 8. **(done)** Control panel accessified end to end: home / Options (Display, Sound,
    Interface, Network) / Controls (Redshift bindings with the game's own key-capture
    flow, keyboard reference), all labels read live from the game's localization.
-   Deferred there: hostname EDITING (needs the WotR TextEntry port; the value reads and
-   says so) — and note Exit Game quits instantly, faithful to the game's own button.
-9. Model DesktopScreen — the in-game hub (AXIOM organizer window, CHATSUBO chat,
-   draggable windows; see the screenshots dir for what it looks like). Then the EXA
-   code editor. Along the way: the focus-mode key-suppression story (EXAPUNKS has no
-   Keyboard.Disabled lever — swallow keys via the game's key-set facade or SDL);
-   screens where the game actually uses the keyboard will need it.
-10. Map the remaining obfuscated transition/overlay screens to friendly names.
-11. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
+   Deferred there: hostname EDITING (needs the WotR TextEntry port; the value reads) —
+   and note Exit Game quits instantly, faithful to the game's own button.
+9. **(done)** Desktop hub modeled (`DesktopScreens.cs` — task list with
+   selection-follows-focus, details + action button, CHATSUBO log/roster with live
+   new-message and task-event announcements, launchers, close; verified live) AND the
+   focus-mode key-suppression seam (`GameKeySuppression.cs` over the `GClass64` input
+   facade — the game's own desktop keys no longer double-act; Escape stays native).
+   Deferred on the desktop: leaderboards/histograms + the multiplayer opponent table
+   (post-solve detail-pane content), the side-jobs tab live-verify (needs an ember-7
+   save), the custom-win press-and-hold button.
+10. Model the EXA code editor (`EditorScreen` — the desktop's puzzle tasks open
+    straight into it) and the destination screens the desktop pushes
+    (`Ember2CutsceneScreen`, `SolitaireScreen`, `ArcadeScreen`, `CustomPuzzleScreen`
+    currently announce by friendly name only).
+11. Map the remaining obfuscated transition/overlay screens to friendly names.
+12. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
     code editor for program text — this game is text-centric, a strong a11y target.
-12. Type-ahead search (WotR's TypeAheadSearch is pure — port with SDL TEXTINPUT), the
+13. Type-ahead search (WotR's TypeAheadSearch is pure — port with SDL TEXTINPUT), the
     settings tree, the mod menu, and the TextEntry port (unlocks hostname editing).
-13. Installer (6 files + locale folder; uninstall = delete the config).
+14. Installer (6 files + locale folder; uninstall = delete the config).
 

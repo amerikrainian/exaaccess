@@ -182,5 +182,110 @@ namespace ExaAccess.Tests
             Assert.True(_nav.OnInputJustPressed(Action("ui.next"))); // at the last stop: consume, no wrap
             Assert.Equal("Beta", _speech.Spoken[_speech.Spoken.Count - 1]);
         }
+
+        // ---- selection-follows-focus (NodeVtable.OnSelect) ----
+
+        private TestScreen TabStripScreen(Func<string> selectedKey, Action<string> select)
+            => new TestScreen
+            {
+                Declare = b =>
+                {
+                    foreach (var key in new[] { "one", "two" })
+                    {
+                        var k = key;
+                        b.AddItem(ControlId.Structural(k), new NodeVtable
+                        {
+                            Announcements = new[]
+                            {
+                                NodeAnnouncement.Static(k),
+                                new NodeAnnouncement(() => selectedKey() == k ? "selected" : null,
+                                    live: true, kind: AnnouncementKinds.Selected),
+                            },
+                            OnSelect = () => select(k),
+                            OnActivate = () => select(k),
+                        });
+                    }
+                },
+            };
+
+        [Fact]
+        public void ArrowingOntoAnOnSelectNodeSelectsItBeforeAnnouncing()
+        {
+            string selected = "one";
+            var screen = TabStripScreen(() => selected, k => selected = k);
+            _nav.Attach(screen);
+            _nav.EnsureFocus();
+
+            Assert.True(_nav.OnInputJustPressed(Action("ui.down")));
+            Assert.Equal("two", selected); // selection followed focus, no Enter needed
+            // The landing announcement already carries the post-select state.
+            Assert.Contains("selected", _speech.Spoken[_speech.Spoken.Count - 1]);
+        }
+
+        [Fact]
+        public void TabStopCyclingDoesNotTriggerOnSelect()
+        {
+            string selected = "outside";
+            var screen = new TestScreen
+            {
+                Declare = b =>
+                {
+                    b.AddItem(ControlId.Structural("a"), Vt("Alpha"));
+                    b.BeginStop();
+                    b.AddItem(ControlId.Structural("b"), new NodeVtable
+                    {
+                        Announcements = new[] { NodeAnnouncement.Static("Beta") },
+                        OnSelect = () => selected = "b",
+                    });
+                },
+            };
+            _nav.Attach(screen);
+            _nav.EnsureFocus();
+
+            Assert.True(_nav.OnInputJustPressed(Action("ui.next"))); // land on Beta via Tab
+            Assert.Equal("outside", selected); // stop landings must not change state
+        }
+
+        [Fact]
+        public void SilentSelectedTabsSelectOnArrowWithoutSpeakingSelected()
+        {
+            // The tab shape: OnSelect + engine-only vtable Selected, no spoken Selected part.
+            string selected = "one";
+            var screen = new TestScreen
+            {
+                Declare = b =>
+                {
+                    foreach (var key in new[] { "one", "two" })
+                    {
+                        var k = key;
+                        b.AddItem(ControlId.Structural(k), new NodeVtable
+                        {
+                            Announcements = new[] { NodeAnnouncement.Static(k) },
+                            Selected = () => selected == k,
+                            OnSelect = () => selected = k,
+                            OnActivate = () => selected = k,
+                        });
+                    }
+                },
+            };
+            _nav.Attach(screen);
+            _nav.EnsureFocus();
+
+            Assert.True(_nav.OnInputJustPressed(Action("ui.down")));
+            Assert.Equal("two", selected); // selection followed focus...
+            Assert.DoesNotContain("selected", _speech.Spoken[_speech.Spoken.Count - 1]); // ...silently
+        }
+
+        [Fact]
+        public void HomeEndJumpTriggersOnSelect()
+        {
+            string selected = "one";
+            var screen = TabStripScreen(() => selected, k => selected = k);
+            _nav.Attach(screen);
+            _nav.EnsureFocus();
+
+            Assert.True(_nav.OnInputJustPressed(Action("ui.end")));
+            Assert.Equal("two", selected);
+        }
     }
 }

@@ -37,17 +37,12 @@ namespace ExaAccess.Screens
 
         // ---- shared widget declarations ----
 
-        protected static void Button(GraphBuilder b, string id, Func<string> label, string hintKey, Action activate)
+        protected static void Button(GraphBuilder b, string id, Func<string> label, Action activate)
         {
-            var parts = new System.Collections.Generic.List<NodeAnnouncement>
-            {
-                new NodeAnnouncement(label, kind: AnnouncementKinds.Label),
-            };
-            if (hintKey != null) parts.Add(new NodeAnnouncement(() => Loc.T(hintKey), kind: AnnouncementKinds.Tooltip));
             b.AddItem(ControlId.Structural(id), new NodeVtable
             {
                 ControlType = ControlTypes.Button,
-                Announcements = parts,
+                Announcements = new[] { new NodeAnnouncement(label, kind: AnnouncementKinds.Label) },
                 OnActivate = activate,
             });
         }
@@ -114,18 +109,16 @@ namespace ExaAccess.Screens
             });
         }
 
-        protected static void TextRow(GraphBuilder b, string id, Func<string> label, Func<string> value, string hintKey = null)
+        protected static void TextRow(GraphBuilder b, string id, Func<string> label, Func<string> value)
         {
-            var parts = new System.Collections.Generic.List<NodeAnnouncement>
-            {
-                new NodeAnnouncement(label, kind: AnnouncementKinds.Label),
-                new NodeAnnouncement(value, kind: AnnouncementKinds.Value),
-            };
-            if (hintKey != null) parts.Add(new NodeAnnouncement(() => Loc.T(hintKey), kind: AnnouncementKinds.Tooltip));
             b.AddItem(ControlId.Structural(id), new NodeVtable
             {
                 ControlType = ControlTypes.Text,
-                Announcements = parts,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(label, kind: AnnouncementKinds.Label),
+                    new NodeAnnouncement(value, kind: AnnouncementKinds.Value),
+                },
             });
         }
 
@@ -145,11 +138,12 @@ namespace ExaAccess.Screens
                     Announcements = new[]
                     {
                         new NodeAnnouncement(label, kind: AnnouncementKinds.Label),
-                        new NodeAnnouncement(() => PanelState.Tab == index ? Loc.T("value.selected") : null,
-                            live: true, kind: AnnouncementKinds.Selected),
                     },
-                    StateText = () => PanelState.Tab == index ? Loc.T("value.selected") : null,
+                    // Selection follows focus, so "selected" is never spoken on tabs — the engine
+                    // still needs the state for stop landings.
+                    Selected = () => PanelState.Tab == index,
                     OnActivate = () => PanelState.SetTab(index),
+                    OnSelect = () => PanelState.SetTab(index), // tabs select as you arrow over them
                 });
             }
             b.EndRow();
@@ -158,7 +152,7 @@ namespace ExaAccess.Screens
         protected static void BackButton(GraphBuilder b)
         {
             b.BeginStop("back");
-            Button(b, "panel.back", () => GameText.T("Back"), "panel.back.hint", () => PanelState.SetPage(0));
+            Button(b, "panel.back", () => GameText.T("Back"), () => PanelState.SetPage(0));
         }
 
         protected static bool Safe(Func<bool> f) { try { return f(); } catch { return false; } }
@@ -237,10 +231,10 @@ namespace ExaAccess.Screens
 
         public override void Build(GraphBuilder b)
         {
-            Button(b, "panel.options", () => GameText.T("Options"), "panel.options.hint", () => PanelState.SetPage(1));
-            Button(b, "panel.controls", () => GameText.T("Controls"), "panel.controls.hint", () => PanelState.SetPage(2));
-            Button(b, "panel.exit", () => GameText.T("Exit Game"), "panel.exit.hint", () => GameApi.QuitGame());
-            Button(b, "panel.close", () => Loc.T("panel.close"), "panel.close.hint", () => GameApi.PopScreen());
+            Button(b, "panel.options", () => GameText.T("Options"), () => PanelState.SetPage(1));
+            Button(b, "panel.controls", () => GameText.T("Controls"), () => PanelState.SetPage(2));
+            Button(b, "panel.exit", () => GameText.T("Exit Game"), () => GameApi.QuitGame());
+            Button(b, "panel.close", () => Loc.T("panel.close"), () => GameApi.PopScreen());
             TextRow(b, "panel.clock", () => Loc.T("panel.clock"), () => DateTime.Now.ToString("h:mm tt"));
         }
     }
@@ -324,7 +318,7 @@ namespace ExaAccess.Screens
         private static void BuildInterface(GraphBuilder b)
         {
             TextRow(b, "iface.hostname", () => GameText.T("Hostname"),
-                () => GameLogic.gameLogic_0.saveData_0.method_32(), "hostname.hint");
+                () => GameLogic.gameLogic_0.saveData_0.method_32());
 
             RadioRow(b, "opts", "Profanity",
                 "prof.show", "Show", () => !S.gclass52_15.method_0(), () => S.gclass52_15.method_2(false),
@@ -429,7 +423,6 @@ namespace ExaAccess.Screens
                             new NodeAnnouncement(() => Loc.T(label), kind: AnnouncementKinds.Label),
                             new NodeAnnouncement(() => SDL.SDL_GetKeyName(getCell().method_0()),
                                 live: true, kind: AnnouncementKinds.Value),
-                            new NodeAnnouncement(() => Loc.T("bind.hint"), kind: AnnouncementKinds.Tooltip),
                         },
                         OnActivate = () => _pendingCapture = getCell(),
                     });

@@ -8,9 +8,9 @@ namespace ExaAccess.Screens
     /// <summary>
     /// The first modeled screen: EXAPUNKS's title scene (deob GClass368 — typed via the remap
     /// pipeline). Its three mouse hotspots become buttons; activation calls the game's own screen
-    /// push, byte-identical to the hotspot click. Labels are the game's hotspot LocStrings; only the
-    /// hints are ours. The TRASH WORLD NEWS hotspot exists only once the "ghast-1" story beat is
-    /// done — the same save check the game draws it with.
+    /// push, byte-identical to the hotspot click. Labels are the game's hotspot LocStrings. The
+    /// TRASH WORLD NEWS hotspot exists only once the "ghast-1" story beat is done — the same save
+    /// check the game draws it with.
     /// </summary>
     public sealed class TitleScreen : Screen
     {
@@ -28,7 +28,6 @@ namespace ExaAccess.Screens
                 {
                     new NodeAnnouncement(() => GameText.T("SAWAYAMA") + " " + GameText.T("Z7 TurboLance"),
                         kind: AnnouncementKinds.Label),
-                    new NodeAnnouncement(() => Loc.T("title.computer.hint"), kind: AnnouncementKinds.Tooltip),
                 },
                 OnActivate = () => GameApi.PushScreen(new DesktopScreen()),
             });
@@ -39,7 +38,6 @@ namespace ExaAccess.Screens
                 {
                     new NodeAnnouncement(() => GameText.T("TEC") + " " + GameText.T("Constellation II"),
                         kind: AnnouncementKinds.Label),
-                    new NodeAnnouncement(() => Loc.T("title.tablet.hint"), kind: AnnouncementKinds.Tooltip),
                 },
                 OnActivate = () => GameApi.PushScreen(new ControlPanelScreen()),
             });
@@ -52,7 +50,6 @@ namespace ExaAccess.Screens
                     {
                         new NodeAnnouncement(() => GameText.TSpeech("TRASH\nWORLD") + " " + GameText.T("NEWS"),
                             kind: AnnouncementKinds.Label),
-                        new NodeAnnouncement(() => Loc.T("title.news.hint"), kind: AnnouncementKinds.Tooltip),
                     },
                     OnActivate = () => GameApi.PushScreen(new GClass214(0)),
                 });

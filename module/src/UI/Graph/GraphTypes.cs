@@ -102,6 +102,21 @@ namespace ExaAccess.UI.Graph
         /// <summary>Optional. Primary activation â€” the left-click equivalent (Enter).</summary>
         public Action OnActivate;
 
+        /// <summary>Optional. Selection-follows-focus: invoked when a DIRECTIONAL move (arrows,
+        /// Home/End, region jumps) lands focus here -- the "scrolling over a tab selects it"
+        /// behavior, run BEFORE the landing is announced so the readout carries the new state.
+        /// Tab-stop cycling does NOT trigger it (landing on a stop must not change state; the
+        /// landing node is the stop's selected member anyway). Enter (<see cref="OnActivate"/>)
+        /// stays a separate gesture -- a list row can select on scroll and open on Enter.</summary>
+        public Action OnSelect;
+
+        /// <summary>Optional. ENGINE-level selection state: stop landings (Tab into a stop, initial
+        /// entry) prefer the selected member. Declared here, it is NOT spoken -- the pairing for
+        /// OnSelect controls (tabs, list rows), where selection always follows focus and announcing
+        /// "selected" would be noise. Controls WITHOUT it (radio options) keep declaring a spoken
+        /// Selected-kind announcement part, which the engine falls back to scanning.</summary>
+        public Func<bool> Selected;
+
         /// <summary>Optional. Secondary activation â€” the right-click equivalent (Backspace).</summary>
         public Action OnSecondary;
 

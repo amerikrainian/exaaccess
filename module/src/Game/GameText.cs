@@ -26,7 +26,11 @@ namespace ExaAccess.Game
 
         /// <summary>T, massaged for speech: the game separates alternatives with " / " (read
         /// unreliably by TTS) and embeds newlines/backslashes in some labels.</summary>
-        public static string TSpeech(string key)
-            => T(key).Replace(" / ", ", ").Replace("\n", " ").Replace("\\", "");
+        public static string TSpeech(string key) => Speech(T(key));
+
+        /// <summary>The same speech massage for a game string obtained some other way (a LocString
+        /// read off a game object rather than looked up by key).</summary>
+        public static string Speech(string s)
+            => s == null ? null : s.Replace(" / ", ", ").Replace("\n", " ").Replace("\\", "");
     }
 }

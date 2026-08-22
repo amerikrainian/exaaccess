@@ -244,6 +244,30 @@ namespace ExaAccess.Tests
             Assert.Equal(Id("c"), state.CurKey); // not the first node
         }
 
+        // The silent selection pattern (tabs, select-on-focus rows): vtable Selected, no spoken part.
+        private static NodeVtable SilentSelected(string label, bool selected)
+            => new NodeVtable
+            {
+                Announcements = new[] { NodeAnnouncement.Static(label) },
+                Selected = () => selected,
+            };
+
+        [Fact]
+        public void VtableSelectedDrivesStopLandingWithoutASpokenPart()
+        {
+            var state = new GraphState();
+            var g = new KeyGraph(() => new GraphBuilder()
+                .AddItem(Id("a1"), Vt("A1"))
+                .BeginStop()
+                .AddItem(Id("t1"), SilentSelected("T1", selected: false))
+                .AddItem(Id("t2"), SilentSelected("T2", selected: true))
+                .Build(), state);
+
+            var r = g.MoveStop(+1, wrap: false);
+            Assert.True(r.Moved);
+            Assert.Equal(Id("t2"), r.To.Id);
+        }
+
         [Fact]
         public void TabIntoStopLandsOnSelectedMemberWhenNoMemory()
         {

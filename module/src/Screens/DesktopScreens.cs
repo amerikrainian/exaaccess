@@ -1,0 +1,524 @@
+using System;
+using System.Collections.Generic;
+using System.Reflection;
+using ExaAccess.Game;
+using ExaAccess.Localization;
+using ExaAccess.UI;
+using ExaAccess.UI.Graph;
+
+namespace ExaAccess.Screens
+{
+    /// <summary>
+    /// The in-game desktop (game type DesktopScreen — name-preserved), modeled as one screen with
+    /// four Tab stops: the AXIOM organizer task list, the selected task's detail pane, the CHATSUBO
+    /// window (chat log + user list, and the side-jobs list once the game unlocks its tabs), and
+    /// the right-edge program launchers + close. The desktop is the first screen where the game has
+    /// its OWN keyboard handling (arrows/Enter/Home/End move the task selection) — the mod mirrors
+    /// that model: task rows SELECT as focus scrolls over them (NodeVtable.OnSelect, the same
+    /// method_9 the game's arrow keys call) and OPEN on Enter (method_11, the double-click path),
+    /// while Patches/GameKeySuppression keeps the game's own reader from double-handling the keys.
+    /// Labels are the game's LocStrings throughout; ours only where the game draws art.
+    /// </summary>
+    public sealed class DesktopHubScreen : Screen
+    {
+        public DesktopHubScreen() { Wrap = true; }
+
+        public override string Key => "desktop";
+        public override string ScreenName => Loc.T("screen.DesktopScreen");
+        public override bool IsActive() => GameState.TopScreen() is DesktopScreen;
+
+        // Covered by cutscenes/solitaire/editor pushes constantly — keep focus + chat watermarks.
+        public override bool KeepStateOnPop => true;
+
+        public override object InitialFocusStop => "tasks";
+
+        // The desktop's private half, resolved by deob name (DesktopScreen keeps its real name):
+        // method_9(CampaignItem) = select (the arrow-key/click path), method_11() = open selected
+        // (the double-click path), list_0 = the CHATSUBO message log, bool_2 = the Chat/Tasks tab
+        // flag (true = Tasks), tuple_0 = the fixed 10-character user roster.
+        private static readonly MethodInfo SelectMethod = Deobf.Method(typeof(DesktopScreen), "method_9");
+        private static readonly MethodInfo OpenMethod = Deobf.Method(typeof(DesktopScreen), "method_11");
+        private static readonly FieldInfo ChatLogField = Deobf.Field(typeof(DesktopScreen), "list_0");
+        private static readonly FieldInfo ChatTabField = Deobf.Field(typeof(DesktopScreen), "bool_2");
+        private static readonly FieldInfo RosterField = Deobf.Field(typeof(DesktopScreen), "tuple_0");
+
+        /// <summary>The live desktop instance anywhere on the game's screen stack, else null.</summary>
+        private static DesktopScreen Desktop
+        {
+            get
+            {
+                var stack = GameState.ScreenStack();
+                if (stack == null) return null;
+                for (int i = stack.Count - 1; i >= 0; i--)
+                    if (stack[i] is DesktopScreen d) return d;
+                return null;
+            }
+        }
+
+        /// <summary>The selected task — global game state, not screen state.</summary>
+        private static CampaignItem SelectedTask => GameLogic.gameLogic_0?.campaignItem_0;
+
+        private static void Select(CampaignItem item)
+        {
+            var d = Desktop;
+            if (d == null || SelectMethod == null || item == null) return;
+            try { SelectMethod.Invoke(d, new object[] { item }); }
+            catch (Exception ex) { Log.Error("[desktop] select failed", ex); }
+        }
+
+        private static void Open(CampaignItem item)
+        {
+            var d = Desktop;
+            if (d == null || OpenMethod == null) return;
+            try
+            {
+                if (item != null && !ReferenceEquals(SelectedTask, item))
+                    SelectMethod?.Invoke(d, new object[] { item });
+                OpenMethod.Invoke(d, null);
+            }
+            catch (Exception ex) { Log.Error("[desktop] open failed", ex); }
+        }
+
+        private static List<GClass24> ChatLog(DesktopScreen d)
+        {
+            try { return ChatLogField?.GetValue(d) as List<GClass24>; }
+            catch { return null; }
+        }
+
+        private static bool TasksTabSelected(DesktopScreen d)
+        {
+            try { return ChatTabField != null && (bool)ChatTabField.GetValue(d); }
+            catch { return false; }
+        }
+
+        private static void SetTasksTab(DesktopScreen d, bool tasks)
+        {
+            try { ChatTabField?.SetValue(d, tasks); }
+            catch (Exception ex) { Log.Error("[desktop] tab flip failed", ex); }
+        }
+
+        // The CHATSUBO Chat/Tasks tabs exist only after this story beat (the game's own gate).
+        private static bool ChatTabsUnlocked()
+        {
+            try
+            {
+                var gl = GameLogic.gameLogic_0;
+                return gl != null && gl.saveData_0.method_13("ember-7", 0);
+            }
+            catch { return false; }
+        }
+
+        private static bool Visible(DesktopScreen d, CampaignItem item)
+        {
+            try { return d.method_6(item); }
+            catch { return false; }
+        }
+
+        private static bool Completed(CampaignItem item)
+        {
+            try { return item.method_0(); }
+            catch { return false; }
+        }
+
+        /// <summary>A character's chat display name (the game's own map; its font-escape
+        /// backslashes stripped: "selenium\_wolf" speaks as "selenium_wolf").</summary>
+        private static string CharacterName(VignetteCharacter c)
+        {
+            try
+            {
+                string s;
+                if (Vignette.dictionary_0.TryGetValue(c, out s)) return s.Replace("\\", "");
+            }
+            catch { }
+            return c.ToString();
+        }
+
+        /// <summary>A chat line's text, through the game's own substitutions (profanity mask via
+        /// Vignette.smethod_0; the run-to-instruction combo placeholder), massaged for speech.</summary>
+        private static string ChatText(GClass24 line)
+        {
+            try
+            {
+                string s = Vignette.smethod_0(line.locString_0.ToString());
+                if (s.Contains("<INSERT_RUN_TO_INSTRUCTION_KEY_COMBO>"))
+                {
+                    bool ctrl = GClass1.genum7_0 == GEnum7.Linux || GClass1.genum7_0 == GEnum7.Stadia;
+                    s = s.Replace("<INSERT_RUN_TO_INSTRUCTION_KEY_COMBO>",
+                        GameText.T(ctrl ? "Ctrl + Click" : "Alt + Click"));
+                }
+                return GameText.Speech(s);
+            }
+            catch { return null; }
+        }
+
+        private static string ChatLineSpoken(GClass24 line)
+        {
+            string text = ChatText(line);
+            if (string.IsNullOrEmpty(text)) return null;
+            if (line.vignetteCharacter_0 == VignetteCharacter.SystemMessage) return text;
+            return Loc.T("desktop.chat.message", new { name = CharacterName(line.vignetteCharacter_0), text });
+        }
+
+        // ---- graph ----
+
+        public override void Build(GraphBuilder b)
+        {
+            var d = Desktop;
+            if (d == null) return;
+
+            BuildTasks(b, d);
+            BuildDetails(b);
+            BuildChatsubo(b, d);
+            BuildPrograms(b, d);
+        }
+
+        private static void TaskRow(GraphBuilder b, CampaignItem item, string idPrefix)
+        {
+            b.AddItem(ControlId.Referenced(item, idPrefix + item.string_0), new NodeVtable
+            {
+                ControlType = ControlTypes.Button,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => GameText.Speech(item.locString_0.ToString()),
+                        kind: AnnouncementKinds.Label),
+                    new NodeAnnouncement(() => Completed(item) ? Loc.T("value.complete") : null,
+                        kind: AnnouncementKinds.Value),
+                },
+                // Selection follows focus — never spoken; engine-only, for stop landings.
+                Selected = () => ReferenceEquals(SelectedTask, item),
+                OnSelect = () => Select(item),  // scrolling over a task selects it, like the game's own arrows
+                OnActivate = () => Open(item),  // Enter = the double-click open path
+            });
+        }
+
+        private void BuildTasks(GraphBuilder b, DesktopScreen d)
+        {
+            b.BeginStop("tasks");
+            b.PushContext(GameText.T("AXIOM PERSONAL ORGANIZER"));
+            var list = GClass61.gclass290_0?.list_0;
+            if (list != null)
+                foreach (var item in list)
+                {
+                    if (!Visible(d, item)) continue;
+                    TaskRow(b, item, "task.");
+                    if (ReferenceEquals(SelectedTask, item))
+                        b.SetStart(ControlId.Referenced(item, "task." + item.string_0));
+                }
+            b.PopContext();
+        }
+
+        private void BuildDetails(GraphBuilder b)
+        {
+            var sel = SelectedTask;
+            if (sel == null) return;
+            b.BeginStop("details");
+            b.PushContext(Loc.T("desktop.details"));
+
+            b.AddItem(ControlId.Structural("details.title"), new NodeVtable
+            {
+                ControlType = ControlTypes.Text,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => GameText.Speech(SelectedTask?.locString_0.ToString()),
+                        kind: AnnouncementKinds.Label),
+                    new NodeAnnouncement(() => GameText.Speech(SelectedTask?.locString_1.ToString()),
+                        kind: AnnouncementKinds.Value),
+                },
+            });
+            b.AddItem(ControlId.Structural("details.desc"), new NodeVtable
+            {
+                ControlType = ControlTypes.Text,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => GameText.Speech(SelectedTask?.locString_2.ToString()),
+                        kind: AnnouncementKinds.Label),
+                },
+            });
+
+            // The typed footer line the game draws with an icon: a street address for cutscene
+            // tasks (a literal in the game's draw code, mirrored here — there is no data source to
+            // read it from), the target hostname for hacking tasks, a file name otherwise.
+            string footerLabel = null;
+            Func<string> footerValue = null;
+            var kind = sel.genum20_0;
+            if (kind == (GEnum20)1)
+            {
+                footerLabel = Loc.T("desktop.detail.location");
+                footerValue = () => "605 Eddy St. #801, San Francisco, CA";
+            }
+            else if (kind == (GEnum20)0 && sel.maybe_0.method_0())
+            {
+                footerLabel = Loc.T("desktop.detail.host");
+                footerValue = () => { var s = SelectedTask; return s != null && s.maybe_0.method_0() ? s.maybe_0.method_2() : null; };
+            }
+            else if (sel.maybe_0.method_0())
+            {
+                footerLabel = Loc.T("desktop.detail.file");
+                footerValue = () => { var s = SelectedTask; return s != null && s.maybe_0.method_0() ? s.maybe_0.method_2() : null; };
+            }
+            if (footerValue != null)
+            {
+                string label = footerLabel;
+                var value = footerValue;
+                b.AddItem(ControlId.Structural("details.footer"), new NodeVtable
+                {
+                    ControlType = ControlTypes.Text,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => label, kind: AnnouncementKinds.Label),
+                        new NodeAnnouncement(value, kind: AnnouncementKinds.Value),
+                    },
+                });
+            }
+
+            // The action button, labeled by the game per task type ("PLAY CUTSCENE", "CONNECT TO
+            // NETWORK", ...) — the same open path as Enter on the task row.
+            b.AddItem(ControlId.Structural("details.action"), new NodeVtable
+            {
+                ControlType = ControlTypes.Button,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() =>
+                    {
+                        try { return GameText.Speech(SelectedTask?.method_6().ToString()); }
+                        catch { return null; }
+                    }, kind: AnnouncementKinds.Label),
+                },
+                OnActivate = () => Open(null),
+            });
+            b.PopContext();
+        }
+
+        private void BuildChatsubo(GraphBuilder b, DesktopScreen d)
+        {
+            b.BeginStop("chat");
+            b.PushContext(GameText.T("CHATSUBO"));
+
+            bool tabs = ChatTabsUnlocked();
+            bool tasksTab = tabs && TasksTabSelected(d);
+            if (tabs)
+            {
+                b.StartRow("chat.tabs");
+                ChatTab(b, d, "chat.tab.chat", "Chat", tasks: false);
+                ChatTab(b, d, "chat.tab.tasks", "Tasks", tasks: true);
+                b.EndRow();
+            }
+
+            if (tasksTab)
+            {
+                // The side-jobs list (the game's second campaign).
+                var side = GClass61.gclass290_1?.list_0;
+                if (side != null)
+                    foreach (var item in side)
+                    {
+                        if (!Visible(d, item)) continue;
+                        TaskRow(b, item, "side.");
+                    }
+            }
+            else
+            {
+                BuildChatLog(b, d);
+                BuildUserList(b, d);
+            }
+            b.PopContext();
+        }
+
+        private static void ChatTab(GraphBuilder b, DesktopScreen d, string id, string gameKey, bool tasks)
+        {
+            b.AddItem(ControlId.Structural(id), new NodeVtable
+            {
+                ControlType = ControlTypes.Tab,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => GameText.T(gameKey), kind: AnnouncementKinds.Label),
+                },
+                // Selection follows focus — never spoken; engine-only, for stop landings.
+                Selected = () => TasksTabSelected(d) == tasks,
+                OnSelect = () => SetTasksTab(d, tasks),
+                OnActivate = () => SetTasksTab(d, tasks),
+            });
+        }
+
+        private const int ChatLinesShown = 30;
+
+        private void BuildChatLog(GraphBuilder b, DesktopScreen d)
+        {
+            var log = ChatLog(d);
+            if (log == null || log.Count == 0) return;
+            b.SetRegion("chat.log");
+            // A log reads oldest -> newest; positions would be noise on a growing stream.
+            b.PushContext(Loc.T("desktop.chat.log"), positions: false);
+            int first = Math.Max(0, log.Count - ChatLinesShown);
+            for (int i = first; i < log.Count; i++)
+            {
+                var line = log[i];
+                b.AddItem(ControlId.Referenced(line, "chat.line." + i), new NodeVtable
+                {
+                    ControlType = ControlTypes.Text,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => ChatLineSpoken(line), kind: AnnouncementKinds.Label),
+                    },
+                });
+            }
+            b.PopContext();
+            b.SetRegion(null);
+        }
+
+        private void BuildUserList(GraphBuilder b, DesktopScreen d)
+        {
+            Tuple<VignetteCharacter, bool>[] roster;
+            try { roster = RosterField?.GetValue(d) as Tuple<VignetteCharacter, bool>[]; }
+            catch { roster = null; }
+            if (roster == null) return;
+
+            // Nivas hides until a reveal-marker line is in the log — the game's own gate.
+            bool nivasRevealed = false;
+            var log = ChatLog(d);
+            if (log != null)
+                foreach (var line in log)
+                    if (line.genum164_0 == (GEnum164)1) { nivasRevealed = true; break; }
+
+            var shown = new List<Tuple<VignetteCharacter, bool>>();
+            foreach (var t in roster)
+            {
+                if (t.Item1 == VignetteCharacter.Nivas && !nivasRevealed) continue;
+                shown.Add(t);
+            }
+
+            b.SetRegion("chat.users");
+            // The channel header the game draws: "EXAPUNKS (n)".
+            b.PushContext("EXAPUNKS (" + shown.Count + ")");
+            foreach (var t in shown)
+            {
+                var c = t.Item1;
+                bool op = t.Item2;
+                b.AddItem(ControlId.Structural("chat.user." + c), new NodeVtable
+                {
+                    ControlType = ControlTypes.Text,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => CharacterName(c), kind: AnnouncementKinds.Label),
+                        new NodeAnnouncement(() => op ? Loc.T("desktop.user.operator") : null,
+                            kind: AnnouncementKinds.Value),
+                    },
+                });
+            }
+            b.PopContext();
+            b.SetRegion(null);
+        }
+
+        // The right-edge launcher icons: each opens a special campaign item, visible only once
+        // unlocked. Labels are the items' own titles.
+        private static readonly string[] ProgramIds = { "solitaire-win", "sandbox-win", "arcade-win", "custom-win" };
+
+        private void BuildPrograms(GraphBuilder b, DesktopScreen d)
+        {
+            b.BeginStop("programs");
+            b.PushContext(Loc.T("desktop.programs"));
+            foreach (var id in ProgramIds)
+            {
+                CampaignItem item = null;
+                try
+                {
+                    var maybe = GClass61.smethod_4(id);
+                    if (maybe.method_0()) item = maybe.method_2();
+                }
+                catch { }
+                if (item == null || !Visible(d, item)) continue;
+                var prog = item;
+                b.AddItem(ControlId.Referenced(prog, "prog." + id), new NodeVtable
+                {
+                    ControlType = ControlTypes.Button,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => GameText.Speech(prog.locString_0.ToString()),
+                            kind: AnnouncementKinds.Label),
+                    },
+                    OnActivate = () => Open(prog),
+                });
+            }
+            b.PopContext();
+
+            b.BeginStop("close");
+            b.AddItem(ControlId.Structural("desktop.close"), new NodeVtable
+            {
+                ControlType = ControlTypes.Button,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => Loc.T("desktop.close"), kind: AnnouncementKinds.Label),
+                },
+                OnActivate = () => GameApi.PopScreen(), // the X button's path; Escape also works natively
+            });
+        }
+
+        // ---- live announcements: new chat lines and task events, spoken as they happen ----
+
+        // Watermarks are primed per game-desktop INSTANCE (not per focus): the desktop survives
+        // beneath cutscene/editor pushes and flushes queued chat when re-exposed — priming on
+        // focus would swallow exactly those lines. A fresh instance (re-entered from the title)
+        // primes silently past the constructor-replayed history.
+        private object _primedFor;
+        private int _chatSeen;
+        private readonly HashSet<object> _markersSeen = new HashSet<object>();
+
+        public override void OnUpdate()
+        {
+            var d = Desktop;
+            if (d == null) return;
+
+            if (!ReferenceEquals(_primedFor, d))
+            {
+                _primedFor = d;
+                _chatSeen = ChatLog(d)?.Count ?? 0;
+                _markersSeen.Clear();
+                var markers = GameLogic.gameLogic_0?.hashSet_0;
+                if (markers != null)
+                    foreach (var m in markers) _markersSeen.Add(m);
+                return;
+            }
+
+            AnnounceNewChat(d);
+            AnnounceTaskEvents();
+        }
+
+        private void AnnounceNewChat(DesktopScreen d)
+        {
+            var log = ChatLog(d);
+            if (log == null) return;
+            if (log.Count < _chatSeen) { _chatSeen = log.Count; return; }
+            for (int i = _chatSeen; i < log.Count; i++)
+            {
+                string s = ChatLineSpoken(log[i]);
+                if (!string.IsNullOrEmpty(s)) Speech.Tts.Speak(s);
+            }
+            _chatSeen = log.Count;
+        }
+
+        private void AnnounceTaskEvents()
+        {
+            var markers = GameLogic.gameLogic_0?.hashSet_0;
+            if (markers == null) return;
+            foreach (var m in markers)
+            {
+                if (_markersSeen.Contains(m)) continue;
+                _markersSeen.Add(m);
+                try
+                {
+                    var appeared = m as GClass37;
+                    if (appeared != null)
+                    {
+                        Speech.Tts.Speak(Loc.T("desktop.task.new",
+                            new { title = GameText.Speech(appeared.campaignItem_0.locString_0.ToString()) }));
+                        continue;
+                    }
+                    var done = m as GClass38;
+                    if (done != null)
+                        Speech.Tts.Speak(Loc.T("desktop.task.done",
+                            new { title = GameText.Speech(done.campaignItem_0.locString_0.ToString()) }));
+                }
+                catch (Exception ex) { Log.Error("[desktop] task event announce failed", ex); }
+            }
+        }
+    }
+}

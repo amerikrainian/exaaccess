@@ -32,6 +32,7 @@ namespace ExaAccess
             _harmony = new Harmony("com.exaaccess.module." + Guid.NewGuid().ToString("N"));
             if (!host.GameInitialized)
                 Patches.SplashPatches.Apply(_harmony); // pre-init only: the splash is long gone on a reload
+            Patches.GameKeySuppression.Apply(_harmony); // focus-mode key swallow (see the class doc)
 
             RegisterInput();
             Screens.ScreenManager.Initialize();
