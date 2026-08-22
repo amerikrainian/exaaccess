@@ -42,9 +42,17 @@
 
   "editor.task": "Task",
   "editor.stats": "Scores",
+  "editor.controls": "Simulation",
   "editor.solution": "Solution",
   "editor.solution.name": "Solution name",
   "editor.exas": "EXAs",
+  "editor.running": "Running.",
+  "editor.fast": "Running fast.",
+  "editor.paused": "Paused.",
+  "editor.reset": "Reset.",
+  "editor.stopped": "Stopped.",
+  "editor.cycle": "Cycle {n}",
+  "editor.compile_error": "Compile error in {exa}, line {line}: {message}",
 
   "desktop.details": "Task details",
   "desktop.detail.location": "Location",

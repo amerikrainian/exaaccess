@@ -70,6 +70,10 @@ namespace ExaAccess
             Input.InputManager.Register("ui.back", "Back", Input.InputCategory.UI).AddBinding(Input.Scancode.Escape);
             Input.InputManager.Register("ui.regionPrev", "Previous region", Input.InputCategory.UI).AddBinding(Input.Scancode.Up, ctrl: true).Repeating();
             Input.InputManager.Register("ui.regionNext", "Next region", Input.InputCategory.UI).AddBinding(Input.Scancode.Down, ctrl: true).Repeating();
+            // Screen-scoped: dispatched to the focused screen's actions (GetActions) when the
+            // navigator doesn't claim the key. F2 = step the sim in the EXA editor (the game's own
+            // Tab-step is suppressed there so Tab can stay stop-navigation everywhere).
+            Input.InputManager.Register("ui.step", "Step simulation", Input.InputCategory.UI).AddBinding(Input.Scancode.F2).Repeating();
 
             Input.InputManager.ActiveCategoriesProvider = () =>
                 new System.Collections.Generic.List<Input.InputCategory>(Screens.ScreenManager.ActiveInputCategories());

@@ -47,6 +47,19 @@ namespace ExaAccess.Screens
         private static readonly FieldInfo SizeField = Deobf.Field(typeof(EditorScreen), "maybe_1");
         private static readonly MethodInfo RunNumberMethod = Deobf.Method(typeof(EditorScreen), "method_23");
 
+        // The sim-control seams (decompile-verified against the button handlers):
+        // method_18(fast, Maybe<int> stepCount) = start/advance, method_19 = reset, method_20 =
+        // pause, method_22 = advance to the next test run once solved, method_57 = the common
+        // pre-action (dismisses inline fields), bool_12 = the show-compile-errors state,
+        // hashSet_0 = pending animations (gates the test-run advance).
+        private static readonly MethodInfo AdvanceMethod = Deobf.Method(typeof(EditorScreen), "method_18");
+        private static readonly MethodInfo ResetMethod = Deobf.Method(typeof(EditorScreen), "method_19");
+        private static readonly MethodInfo PauseMethod = Deobf.Method(typeof(EditorScreen), "method_20");
+        private static readonly MethodInfo NextRunMethod = Deobf.Method(typeof(EditorScreen), "method_22");
+        private static readonly MethodInfo PreActionMethod = Deobf.Method(typeof(EditorScreen), "method_57");
+        private static readonly FieldInfo ErrorViewField = Deobf.Field(typeof(EditorScreen), "bool_12");
+        private static readonly FieldInfo AnimationsField = Deobf.Field(typeof(EditorScreen), "hashSet_0");
+
         private static EditorScreen Editor => GameState.TopScreen() as EditorScreen;
 
         private static Sim TheSim(EditorScreen e)
@@ -83,7 +96,212 @@ namespace ExaAccess.Screens
             if (e == null) return;
             BuildTask(b, e);
             BuildStats(b, e);
+            BuildControls(b);
             BuildSolution(b, e);
+        }
+
+        /// <summary>F2 steps the sim from anywhere on this screen (the game's own Tab-step is
+        /// suppressed so Tab stays stop-navigation — see CLAUDE.md).</summary>
+        public override System.Collections.Generic.IEnumerable<ElementAction> GetActions()
+        {
+            yield return new ElementAction("ui.step", StepSim);
+        }
+
+        // ---- sim controls: the five buttons, each invoking the game's own handler path ----
+
+        private void BuildControls(GraphBuilder b)
+        {
+            b.BeginStop("controls");
+            b.PushContext(Loc.T("editor.controls"), positions: false);
+            b.StartRow("ed.controls");
+            ControlButton(b, "ed.ctl.step", "Step",
+                "Press to advance the simulation a single cycle.\n\nHold to continuously advance the simulation.", StepSim);
+            ControlButton(b, "ed.ctl.run", "Run",
+                "Run the simulation at a speed that is slow enough to watch.", () => RunSim(fast: false));
+            ControlButton(b, "ed.ctl.fast", "Fast-forward",
+                "Run the simulation as quickly as possible.", () => RunSim(fast: true));
+            ControlButton(b, "ed.ctl.pause", "Pause", "Pause the simulation.", PauseSim);
+            ControlButton(b, "ed.ctl.reset", "Reset", "Reset the simulation.", ResetSim);
+            b.EndRow();
+            b.PopContext();
+        }
+
+        private static void ControlButton(GraphBuilder b, string id, string gameKey, string tooltipKey, Action activate)
+        {
+            b.AddItem(ControlId.Structural(id), new NodeVtable
+            {
+                ControlType = ControlTypes.Button,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => GameText.T(gameKey), kind: AnnouncementKinds.Label),
+                },
+                OnTooltip = () => Speech.Tts.Speak(GameText.TSpeech(tooltipKey)),
+                OnActivate = activate,
+            });
+        }
+
+        // The first compile error across the solution, from the requested compile pass.
+        private static bool FirstCompileError(EditorScreen e, bool expanded, out string exaName, out CompileError error)
+        {
+            exaName = null; error = null;
+            try
+            {
+                foreach (var exa in e.solution_0.list_0)
+                {
+                    var errors = expanded ? exa.gclass276_0.gclass286_1.list_1 : exa.gclass276_0.gclass286_0.list_1;
+                    if (errors.Count > 0)
+                    {
+                        exaName = exa.string_0;
+                        error = errors[0];
+                        return true;
+                    }
+                }
+            }
+            catch { }
+            return false;
+        }
+
+        private static void SpeakCompileError(string exaName, CompileError error)
+        {
+            try
+            {
+                Speech.Tts.Speak(Loc.T("editor.compile_error",
+                    new { exa = exaName, line = error.int_0 + 1, message = GameText.Speech(error.string_0) }));
+            }
+            catch { }
+        }
+
+        private static void Invoke(MethodInfo m, EditorScreen e, params object[] args)
+        {
+            try { m?.Invoke(e, args); }
+            catch (Exception ex) { Log.Error("[editor] control invoke failed", ex); }
+        }
+
+        private bool _stepEcho; // announce cycle numbers while single-stepping (not while running)
+        private int _lastCycle = -1;
+
+        private void StepSim()
+        {
+            var e = Editor;
+            if (e == null) return;
+            Invoke(PreActionMethod, e);
+            string exaName; CompileError error;
+            if (FirstCompileError(e, expanded: true, out exaName, out error))
+            {
+                // The game's step-with-errors path flips into the error view; announce the error.
+                try { ErrorViewField?.SetValue(e, true); } catch { }
+                SpeakCompileError(exaName, error);
+                return;
+            }
+            var sim = TheSim(e);
+            try
+            {
+                if (sim != null && sim.method_47())
+                {
+                    // Test run solved: step advances to the next run once animations settle.
+                    var anims = AnimationsField?.GetValue(e) as System.Collections.ICollection;
+                    if (anims == null || anims.Count == 0) Invoke(NextRunMethod, e);
+                    return;
+                }
+            }
+            catch { }
+            _stepEcho = true;
+            Invoke(AdvanceMethod, e, false, (Maybe<int>)(e.method_0() ? 1 : 0));
+        }
+
+        private void RunSim(bool fast)
+        {
+            var e = Editor;
+            if (e == null) return;
+            Invoke(PreActionMethod, e);
+            string exaName; CompileError error;
+            if (FirstCompileError(e, expanded: true, out exaName, out error))
+            {
+                try { ErrorViewField?.SetValue(e, true); } catch { }
+                SpeakCompileError(exaName, error);
+                return;
+            }
+            _stepEcho = false;
+            Invoke(AdvanceMethod, e, fast, (Maybe<int>)GStruct10.gstruct10_0);
+            Speech.Tts.Speak(Loc.T(fast ? "editor.fast" : "editor.running"));
+        }
+
+        private void PauseSim()
+        {
+            var e = Editor;
+            if (e == null || !e.method_0()) return;
+            Invoke(PreActionMethod, e);
+            Invoke(PauseMethod, e);
+            _stepEcho = true; // stepping usually follows a pause
+            Speech.Tts.Speak(Loc.T("editor.paused"));
+        }
+
+        private void ResetSim()
+        {
+            var e = Editor;
+            if (e == null) return;
+            Invoke(PreActionMethod, e);
+            bool errorView = false;
+            try { errorView = ErrorViewField != null && (bool)ErrorViewField.GetValue(e); } catch { }
+            if (errorView)
+            {
+                try { ErrorViewField.SetValue(e, false); } catch { }
+            }
+            else if (e.method_0())
+            {
+                Invoke(ResetMethod, e);
+            }
+            _stepEcho = false;
+            Speech.Tts.Speak(Loc.T("editor.reset"));
+        }
+
+        // ---- per-frame: step-cycle echo, run-stop and test-run-complete announcements ----
+
+        private object _instance;
+        private bool _wasRunning, _wasSolved;
+
+        public override void OnUpdate()
+        {
+            var e = Editor;
+            if (e == null) return;
+            if (!ReferenceEquals(_instance, e))
+            {
+                _instance = e;
+                _wasRunning = _wasSolved = _stepEcho = false;
+                _lastCycle = -1;
+            }
+
+            var sim = TheSim(e);
+            bool running = false;
+            try { running = e.method_0(); } catch { }
+
+            // Stop transition FIRST: a reset rebuilds the sim at cycle 0, and the echo below
+            // must not read that as a step.
+            if (_wasRunning && !running)
+            {
+                _stepEcho = false;
+                _lastCycle = -1;
+                Speech.Tts.Speak(Loc.T("editor.stopped"));
+            }
+            _wasRunning = running;
+
+            if (_stepEcho && sim != null)
+            {
+                int cycle = 0;
+                try { cycle = sim.method_52(); } catch { }
+                if (cycle != _lastCycle)
+                {
+                    if (_lastCycle >= 0)
+                        Speech.Tts.Speak(Loc.T("editor.cycle", new { n = cycle }), interrupt: true);
+                    _lastCycle = cycle;
+                }
+            }
+
+            bool solved = false;
+            try { solved = sim != null && sim.method_47(); } catch { }
+            if (solved && !_wasSolved)
+                Speech.Tts.Speak(GameText.T("Test Run Complete"));
+            _wasSolved = solved;
         }
 
         // ---- the task panel: description + the live goal checklist ----
