@@ -33,6 +33,7 @@ namespace ExaAccess
             if (!host.GameInitialized)
                 Patches.SplashPatches.Apply(_harmony); // pre-init only: the splash is long gone on a reload
             Patches.GameKeySuppression.Apply(_harmony); // focus-mode key swallow (see the class doc)
+            Patches.SimNarration.Apply(_harmony);       // buffer sim errors the model deletes too fast
 
             RegisterInput();
             Screens.ScreenManager.Initialize();

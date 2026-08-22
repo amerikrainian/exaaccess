@@ -510,7 +510,11 @@ namespace ExaAccess.Screens
                     + " " + (exa.mbusMode_0 == (MBusMode)1 ? GameText.T("Local") : GameText.T("Global"));
                 string readout = Loc.T("editor.exa.readout",
                     new { host = host ?? "?", x, t, f, m });
-                if (exa.bool_0 && !string.IsNullOrEmpty(exa.string_1))
+                // The error line only means something while the sim RUNS — the per-frame edit-time
+                // rebuild marks empty EXAs errored on every build.
+                bool running = false;
+                try { running = Editor?.method_0() == true; } catch { }
+                if (running && exa.bool_0 && !string.IsNullOrEmpty(exa.string_1))
                     readout += " " + Loc.T("editor.exa.error", new { message = GameText.Speech(exa.string_1) });
                 return readout;
             }
@@ -728,27 +732,105 @@ namespace ExaAccess.Screens
             {
                 _stepEcho = false;
                 _lastCycle = -1;
-                Speech.Tts.Speak(Loc.T("editor.stopped"));
+                Speech.Tts.Speak(_runCycles > 0
+                    ? Loc.T("editor.stopped.at", new { n = _runCycles })
+                    : Loc.T("editor.stopped"));
+                _runCycles = 0;
+                _goalStates = null;
             }
             _wasRunning = running;
 
-            if (_stepEcho && sim != null)
+            int cycles = 0;
+            try { cycles = sim != null ? sim.method_52() : 0; } catch { }
+            if (running && cycles > 0) _runCycles = cycles;
+
+            // Buffered sim events (errors captured by the SimNarration patch — the model deletes
+            // errored EXAs after one cycle, so polling could never catch them).
+            string ev;
+            int drained = 0;
+            while (drained++ < 4 && Patches.SimNarration.TryDequeue(out ev))
+                Speech.Tts.Speak(ev);
+
+            if (_stepEcho && sim != null && cycles != _lastCycle)
             {
-                int cycle = 0;
-                try { cycle = sim.method_52(); } catch { }
-                if (cycle != _lastCycle)
-                {
-                    if (_lastCycle >= 0)
-                        Speech.Tts.Speak(Loc.T("editor.cycle", new { n = cycle }), interrupt: true);
-                    _lastCycle = cycle;
-                }
+                // Announce from cycle 0 too: the first step arms the sim paused, and hearing the
+                // PENDING instruction ("Cycle 0. XA: LINK 800") is the point of stepping.
+                if (_lastCycle >= 0 || cycles == 0)
+                    Speech.Tts.Speak(StepNarration(e, cycles), interrupt: true);
+                _lastCycle = cycles;
             }
+
+            WatchGoals(e, sim, running, cycles);
 
             bool solved = false;
             try { solved = sim != null && sim.method_47(); } catch { }
             if (solved && !_wasSolved)
                 Speech.Tts.Speak(GameText.T("Test Run Complete"));
             _wasSolved = solved;
+        }
+
+        private int _runCycles;
+        private int[] _goalStates;
+
+        // "Cycle 3. XA: LINK 800" — the next instruction of the code-focused EXA (or the first
+        // live player EXA), read from the macro-expanded source that actually executes.
+        private string StepNarration(EditorScreen e, int cycle)
+        {
+            string detail = null;
+            try
+            {
+                var sim = TheSim(e);
+                SimExa target = null;
+                var focused = FocusedCodeExa(e);
+                if (sim != null)
+                    foreach (var entity in sim.list_1)
+                    {
+                        var exa = entity as SimExa;
+                        if (exa == null || !exa.maybe_2.method_0()) continue;
+                        if (focused != null && ReferenceEquals(exa.maybe_2.method_2(), focused)) { target = exa; break; }
+                        if (target == null) target = exa;
+                    }
+                if (target != null)
+                {
+                    var instr = target.method_10();
+                    if (instr.maybe_0.method_0())
+                    {
+                        var lines = (target.method_9() ?? string.Empty).Split('\n');
+                        int idx = instr.maybe_0.method_2();
+                        if (idx >= 0 && idx < lines.Length && lines[idx].Trim().Length > 0)
+                            detail = target.string_0 + ": " + lines[idx].Trim();
+                    }
+                }
+            }
+            catch { }
+            string cycleText = Loc.T("editor.cycle", new { n = cycle });
+            return detail == null ? cycleText : cycleText + ". " + detail;
+        }
+
+        // Announce goal-state flips while the sim runs — the key feedback during Run/Fast.
+        private void WatchGoals(EditorScreen e, Sim sim, bool running, int cycles)
+        {
+            if (sim == null || !running || cycles < 1) { _goalStates = null; return; }
+            try
+            {
+                var goals = sim.list_2;
+                if (_goalStates == null || _goalStates.Length != goals.Count)
+                {
+                    _goalStates = new int[goals.Count];
+                    for (int i = 0; i < goals.Count; i++)
+                        _goalStates[i] = (int)goals[i].imethod_1(sim, sim.list_5).genum152_0;
+                    return;
+                }
+                for (int i = 0; i < goals.Count; i++)
+                {
+                    int state = (int)goals[i].imethod_1(sim, sim.list_5).genum152_0;
+                    if (state != _goalStates[i] && state != 0)
+                        Speech.Tts.Speak(GoalLabel(i) + ", "
+                            + Loc.T(state == 1 ? "value.complete" : "value.failed"));
+                    _goalStates[i] = state;
+                }
+            }
+            catch { }
         }
 
         // ---- the task panel: description + the live goal checklist ----
