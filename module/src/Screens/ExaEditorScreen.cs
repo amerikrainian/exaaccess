@@ -386,7 +386,8 @@ namespace ExaAccess.Screens
         };
         private readonly bool[] _caretKeyWas = new bool[CaretKeys.Length];
 
-        private const int MoveNone = 0, MoveVertical = 1, MoveHorizontal = 2, MoveHomeEnd = 3;
+        private const int MoveNone = 0, MoveVertical = 1, MoveHorizontal = 2, MoveHomeEnd = 3,
+            MoveWord = 4; // horizontal with Ctrl at edge time — a word jump
         private int _pendingMove = MoveNone; // the un-consumed key edge's kind
         private int _pendingAge;             // ticks since that edge fired
 
@@ -415,7 +416,9 @@ namespace ExaAccess.Screens
             {
                 bool held = Input.SdlKeyboard.Held(CaretKeys[i]);
                 if (held && !_caretKeyWas[i])
-                    edge = i < 6 ? MoveVertical : i < 10 ? MoveHorizontal : MoveHomeEnd;
+                    edge = i < 6 ? MoveVertical
+                        : i < 10 ? (Input.SdlKeyboard.CtrlHeld ? MoveWord : MoveHorizontal)
+                        : MoveHomeEnd;
                 _caretKeyWas[i] = held;
             }
             if (edge != MoveNone) { _pendingMove = edge; _pendingAge = 0; }
@@ -483,7 +486,7 @@ namespace ExaAccess.Screens
                     // last) clamps the caret to the line's start/end WITHIN the same line —
                     // a vertical intent still reads the line (user report, 2026-08-22).
                     Speech.Tts.Speak(CurrentLineText(), interrupt: true);
-                else if (homeEnd || Math.Abs(caret - _caretOffset) == 1)
+                else if (homeEnd || (kind != MoveWord && Math.Abs(caret - _caretOffset) == 1))
                     Speech.Tts.Speak(CaretText.CharAt(text, caret), interrupt: true);
                 else
                     Speech.Tts.Speak(CaretText.WordAt(text, caret), interrupt: true);
@@ -492,10 +495,12 @@ namespace ExaAccess.Screens
             {
                 // The key fired a tick ago and no caret delta followed — it had nowhere to
                 // go (Home already at the line start, Up on the first line, Down on the
-                // last): re-announce as if landed anew — vertical keys the line, the rest
-                // the character (user request). The one-tick wait is what separates this
-                // from a real move whose delta arrives a frame behind the press.
+                // last): re-announce as if landed anew — vertical keys the line, word jumps
+                // the word, the rest the character (user request; Ctrl+Left at the text
+                // start repeats "LINK", never its first letter). The one-tick wait is what
+                // separates this from a real move whose delta arrives a frame behind the press.
                 if (_pendingMove == MoveVertical) Speech.Tts.Speak(CurrentLineText(), interrupt: true);
+                else if (_pendingMove == MoveWord) Speech.Tts.Speak(CaretText.WordAt(text, caret), interrupt: true);
                 else Speech.Tts.Speak(CaretText.CharAt(text, caret), interrupt: true);
                 _pendingMove = MoveNone;
             }
