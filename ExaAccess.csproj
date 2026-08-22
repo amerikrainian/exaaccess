@@ -105,9 +105,10 @@
     <!-- The mod shipped as a loader exe before it became a config-loaded dll; assembly probing tries
          .dll before .exe, but a stale ExaAccess.exe would still invite users to run it. Clear it. -->
     <Delete Files="$(GameDir)\ExaAccess.exe" />
-    <!-- Mono.CSharp for the DEBUG-only /eval; harmless to place next to the game. -->
+    <!-- Mono.CSharp for the DEBUG-only /eval; harmless to place next to the game. Locked (same
+         ContinueOnError story as above) whenever a running game has served an /eval. -->
     <Copy SourceFiles="$(ThirdParty)\monocsharp\Mono.CSharp.dll" DestinationFolder="$(GameDir)"
-          Condition="'$(Configuration)' == 'Debug'" />
+          Condition="'$(Configuration)' == 'Debug'" ContinueOnError="true" Retries="0" />
     <!-- steam_appid.txt so a launch that didn't come from Steam is accepted by Steamworks and NOT
          restarted through Steam by SteamAPI.RestartAppIfNecessary (GameLogic.method_8) — the bounce
          would only be a cosmetic double launch (the relaunched stock exe re-enters through the same
