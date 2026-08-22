@@ -139,6 +139,7 @@ namespace ExaAccess.Screens
             Register(new TrashWorldNewsScreen());
             Register(new WorkhouseScreen());
             Register(new ExaEditorScreen());
+            Register(new PuzzleCompleteScreen());
             Register(new ControlPanelHomeScreen());
             Register(new ControlPanelOptionsScreen());
             Register(new ControlPanelControlsScreen());

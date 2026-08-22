@@ -66,6 +66,11 @@
   "editor.hosts": "Hosts",
   "editor.links": "{host} links",
   "editor.link.oneway": "One way",
+  "editor.mbus": "{exa} M-bus",
+  "editor.exa.deleted": "{exa} deleted",
+  "editor.goal.file": "File {id} at {host}: {values}.",
+  "editor.complete.stats": "Cycles {cycles}, size {size}, activity {activity}.",
+  "editor.complete.options": "Escape: {resume}. Enter: {leave}.",
   "text.newline": "new line",
   "text.endofline": "end of line",
 

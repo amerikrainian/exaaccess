@@ -504,9 +504,16 @@ through the newest copy:
     announce while running; Stopped at cycle n); task 6 network topology
     (Hosts stop: name + terse occupants, selection follows focus; Links stop:
     the selected host's links as id, destination — One way prefixed when the
-    far side has no return id, ids per team). REMAINING: task 7 polish
-    (test-run selector adjust, M-bus toggle, delete/create EXA, solution+EXA
-    rename via TextEntry, Show Goal reading, PuzzleCompletionScreen).
+    far side has no return id, ids per team); task 7 polish (Test Run row is
+    an adjustable slider mirroring the mouse arrows; per-EXA M-bus TOGGLE
+    rows; EXA row Enter = jump to its code, Backspace = delete via the public
+    method_36, undoable; Create New EXA button mirroring the full handler
+    incl. focus-jump to the new code; solution name is a TextEntry field over
+    the game's bool_7 inline field, commit on Enter/leave; Show Goal button
+    reads the required files as text; PuzzleCompleteScreen announces final
+    scores + the native Escape/Enter options). DEFERRED: EXA rename
+    (cosmetic — names auto-assign XA..XZ). The code-node label reads the
+    QUEUED focus target (focus applies a frame late — TargetCodeExa).
 11. Map the remaining obfuscated transition/overlay screens to friendly names.
 12. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
     code editor for program text — this game is text-centric, a strong a11y target.

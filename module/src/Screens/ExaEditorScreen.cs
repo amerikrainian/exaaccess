@@ -60,6 +60,15 @@ namespace ExaAccess.Screens
         private static readonly FieldInfo ErrorViewField = Deobf.Field(typeof(EditorScreen), "bool_12");
         private static readonly FieldInfo AnimationsField = Deobf.Field(typeof(EditorScreen), "hashSet_0");
 
+        // Edit-side seams (task 7): method_32 = mark undo-dirty, method_33 = undo snapshot,
+        // method_25 = rebuild the sim now, method_54 = close inline fields, bool_7 = the
+        // solution-name field's active flag.
+        private static readonly MethodInfo DirtyMethod = Deobf.Method(typeof(EditorScreen), "method_32");
+        private static readonly MethodInfo SnapshotMethod = Deobf.Method(typeof(EditorScreen), "method_33");
+        private static readonly MethodInfo RebuildMethod = Deobf.Method(typeof(EditorScreen), "method_25");
+        private static readonly MethodInfo CloseFieldsMethod = Deobf.Method(typeof(EditorScreen), "method_54");
+        private static readonly FieldInfo NameActiveField = Deobf.Field(typeof(EditorScreen), "bool_7");
+
         private static EditorScreen Editor => GameState.TopScreen() as EditorScreen;
 
         private static Sim TheSim(EditorScreen e)
@@ -214,9 +223,21 @@ namespace ExaAccess.Screens
         /// <summary>The SolutionExa whose CODE the game currently focuses, else null.</summary>
         private static SolutionExa FocusedCodeExa(EditorScreen e)
         {
+            return CodeExaFrom(e, FocusField);
+        }
+
+        /// <summary>The announce-time target: the applied focus, else the QUEUED one (focus changes
+        /// apply a frame late), else the first EXA.</summary>
+        private static SolutionExa TargetCodeExa(EditorScreen e)
+        {
+            return FocusedCodeExa(e) ?? CodeExaFrom(e, FocusQueueField) ?? FirstExa(e);
+        }
+
+        private static SolutionExa CodeExaFrom(EditorScreen e, FieldInfo field)
+        {
             try
             {
-                var focus = (Maybe<GStruct9>)FocusField.GetValue(e);
+                var focus = (Maybe<GStruct9>)field.GetValue(e);
                 if (!focus.method_0() || focus.method_2().genum13_0 != (GEnum13)1) return null;
                 var id = focus.method_2().entityID_0;
                 foreach (var exa in e.solution_0.list_0)
@@ -237,7 +258,7 @@ namespace ExaAccess.Screens
                 {
                     new NodeAnnouncement(() =>
                     {
-                        var exa = FocusedCodeExa(Editor) ?? FirstExa(Editor);
+                        var exa = TargetCodeExa(Editor);
                         return exa == null ? null : Loc.T("editor.code", new { exa = exa.string_0 });
                     }, kind: AnnouncementKinds.Label),
                     new NodeAnnouncement(() => CurrentLineText(), kind: AnnouncementKinds.Value),
@@ -262,12 +283,15 @@ namespace ExaAccess.Screens
 
         private static void ArmCode(EditorScreen e)
         {
-            if (e == null) return;
+            if (e == null || FocusedCodeExa(e) != null) return; // already armed
+            ArmCodeFor(e, FirstExa(e));
+        }
+
+        private static void ArmCodeFor(EditorScreen e, SolutionExa exa)
+        {
+            if (e == null || exa == null) return;
             try
             {
-                if (FocusedCodeExa(e) != null) return; // already armed
-                var exa = FirstExa(e);
-                if (exa == null) return;
                 var id = EntityID.Exa(exa.method_0());
                 // The game QUEUES focus changes (maybe_4, applied next frame); method_58 is only
                 // the scroll-into-view half — both mirror the game's own Ctrl+Up/Down path.
@@ -335,6 +359,8 @@ namespace ExaAccess.Screens
             _caretText = text;
         }
 
+        internal static int LineIndexForTest(string text, int caret) => LineIndex(text, caret);
+
         private static int LineIndex(string text, int caret)
         {
             int line = 0;
@@ -355,7 +381,7 @@ namespace ExaAccess.Screens
         private static string CurrentLineText()
         {
             var e = Editor;
-            var exa = FocusedCodeExa(e) ?? FirstExa(e); // arming is queued; read the target
+            var exa = TargetCodeExa(e); // arming is queued; read the target
             if (exa == null) return null;
             try
             {
@@ -396,6 +422,22 @@ namespace ExaAccess.Screens
                         new NodeAnnouncement(() => FindExa(n)?.string_0, kind: AnnouncementKinds.Label),
                         new NodeAnnouncement(() => ExaReadout(n), kind: AnnouncementKinds.Value),
                     },
+                    // Enter = edit this EXA's code; Backspace = delete it (the game's own
+                    // method_36, instantly undoable with the native Ctrl+Z).
+                    OnActivate = () => JumpToCode(n),
+                    OnSecondary = () => DeleteExa(n),
+                });
+                b.AddItem(ControlId.Structural("win.mbus." + n), new NodeVtable
+                {
+                    ControlType = ControlTypes.Toggle,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => Loc.T("editor.mbus", new { exa = FindExa(n)?.string_0 }),
+                            kind: AnnouncementKinds.Label),
+                        new NodeAnnouncement(() => MbusText(n), kind: AnnouncementKinds.Value),
+                    },
+                    StateText = () => MbusText(n),
+                    OnActivate = () => ToggleMbus(n),
                 });
             }
             foreach (var entity in sim.list_1)
@@ -416,6 +458,66 @@ namespace ExaAccess.Screens
                 });
             }
             b.PopContext();
+        }
+
+        // ---- window-row actions (task 7) ----
+
+        private static SolutionExa SolutionExaOf(int number)
+        {
+            try
+            {
+                var e = Editor;
+                if (e == null) return null;
+                foreach (var exa in e.solution_0.list_0)
+                    if (exa.method_0() == number) return exa;
+            }
+            catch { }
+            return null;
+        }
+
+        private static void JumpToCode(int number)
+        {
+            var e = Editor;
+            var exa = SolutionExaOf(number);
+            if (e == null || exa == null) return;
+            ArmCodeFor(e, exa);
+            Navigation.FocusStop("code");
+        }
+
+        private static void DeleteExa(int number)
+        {
+            var e = Editor;
+            var exa = SolutionExaOf(number);
+            if (e == null || exa == null || !Editing(e)) return;
+            try
+            {
+                string name = exa.string_0;
+                e.method_36(exa); // remove + dirty + undo snapshot — Ctrl+Z restores
+                Speech.Tts.Speak(Loc.T("editor.exa.deleted", new { exa = name }), interrupt: true);
+            }
+            catch (Exception ex) { Log.Error("[editor] delete EXA failed", ex); }
+        }
+
+        private static string MbusText(int number)
+        {
+            var exa = SolutionExaOf(number);
+            if (exa == null) return null;
+            try { return exa.mbusMode_0 == (MBusMode)1 ? GameText.T("Local") : GameText.T("Global"); }
+            catch { return null; }
+        }
+
+        private static void ToggleMbus(int number)
+        {
+            var e = Editor;
+            var exa = SolutionExaOf(number);
+            if (e == null || exa == null || !Editing(e)) return;
+            try
+            {
+                exa.mbusMode_0 = exa.mbusMode_0 == (MBusMode)1 ? (MBusMode)0 : (MBusMode)1;
+                Invoke(DirtyMethod, e);
+                Invoke(SnapshotMethod, e);
+            }
+            catch (Exception ex) { Log.Error("[editor] M-bus toggle failed", ex); }
         }
 
         private static SimExa FindExa(int number)
@@ -698,6 +800,64 @@ namespace ExaAccess.Screens
             Speech.Tts.Speak(Loc.T("editor.reset"));
         }
 
+        // ---- solution-name editing + Create New EXA (task 7) ----
+
+        private static bool NameArmed(EditorScreen e)
+        {
+            try { return NameActiveField != null && (bool)NameActiveField.GetValue(e); }
+            catch { return false; }
+        }
+
+        private static void ArmName(EditorScreen e)
+        {
+            if (e == null || !Editing(e) || NameArmed(e)) return;
+            try
+            {
+                Invoke(CloseFieldsMethod, e);
+                NameActiveField?.SetValue(e, true);
+                GClass288.smethod_1(); // prime the text-input state, like the game's click
+            }
+            catch (Exception ex) { Log.Error("[editor] name arm failed", ex); }
+        }
+
+        private static void CommitName(EditorScreen e)
+        {
+            if (e == null || !NameArmed(e)) return;
+            try
+            {
+                NameActiveField?.SetValue(e, false);
+                Invoke(SnapshotMethod, e); // the game's own commit path (Enter/click-away)
+            }
+            catch (Exception ex) { Log.Error("[editor] name commit failed", ex); }
+        }
+
+        // Mirror of the Create New EXA handler (button / native Ctrl+Enter): create, snapshot,
+        // rebuild, then focus the new EXA's code — landing our focus on the code stop with it.
+        private void CreateExa()
+        {
+            var e = Editor;
+            if (e == null || !Editing(e)) return;
+            try
+            {
+                var sim = TheSim(e);
+                if (sim != null && (sim.bool_4
+                    || e.solution_0.list_0.Count >= sim.dictionary_0[e.method_24()].int_0
+                    || e.solution_0.list_0.Count >= sim.int_6))
+                {
+                    Speech.Tts.Speak(Loc.T("value.unavailable"), interrupt: true);
+                    return;
+                }
+                var id = e.solution_0.method_2();
+                Invoke(DirtyMethod, e);
+                Invoke(SnapshotMethod, e);
+                Invoke(RebuildMethod, e);
+                FocusQueueField?.SetValue(e, (Maybe<GStruct9>)new GStruct9(id, (GEnum13)1));
+                FocusExaMethod?.Invoke(e, new object[] { id, true, true });
+                Navigation.FocusStop("code");
+            }
+            catch (Exception ex) { Log.Error("[editor] create EXA failed", ex); }
+        }
+
         // ---- per-frame: step-cycle echo, run-stop and test-run-complete announcements ----
 
         private object _instance;
@@ -721,6 +881,9 @@ namespace ExaAccess.Screens
             if (codeFocused) NarrateCaret(e, !_wasCodeFocused);
             else _caretExa = int.MinValue;
             _wasCodeFocused = codeFocused;
+
+            // Leaving the solution-name field commits it, like the game's click-away.
+            if (NameArmed(e) && !Navigation.TextEntryFocused) CommitName(e);
 
             var sim = TheSim(e);
             bool running = false;
@@ -864,7 +1027,45 @@ namespace ExaAccess.Screens
                         },
                     });
                 }
+            // The accessible Show Goal: reads the expected end-state (the required files the F1
+            // view places on the map) as text instead of the alternate rendering.
+            b.AddItem(ControlId.Structural("ed.goalbtn"), new NodeVtable
+            {
+                ControlType = ControlTypes.Button,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => GameText.T("Show Goal"), kind: AnnouncementKinds.Label),
+                },
+                OnActivate = SpeakGoalDetails,
+            });
             b.PopContext();
+        }
+
+        private static void SpeakGoalDetails()
+        {
+            try
+            {
+                var sim = TheSim(Editor);
+                if (sim == null) return;
+                var parts = new System.Collections.Generic.List<string>();
+                foreach (var host in sim.list_0)
+                    foreach (var required in host.list_0)
+                    {
+                        string id = required.maybe_0.method_0()
+                            ? required.maybe_0.method_2().ToString() : GameText.T("NEW");
+                        var values = new System.Collections.Generic.List<string>();
+                        for (int i = 0; i < required.exaValue_0.Length && i < FileValuesSpoken; i++)
+                            values.Add(required.exaValue_0[i].method_2(true));
+                        parts.Add(Loc.T("editor.goal.file", new
+                        {
+                            id,
+                            host = HostName(host),
+                            values = string.Join(", ", values),
+                        }));
+                    }
+                Speech.Tts.Speak(parts.Count == 0 ? Loc.T("nav.no_details") : string.Join(" ", parts));
+            }
+            catch { Speech.Tts.Speak(Loc.T("nav.no_details")); }
         }
 
         // Mirrors the checklist draw: label (+ " (n/m)" when the goal has progress), and the
@@ -907,15 +1108,25 @@ namespace ExaAccess.Screens
             b.BeginStop("stats");
             b.PushContext(Loc.T("editor.stats"), positions: false);
 
-            StatRow(b, "ed.run", () => GameText.T("Test Run"), () =>
+            // The test-run row is ADJUSTABLE (Left/Right) while editing — the keyboard version of
+            // the game's mouse-only arrows; while running it reads the current run and is inert.
+            b.AddItem(ControlId.Structural("ed.run"), new NodeVtable
             {
-                var ed = Editor;
-                if (ed == null) return null;
-                int run = ed.int_4;
-                if (!Editing(ed))
-                    try { run = (int)RunNumberMethod.Invoke(ed, null); } catch { }
-                return (run + 1) + " / 100";
-            }, () => GameText.TSpeech("To complete a task you must complete all 100 test runs. You can change the initial test run to more easily debug problems that only occur on specific test runs."));
+                ControlType = ControlTypes.Slider,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => GameText.T("Test Run"), kind: AnnouncementKinds.Label),
+                    new NodeAnnouncement(RunText, kind: AnnouncementKinds.Value),
+                },
+                StateText = RunText,
+                OnAdjust = (sign, large) =>
+                {
+                    var ed = Editor;
+                    if (ed == null || !Editing(ed)) return;
+                    ed.int_4 = Math.Max(0, Math.Min(99, ed.int_4 + sign * (large ? 10 : 1)));
+                },
+                OnTooltip = () => Speech.Tts.Speak(GameText.TSpeech("To complete a task you must complete all 100 test runs. You can change the initial test run to more easily debug problems that only occur on specific test runs.")),
+            });
 
             StatRow(b, "ed.cycles", () => ScoreManager.locString_0.ToString(), () =>
             {
@@ -951,6 +1162,16 @@ namespace ExaAccess.Screens
             b.PopContext();
         }
 
+        private static string RunText()
+        {
+            var ed = Editor;
+            if (ed == null) return null;
+            int run = ed.int_4;
+            if (!Editing(ed))
+                try { run = (int)RunNumberMethod.Invoke(ed, null); } catch { }
+            return (run + 1) + " / 100";
+        }
+
         private static void StatRow(GraphBuilder b, string id, Func<string> label, Func<string> value, Func<string> tooltip)
         {
             b.AddItem(ControlId.Structural(id), new NodeVtable
@@ -974,9 +1195,12 @@ namespace ExaAccess.Screens
         {
             b.BeginStop("solution");
             b.PushContext(Loc.T("editor.solution"), positions: false);
+            // The solution name is EDITABLE, typing-first: landing arms the game's own inline
+            // field (append-style; typing/Backspace flow, echoed); Enter or leaving commits with
+            // the game's undo snapshot.
             b.AddItem(ControlId.Structural("ed.solname"), new NodeVtable
             {
-                ControlType = ControlTypes.Text,
+                ControlType = ControlTypes.TextField,
                 Announcements = new[]
                 {
                     new NodeAnnouncement(() => Loc.T("editor.solution.name"), kind: AnnouncementKinds.Label),
@@ -986,6 +1210,24 @@ namespace ExaAccess.Screens
                         catch { return null; }
                     }, kind: AnnouncementKinds.Value),
                 },
+                TextEntry = true,
+                TextEchoCaps = false, // the game font uppercases inserts
+                TextValue = () =>
+                {
+                    try { return Editor?.solution_0.string_0; }
+                    catch { return null; }
+                },
+                OnSelect = () => ArmName(Editor),
+                OnActivate = () => CommitName(Editor),
+            });
+            b.AddItem(ControlId.Structural("ed.newexa"), new NodeVtable
+            {
+                ControlType = ControlTypes.Button,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => GameText.T("Create New EXA"), kind: AnnouncementKinds.Label),
+                },
+                OnActivate = CreateExa,
             });
             b.AddItem(ControlId.Structural("ed.exacount"), new NodeVtable
             {
@@ -1001,6 +1243,48 @@ namespace ExaAccess.Screens
                 },
             });
             b.PopContext();
+        }
+    }
+
+    /// <summary>The puzzle-completion screen (name-preserved) — announce-only: its own keyboard is
+    /// already complete (Escape = Continue Editing, Enter = Return to Desktop). On focus it speaks
+    /// the final scores (size from its field; cycles/activity as the maxima of the editor's
+    /// public per-run score table) and the two options with their keys.</summary>
+    public sealed class PuzzleCompleteScreen : Screen
+    {
+        public override string Key => "puzzle.complete";
+        public override string ScreenName => Loc.T("screen.PuzzleCompletionScreen");
+        public override bool CapturesRawInput => true;
+
+        public override bool IsActive() => GameState.TopScreen() is PuzzleCompletionScreen;
+
+        private static readonly FieldInfo SizeField = Deobf.Field(typeof(PuzzleCompletionScreen), "int_0");
+        private static readonly FieldInfo EditorField = Deobf.Field(typeof(PuzzleCompletionScreen), "editorScreen_0");
+
+        public override void OnFocus()
+        {
+            base.OnFocus();
+            try
+            {
+                var s = GameState.TopScreen() as PuzzleCompletionScreen;
+                if (s == null) return;
+                int size = SizeField != null ? (int)SizeField.GetValue(s) : 0;
+                int cycles = 0, activity = 0;
+                var editor = EditorField?.GetValue(s) as EditorScreen;
+                if (editor != null)
+                    foreach (var pair in editor.dictionary_0.Values)
+                    {
+                        if (pair.Item1 > cycles) cycles = pair.Item1;
+                        if (pair.Item2 > activity) activity = pair.Item2;
+                    }
+                Speech.Tts.Speak(Loc.T("editor.complete.stats", new { cycles, size, activity }));
+                Speech.Tts.Speak(Loc.T("editor.complete.options", new
+                {
+                    resume = GameText.T("Continue Editing"),
+                    leave = GameText.T("Return to Desktop"),
+                }));
+            }
+            catch (Exception ex) { Log.Error("[complete] stats announce failed", ex); }
         }
     }
 }
