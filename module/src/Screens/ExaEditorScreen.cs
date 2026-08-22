@@ -184,6 +184,74 @@ namespace ExaAccess.Screens
             catch (Exception ex) { Log.Error("[editor] code disarm failed", ex); }
         }
 
+        // ---- caret narration (task 4B): while the code stop is focused, vertical caret moves
+        // speak the line landed on, horizontal moves speak the character at the caret, and the
+        // game's Ctrl+Up/Down EXA switch announces the new window. Text CHANGES are the typing
+        // echo's job — they only re-baseline here, never double-speak. ----
+
+        private int _caretExa = int.MinValue;
+        private int _caretOffset = -1, _caretLine = -1;
+        private string _caretText;
+
+        private void NarrateCaret(EditorScreen e, bool baseline)
+        {
+            var exa = FocusedCodeExa(e);
+            if (exa == null) return;
+            int caret, exaNum;
+            string text;
+            try
+            {
+                caret = (int)CaretField.GetValue(exa.codeEditorWidget_0);
+                text = exa.string_1 ?? string.Empty;
+                exaNum = exa.method_0();
+            }
+            catch { return; }
+            if (caret > text.Length) caret = text.Length;
+            int line = LineIndex(text, caret);
+
+            if (exaNum != _caretExa)
+            {
+                // First arm is silent (the landing announce covered it); a real EXA switch
+                // (the game's Ctrl+Up/Down) announces the new window + its current line.
+                if (!baseline && _caretExa != int.MinValue)
+                    Speech.Tts.Speak(Loc.T("editor.code", new { exa = exa.string_0 })
+                        + ", " + (CurrentLineText() ?? ""), interrupt: true);
+            }
+            else if (text != _caretText)
+            {
+                // An edit: the typing echo spoke it; just re-baseline below.
+            }
+            else if (line != _caretLine)
+            {
+                Speech.Tts.Speak(CurrentLineText(), interrupt: true);
+            }
+            else if (caret != _caretOffset)
+            {
+                Speech.Tts.Speak(CharAt(text, caret), interrupt: true);
+            }
+
+            _caretExa = exaNum;
+            _caretOffset = caret;
+            _caretLine = line;
+            _caretText = text;
+        }
+
+        private static int LineIndex(string text, int caret)
+        {
+            int line = 0;
+            for (int i = 0; i < caret && i < text.Length; i++)
+                if (text[i] == '\n') line++;
+            return line;
+        }
+
+        // The character to the right of the caret — the one the cursor "sits on".
+        private static string CharAt(string text, int caret)
+        {
+            if (caret >= text.Length || text[caret] == '\n') return Loc.T("text.endofline");
+            char c = text[caret];
+            return c == ' ' ? Loc.T("text.space") : c.ToString();
+        }
+
         /// <summary>The text of the line the caret sits on ("blank" for an empty line).</summary>
         private static string CurrentLineText()
         {
@@ -547,6 +615,8 @@ namespace ExaAccess.Screens
             // mouse user's own click-focus is never fought over).
             bool codeFocused = Navigation.CaretTextEntryFocused;
             if (_wasCodeFocused && !codeFocused && FocusedCodeExa(e) != null) DisarmCode(e);
+            if (codeFocused) NarrateCaret(e, !_wasCodeFocused);
+            else _caretExa = int.MinValue;
             _wasCodeFocused = codeFocused;
 
             var sim = TheSim(e);

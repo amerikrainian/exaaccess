@@ -479,15 +479,28 @@ through the newest copy:
    Deferred on the desktop: leaderboards/histograms + the multiplayer opponent table
    (post-solve detail-pane content), the side-jobs tab live-verify (needs an ember-7
    save), the custom-win press-and-hold button.
-10. **(partly done)** Desktop destinations: BOTH cutscene players are fully
-    accessible (`CutsceneScreens.cs` — the visual-novel player speaks every line as
-    it appears with native keys; the EMBER comic player additionally turns its
-    dialogue choices into an arrow-navigable menu with Enter/digit selection,
-    verified live through a real choice), the Workhouse is fully playable
-    (`WorkhouseScreen.cs` — typing-first text entry, the seam the EXA editor will
-    build on), and TRASH WORLD NEWS announces by name. Still to model: the EXA code
-    editor (`EditorScreen` — the big one), the news reader's CONTENT, and
-    `SolitaireScreen`/`ArcadeScreen`/`CustomPuzzleScreen` (friendly name only today).
+10. **(done)** Desktop destinations: BOTH cutscene players fully accessible
+    (`CutsceneScreens.cs` — lines spoken as they appear; the EMBER player's dialogue
+    choices are an arrow-navigable menu with Enter/digit selection), the Workhouse
+    fully playable (`WorkhouseScreen.cs`), TRASH WORLD NEWS launcher fully modeled
+    (`TrashWorldNewsScreen.cs` — tabs/PDF buttons/close; the zines ship as
+    text-layer PDFs read in the user's own viewer).
+11. **(in progress)** The EXA editor (`ExaEditorScreen.cs` over the name-preserved
+    EditorScreen). DONE (tasks 1-4): browse stops task/windows/CODE/scores/
+    simulation/solution; goal checklist + stats with game tooltips; window rows
+    (registers, files, host names mirroring the map incl. the hostname-as-home-host
+    rule); F2 = step (screen-scoped ui.step action; game Tab-step suppressed so Tab
+    stays navigation), Run/Fast/Pause/Reset via the game handler seams with
+    compile errors SPOKEN; cycle echo while stepping; the CODE stop — typing-first
+    caret editor (TextEntryCaret: navigator bubbles all directional/edit input,
+    suppression swallows ONLY Tab; arming = the game's focus QUEUE maybe_4 +
+    method_58 scroll, released on falling edge), typing echo via prefix/suffix
+    diff, caret narration (line on vertical moves, char on horizontal, end of
+    line, EXA-switch announce on the game's native Ctrl+Up/Down). REMAINING:
+    task 5 run narration (error/halt event capture — errors live ~1 cycle),
+    task 6 network-map browse (hosts/links), task 7 polish (test-run selector
+    adjust, M-bus toggle, delete/create EXA, solution+EXA rename via TextEntry,
+    Show Goal reading, PuzzleCompletionScreen).
 11. Map the remaining obfuscated transition/overlay screens to friendly names.
 12. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
     code editor for program text — this game is text-centric, a strong a11y target.

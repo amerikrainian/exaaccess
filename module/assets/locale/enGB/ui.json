@@ -61,6 +61,7 @@
   "editor.file.more": "and {n} more",
   "editor.code": "{exa} code",
   "text.newline": "new line",
+  "text.endofline": "end of line",
 
   "desktop.details": "Task details",
   "desktop.detail.location": "Location",
