@@ -75,6 +75,8 @@
   "editor.goal.register": "{id} at {host}: {value}.",
   "editor.goal.register.plain": "{id} at {host}.",
   "editor.registers": "{host} registers",
+  "editor.host.locked": "Locked host",
+  "editor.host.unnamed": "Unnamed host",
   "editor.complete.options": "Escape: {resume}. Enter: {leave}.",
   "text.newline": "new line",
 

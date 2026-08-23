@@ -235,6 +235,7 @@ namespace ExaAccess.Screens
         {
             var host = HostAt(index);
             if (host == null) return null;
+            if (HostHidden(host, false)) return null; // the cover box shows nothing inside
             try
             {
                 var parts = new System.Collections.Generic.List<string>();
@@ -627,6 +628,7 @@ namespace ExaAccess.Screens
             var sim = TheSim(e);
             if (sim == null || _selectedHost >= sim.list_0.Count) return;
             var host = sim.list_0[_selectedHost];
+            if (HostHidden(host, false)) return; // hidden host = contents off the map
             var ids = new System.Collections.Generic.List<string>();
             foreach (var entity in sim.list_1)
             {
@@ -675,6 +677,7 @@ namespace ExaAccess.Screens
             if (sim == null || _selectedHost >= sim.list_0.Count) return;
             var host = sim.list_0[_selectedHost];
             if (host.list_2.Count == 0) return;
+            if (HostHidden(host, false)) return; // hidden host = registers off the map
             b.BeginStop("registers");
             b.PushContext(Loc.T("editor.registers", new { host = HostName(host) }));
             for (int r = 0; r < host.list_2.Count; r++)
@@ -820,14 +823,42 @@ namespace ExaAccess.Screens
             catch { return null; }
         }
 
-        // The DISPLAYED host name: uppercased internal name, overridable by the game mode
-        // (the tutorial's home host is internally "player" but displays "RHIZOME"), then the
-        // map's #-suffix truncation.
-        private static string HostName(SimHost host)
+        /// <summary>host.method_10(goal) — true = drawn as a covered black box (contents,
+        /// registers and files all suppressed on screen). The goal flag matters: some puzzles
+        /// reveal hidden hosts under the F1 view only (SimHost.maybe_0).</summary>
+        private static bool HostHidden(SimHost host, bool goal)
+        {
+            try { return host.method_10(goal); }
+            catch { return false; }
+        }
+
+        /// <summary>The cover box's own caption when the puzzle set one ("Locked"), else our
+        /// name for the caption-less cover art.</summary>
+        private static string LockedLabel(SimHost host)
+        {
+            try
+            {
+                string caption = GameText.Speech(host.locString_0.ToString());
+                if (!string.IsNullOrWhiteSpace(caption)) return caption;
+            }
+            catch { }
+            return Loc.T("editor.host.locked");
+        }
+
+        // The DISPLAYED host name: a hidden host shows only its cover caption; a plateless
+        // host (genum154_0 == 0 — the secret/modem boxes) shows no name at all, so the
+        // internal one must never leak; then the uppercased internal name, overridable by the
+        // game mode (the tutorial's home host is internally "player" but displays "RHIZOME"),
+        // then the map's #-suffix truncation.
+        private static string HostName(SimHost host) => HostName(host, false);
+
+        private static string HostName(SimHost host, bool goal)
         {
             if (host == null) return null;
             try
             {
+                if (HostHidden(host, goal)) return LockedLabel(host);
+                if (host.genum154_0 == (GEnum154)0) return Loc.T("editor.host.unnamed");
                 string name = host.string_0.ToUpperInvariant();
                 // The player's home host displays the HOSTNAME setting — or, in puzzles played
                 // under a cover identity, that character's handle ("UNKNOWN" for Moss).
@@ -846,7 +877,7 @@ namespace ExaAccess.Screens
                 if (sim != null)
                 {
                     var mode = sim.method_43();
-                    var over = mode.vmethod_10(host, false);
+                    var over = mode.vmethod_10(host, goal);
                     if (over.method_0()) name = over.method_2();
                 }
                 int hash = name.IndexOf('#');
@@ -1583,6 +1614,9 @@ namespace ExaAccess.Screens
                 var sim = TheSim(e);
                 if (sim == null) return rows;
                 foreach (var host in sim.list_0)
+                {
+                    // Hosts still hidden UNDER the goal view keep their secrets there too.
+                    if (HostHidden(host, true)) continue;
                     foreach (var required in host.list_0)
                     {
                         string id = required.maybe_0.method_0()
@@ -1593,14 +1627,16 @@ namespace ExaAccess.Screens
                         rows.Add(Loc.T("editor.goal.file", new
                         {
                             id,
-                            host = HostName(host),
+                            host = HostName(host, true),
                             values = string.Join(", ", values),
                         }));
                     }
+                }
                 var logic = sim.method_43();
                 if (logic != null)
                     foreach (var host in sim.list_0)
                     {
+                        if (HostHidden(host, true)) continue;
                         foreach (var reg in host.list_2)
                         {
                             string id = RegName(reg);
@@ -1609,11 +1645,13 @@ namespace ExaAccess.Screens
                                 try { value = logic.vmethod_9(reg, true, e.method_24(), false).method_2(true); }
                                 catch { } // per-puzzle logics throw for registers they don't own
                             rows.Add(string.IsNullOrEmpty(value)
-                                ? Loc.T("editor.goal.register.plain", new { id, host = HostName(host) })
-                                : Loc.T("editor.goal.register", new { id, host = HostName(host), value }));
+                                ? Loc.T("editor.goal.register.plain", new { id, host = HostName(host, true) })
+                                : Loc.T("editor.goal.register", new { id, host = HostName(host, true), value }));
                         }
                         try
                         {
+                            // Prefix with the MAP-side name: HostName(goal:true) would resolve to
+                            // this same override, reading "X: X".
                             var status = logic.vmethod_10(host, true);
                             if (status.method_0())
                                 rows.Add(HostName(host) + ": " + GameText.Speech(status.method_2()));
