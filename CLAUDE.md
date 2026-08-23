@@ -519,7 +519,18 @@ live generation.
     write-only plates plain; registers also speak on host-stop rows, and a
     Registers stop grouped by SELECTED host like links/files — after files,
     absent when that host has none — reads the LIVE plate value while
-    stepping), and
+    stepping). MAP PARITY (per-host audit, 2026-08-22): HIDDEN hosts
+    (SimHost.method_10(showGoal); the goal flag can reveal) speak only
+    their cover caption — occupants/files/registers gated on the map AND
+    in the goal popup; plateless hosts (genum154_0==0) read "Unnamed
+    host", never their internal name; home/opponent plates substitute by
+    IDENTITY (sim.dictionary_0[team].simHost_0 — the game's flag2/flag3;
+    sandbox excepted; opponent = Steam persona via the game's own
+    Steamworks.NET, referenced Private=false, else the battle character);
+    locked links (SimHostLink.bool_0, drawn red, ids usually cleared)
+    speak "locked"; immovable files ((genum142_0 & 2)==0) and write-only
+    registers (genum160_0==1) speak their state. Still open: whether
+    single-cell link ids are drawn (verify visually before gating), and
     the special-puzzle panels (I/O logs, uplink status, custom windows)
     captured as TEXT. Mechanics: Patches/PanelCapture patches every
     GClass298 draw-hook override (vmethod_0..3, found by slot at load — 33

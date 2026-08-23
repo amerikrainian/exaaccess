@@ -187,12 +187,17 @@ namespace ExaAccess.Screens
                 Maybe<int> localId;
                 try { localId = link.method_2(host).method_2(team); }
                 catch { continue; }
-                if (!localId.method_0()) continue; // no id from this side = not traversable from here
-                int id = localId.method_2();
+                // A LOCKED link draws as a red line even with its ids cleared — a visible
+                // "connection exists, currently closed". Only a linkless, unlocked side is
+                // truly nothing from here.
+                bool locked = false;
+                try { locked = link.bool_0; } catch { }
+                if (!localId.method_0() && !locked) continue;
+                string idPart = localId.method_0() ? localId.method_2() + ", " : "";
                 var dest = link.method_1(host);
                 string other = HostName(dest);
                 bool oneWay;
-                try { oneWay = !link.method_2(dest).method_2(team).method_0(); }
+                try { oneWay = localId.method_0() && !link.method_2(dest).method_2(team).method_0(); }
                 catch { oneWay = false; }
                 int destIndex = sim.list_0.IndexOf(dest);
                 b.AddItem(ControlId.Structural("ed.link." + _selectedHost + "." + i), new NodeVtable
@@ -201,7 +206,9 @@ namespace ExaAccess.Screens
                     Announcements = new[]
                     {
                         new NodeAnnouncement(() => (oneWay ? Loc.T("editor.link.oneway") + ", " : "")
-                            + id + ", " + other, kind: AnnouncementKinds.Label),
+                            + idPart + other
+                            + (locked ? ", " + Loc.T("editor.link.locked") : ""),
+                            kind: AnnouncementKinds.Label),
                     },
                     // Enter = traverse, "as if you scrolled to the destination": it becomes the
                     // selected host AND the hosts stop's remembered row (stop landings prefer
@@ -718,7 +725,10 @@ namespace ExaAccess.Screens
                 var sim = TheSim(e);
                 var reg = RegAt(hostIndex, regIndex);
                 if (sim == null || reg == null) return null;
-                if (reg.genum160_0 != (GEnum160)0) return null; // only readable plates draw a value
+                // The map distinguishes the plates by texture: write-only gets its own art,
+                // and only readable (0) plates draw a value.
+                if (reg.genum160_0 == (GEnum160)1) return Loc.T("editor.reg.writeonly");
+                if (reg.genum160_0 != (GEnum160)0) return null;
                 return sim.method_43().vmethod_9(reg, false, e.method_24(), false).method_2(true);
             }
             catch { return null; }
@@ -1037,15 +1047,19 @@ namespace ExaAccess.Screens
                 // The host is the stop's context now; a HELD file reads with its holder and
                 // cursor (the zine's file window attached beneath the EXA).
                 var holder = HolderOf(file);
-                if (holder != null)
-                    return Loc.T("editor.file.held", new
+                string readout = holder != null
+                    ? Loc.T("editor.file.held", new
                     {
                         count,
                         exa = holder.string_0,
                         cursor = CursorValue(holder),
                         values,
-                    });
-                return Loc.T("editor.file.readout", new { count, values });
+                    })
+                    : Loc.T("editor.file.readout", new { count, values });
+                // The widened plate + icon the map draws on files LINK refuses to carry.
+                bool immovable = false;
+                try { immovable = (file.genum142_0 & (GEnum142)2) != (GEnum142)2; } catch { }
+                return immovable ? readout + ", " + Loc.T("editor.file.immovable") : readout;
             }
             catch { return null; }
         }
@@ -1678,6 +1692,8 @@ namespace ExaAccess.Screens
                             if (reg.genum160_0 == (GEnum160)0) // the game only shows values on readable plates
                                 try { value = logic.vmethod_9(reg, true, e.method_24(), false).method_2(true); }
                                 catch { } // per-puzzle logics throw for registers they don't own
+                            else if (reg.genum160_0 == (GEnum160)1)
+                                value = Loc.T("editor.reg.writeonly");
                             rows.Add(string.IsNullOrEmpty(value)
                                 ? Loc.T("editor.goal.register.plain", new { id, host = HostName(host, true) })
                                 : Loc.T("editor.goal.register", new { id, host = HostName(host, true), value }));
