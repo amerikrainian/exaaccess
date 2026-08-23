@@ -193,6 +193,27 @@ pairs only — the same information our ordinals always encoded; no game code sh
 host assembly by **full display name**, so the host's `AssemblyVersion` is pinned at
 **1.0.0.0** in its csproj — bump both in lockstep or the mod silently stops loading
 (release versioning goes in FileVersion instead).
+RELEASE PIPELINE (ported 2026-08-23 from the Harkest Dungeon tooling, itself adapted from
+Rashad Naqeeb's Non-Visual Calculus installer, MIT — attribution headers on every file,
+license text in `installer/LICENSE-NonVisualCalculus.txt`): `Directory.Build.props` holds
+the release `Version` (FileVersion/InformationalVersion of every assembly; the host's
+AssemblyVersion stays pinned separately). `build.ps1` = dev Debug build + deploy with the
+Steam install located (EXAPUNKS_DIR overrides). `build_release.ps1` = Release build →
+`releases\ExaAccess-vX.Y.Z.zip`, zip root = game folder, exactly the file set above (it
+refuses to ship Mono.CSharp.dll). `installer\` = the Rust + wxWidgets installer
+(`ExaAccessInstaller.exe` via `build-installer.ps1`; `test-installer.ps1` = cargo test;
+`tools\installer-toolchain.ps1` probes libclang/ninja for both): finds the game (EXAPUNKS_DIR,
+Steam registry + library folders; a dir is the game when `EXAPUNKS.exe` AND
+`Renderer_D3D11.dll` are present), reads the GitHub releases feed
+(amerikrainian/exaaccess; `EXAACCESS_INSTALLER_RELEASES_URL` overrides it for tests),
+downloads the `ExaAccess-v<semver>.zip` asset, verifies its sha256 digest, extracts it over
+the game folder recording every file in `ExaAccess\install.json` and backing up anything it
+overwrote under `ExaAccess\backups\`, prunes files a newer zip no longer ships, and
+uninstalls by the record (restoring backups). `installer\examples\cli.rs` is the same CLI
+without the requireAdministrator manifest — `tools\installer-e2e.ps1` drives it against a
+throwaway game folder and a locally served release feed (install → assert the file set and
+the backup → uninstall → assert the folder is pristine). `create-release.ps1 vX.Y.Z` = gh
+release with the zip + installer and the CHANGELOG.md section as notes.
 
 ## Logs
 `%LOCALAPPDATA%\ExaAccess\exaaccess.log` — fresh file per launch; the one path to give
@@ -832,5 +853,5 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     code editor for program text — this game is text-centric, a strong a11y target.
 13. Type-ahead search (WotR's TypeAheadSearch is pure — port with SDL TEXTINPUT), the
     settings tree, the mod menu, and the TextEntry port (unlocks hostname editing).
-14. Installer (6 files + locale folder; uninstall = delete the config).
+14. **(done)** Installer + release pipeline — see "Build & deploy" (RELEASE PIPELINE).
 

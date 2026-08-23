@@ -10,6 +10,23 @@ Status: **POC proven end-to-end** — the game loads under our loader, Harmony p
 
 ---
 
+## Install
+
+Download `ExaAccessInstaller.exe` from the
+[latest release](https://github.com/amerikrainian/exaaccess/releases) and run it. It finds your
+Steam install, downloads the newest release, verifies it, and installs it over the game folder,
+backing up anything it replaces; run it again later to update, repair, or uninstall (which restores
+the folder exactly as it found it). Requires the Steam version of the game on Windows.
+
+Manual alternative: download `ExaAccess-vX.Y.Z.zip` and extract it into the game folder (the one
+holding `EXAPUNKS.exe`). It adds `EXAPUNKS.exe.config`, `ExaAccess.dll`, `ExaAccess.Module.dll`,
+`Mono.Cecil.dll`, `0Harmony.dll`, `prism.dll`, `steam_appid.txt`, and an `ExaAccess\` folder
+(`namemap.tsv` + `locale\`). To uninstall by hand, delete `EXAPUNKS.exe.config` — the game is
+vanilla again (no game file is ever modified); delete the rest whenever you like.
+
+Then launch EXAPUNKS through Steam: the mod says "ExaAccess ready" as the game boots and "Press any
+key to continue" at the loading screen.
+
 ## Why this isn't a BepInEx / Unity mod
 
 EXAPUNKS looks like it uses SDL2, which suggests Unity — it does **not**. `EXAPUNKS.exe` (internal name
@@ -105,8 +122,7 @@ server.
 
 With the Steam client running, just start **`EXAPUNKS.exe`** — Steam Play button, shortcut, anything.
 The deployed `EXAPUNKS.exe.config` makes the CLR load `ExaAccess.Bootstrap` inside the stock process
-before the game runs. This is all the future installer sets up: copy `EXAPUNKS.exe.config`,
-`ExaAccess.dll`, `0Harmony.dll`, `prism.dll`, `steam_appid.txt` into the game folder — done.
+before the game runs. This is exactly what the installer (or a manual unzip) sets up — see "Install" above.
 
 Two things to know:
 
@@ -163,3 +179,29 @@ curl -s -X POST --data 'foreach (var n in ExaAccess.GameState.ScreenStackNames()
   the code editor for EXA program text — this game is unusually text-centric and a strong a11y target.
 - Port the richer config-driven speech stack (SAPI/positional/settings) behind the existing `Tts` facade.
 - Shipping distribution: keep resolving the retail exe by ordinal (never redistribute the deob copy).
+
+## Releasing
+
+```
+.\build.ps1                    # dev: locate the Steam install, Debug build + deploy into the game folder
+.\build_release.ps1            # releases\ExaAccess-vX.Y.Z.zip — the Release file set, zip root = game folder
+.\build-installer.ps1          # releases\ExaAccessInstaller.exe (installer\, Rust + wxWidgets; needs cargo + libclang)
+.\test-installer.ps1           # the installer's unit tests
+tools\installer-e2e.ps1        # install + uninstall the zip into a throwaway game folder through the real installer code
+.\create-release.ps1 vX.Y.Z    # gh release: the zip + installer, notes from CHANGELOG.md's "## VX.Y.Z" section
+```
+
+The version lives in `Directory.Build.props`; bump it, add the `CHANGELOG.md` section, tag, push the
+tag, then run the three build/create scripts.
+
+## Credits
+
+Speech goes through [Prism](https://github.com/ethindp/prism) (MPL-2.0); patching through
+[Harmony](https://github.com/pardeike/Harmony) (MIT); the module remapper is
+[Mono.Cecil](https://github.com/jbevain/cecil) (MIT). The installer and release scripts are adapted
+from the [Non-Visual Calculus](https://github.com/rashadnaqeeb/NonVisualCalculus) installer by
+Rashad Naqeeb (MIT — see `installer/LICENSE-NonVisualCalculus.txt`), by way of the
+[Harkest Dungeon](https://github.com/amerikrainian/harkest-dungeon) installer; the release
+packaging pattern follows [Say the Spire 2](https://github.com/bradjrenshaw/say-the-spire2). The
+UI graph, navigator, input, localization, and speech stacks are ported from the WrathAccess and
+SayTheSpire lineage.

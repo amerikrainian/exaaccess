@@ -1,0 +1,11 @@
+<Project>
+  <!-- The release version: FileVersion/InformationalVersion of every assembly, the name of the
+       release zip (build_release.ps1) and the tag create-release.ps1 expects. The HOST's
+       AssemblyVersion stays pinned at 1.0.0.0 in ExaAccess.csproj — deploy/EXAPUNKS.exe.config
+       binds it by full display name — so only the file version moves per release. -->
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <!-- Explicit: the SDK would otherwise derive FileVersion from the host's pinned AssemblyVersion. -->
+    <FileVersion>$(Version)</FileVersion>
+  </PropertyGroup>
+</Project>

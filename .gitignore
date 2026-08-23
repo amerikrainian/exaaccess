@@ -13,3 +13,7 @@ obj/
 # Local tool downloads (de4dot, etc.) live in the scratchpad, but guard anyway.
 tools/de4dot/
 *.nupkg
+
+# Installer build tree and packaged releases (build-installer.ps1 / build_release.ps1 output).
+installer/target/
+releases/
