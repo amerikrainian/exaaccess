@@ -33,6 +33,28 @@ namespace ExaAccess.Screens
             Navigation.FocusStop("code");
         }
 
+        /// <summary>Enter on a COPY's window row: its program's code, and while armed the
+        /// read cursor lands on THE COPY's current instruction — the entry snap keeps it
+        /// (it only re-snaps on a program change or an unset cursor).</summary>
+        private void JumpToCopyCode(int entityNumber)
+        {
+            try
+            {
+                var exa = FindExaByEntity(entityNumber);
+                if (exa == null || !exa.maybe_2.method_0()) return;
+                int solution = exa.maybe_2.method_2().method_0();
+                JumpToCode(solution);
+                _followedEntity = entityNumber; // the code view now follows THIS instance
+                int cl = CurrentListingLine(exa);
+                if (!Editing(Editor) && cl >= 0)
+                {
+                    _virtExa = solution;
+                    _virtLine = cl;
+                }
+            }
+            catch (Exception ex) { Log.Error("[editor] copy code jump failed", ex); }
+        }
+
         private static void DeleteExa(int number)
         {
             var e = Editor;

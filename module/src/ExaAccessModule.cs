@@ -82,7 +82,18 @@ namespace ExaAccess
             Input.InputManager.Register("ui.step", "Step simulation", Input.InputCategory.UI).AddBinding(Input.Scancode.F2).Repeating();
             // Run to the caret's line (the game's Alt+Click "run to instruction"). One-shot,
             // first arrival of ANY copy of the program wins — re-arm after each pause.
+            // Shift+Enter pins ONE EXA instead (row-aware — see RunToPinned; the editor
+            // consumes Enter only modifier-exact, so the shifted chord is free).
             Input.InputManager.Register("ui.runto", "Run to caret line", Input.InputCategory.UI).AddBinding(Input.Scancode.F8);
+            Input.InputManager.Register("ui.runto.exa", "Run to line, this EXA", Input.InputCategory.UI)
+                .AddBinding(Input.Scancode.Return, shift: true).AddBinding(Input.Scancode.KpEnter, shift: true);
+            // Cycle which live instance (original/REPL copies) the armed code view follows —
+            // same axis as the game's Ctrl+Up/Down PROGRAM switch, one modifier over:
+            // Ctrl walks programs, Alt walks this program's instances.
+            Input.InputManager.Register("ui.followNext", "Next EXA instance", Input.InputCategory.UI)
+                .AddBinding(Input.Scancode.Down, alt: true);
+            Input.InputManager.Register("ui.followPrev", "Previous EXA instance", Input.InputCategory.UI)
+                .AddBinding(Input.Scancode.Up, alt: true);
 
             Input.InputManager.ActiveCategoriesProvider = () =>
                 new System.Collections.Generic.List<Input.InputCategory>(Screens.ScreenManager.ActiveInputCategories());

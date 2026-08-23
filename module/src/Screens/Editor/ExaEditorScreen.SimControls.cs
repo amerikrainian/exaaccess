@@ -122,10 +122,8 @@ namespace ExaAccess.Screens
         private int _runToLine;              // 1-based, for speech; 0 = idle
         private bool _suppressRunAnnounce;   // the arm announce replaces the generic "Running."
 
-        // Unpinned only — the game also has a pin-one-EXA mode (GEnum175 0, the native
-        // Alt+Click in a specific window), tried behind Shift+Enter and REMOVED (user
-        // decision 2026-08-23): the re-arm F8 flow covers it and the pinning dance
-        // (line from the code stop, target from a window row) wasn't worth its weight.
+        // F8 — unpinned (GEnum175 1): the marker matches ANY copy of the focused program,
+        // first arrival wins; one-shot, re-arm after each pause.
         private void RunToCaret()
         {
             var e = Editor;
@@ -146,7 +144,6 @@ namespace ExaAccess.Screens
             }
             try
             {
-                var pass = exa.gclass276_0.gclass286_1;
                 int line, expanded;
                 if (!Editing(e))
                 {
@@ -161,28 +158,225 @@ namespace ExaAccess.Screens
                 }
                 else
                 {
-                    string text = exa.string_1 ?? string.Empty;
-                    int caret = (int)CaretField.GetValue(exa.codeEditorWidget_0);
-                    if (caret > text.Length) caret = text.Length;
-                    line = CaretText.LineIndex(text, caret);
-                    if (!pass.dictionary_0.TryGetValue(line, out expanded)) expanded = line;
+                    ResolveCaretLine(exa, out line, out expanded);
                 }
-                // Eligibility mirrors the game's hover filter: real opcodes only (blank, NOTE
-                // and MARK lines all compile to EmptyLine; a marker there would hunt forever).
-                if (expanded >= pass.list_0.Count || !Sim.smethod_13(pass.list_0[expanded]))
-                {
-                    Speech.Tts.Speak(Loc.T("editor.runto.invalid"), interrupt: true);
-                    return;
-                }
-                Invoke(PreActionMethod, e); // also clears any stale marker
-                e.method_52((GEnum175)1, exa, EntityID.Exa(exa.method_0()),
-                    Editing(e) ? line : expanded);
-                _runToLine = line + 1;
-                _suppressRunAnnounce = true;
-                _stepEcho = false;
-                Speech.Tts.Speak(Loc.T("editor.runto", new { line = line + 1 }), interrupt: true);
+                ArmMarker(e, exa, exa.method_0(), (GEnum175)1, line, expanded, null);
             }
             catch (Exception ex) { Log.Error("[editor] run-to failed", ex); }
+        }
+
+        // Shift+Enter — pinned (GEnum175 0, the native Alt+Click in a specific window):
+        // on an EXA WINDOW row, pin THAT row's EXA — the line is the read cursor when the
+        // code stop is on its program, else the program's frozen edit caret, so it ALWAYS
+        // resolves (v2, user redesign 2026-08-23; v1's browsed-since-arming precondition
+        // sank it). In the code editor, pin the program's ORIGINAL, symmetric with F8.
+        private void RunToPinned()
+        {
+            var e = Editor;
+            if (e == null) return;
+            string exaName; CompileError error;
+            if (FirstCompileError(e, expanded: true, out exaName, out error))
+            {
+                SpeakCompileError(exaName, error);
+                return;
+            }
+            try
+            {
+                if (TryPinFromWindowRow(e)) return;
+                var exa = FocusedCodeExa(e);
+                if (exa == null || !Navigation.CaretTextEntryFocused)
+                {
+                    Speech.Tts.Speak(Loc.T("value.unavailable"), interrupt: true);
+                    return;
+                }
+                int line, expanded;
+                if (!Editing(e))
+                {
+                    if (_virtLine < 0)
+                    {
+                        Speech.Tts.Speak(Loc.T("value.unavailable"), interrupt: true);
+                        return;
+                    }
+                    line = expanded = _virtLine;
+                }
+                else
+                {
+                    ResolveCaretLine(exa, out line, out expanded);
+                }
+                // Pin the FOLLOWED instance (the original unless a copy is followed via its
+                // window row or Ctrl+Left/Right) — "this EXA" is whoever the label says.
+                var live = FollowedExa(exa);
+                int entity = exa.method_0();
+                string name = exa.string_0;
+                if (live != null)
+                {
+                    try { entity = live.entityID_0.Number; name = live.string_0; } catch { }
+                }
+                ArmMarker(e, exa, entity, (GEnum175)0, line, expanded, name);
+            }
+            catch (Exception ex) { Log.Error("[editor] run-to pinned failed", ex); }
+        }
+
+        /// <summary>Alt+Down/Up in the ARMED code field: cycle which live instance of
+        /// this program the code view follows (original, then copies in spawn order,
+        /// wrapping) — Ctrl+Up/Down walks programs, Alt+Up/Down walks instances. The read
+        /// cursor snaps to the new instance's current instruction and the announce names
+        /// it — Shift+Enter then pins whoever the label says.</summary>
+        private void FollowInstance(int dir)
+        {
+            try
+            {
+                var e = Editor;
+                if (e == null || Editing(e) || !Navigation.CaretTextEntryFocused) return;
+                var program = FocusedCodeExa(e);
+                var sim = TheSim(e);
+                if (program == null || sim == null) return;
+                int s = program.method_0();
+                var list = new System.Collections.Generic.List<SimExa>();
+                foreach (var entity in sim.list_1)
+                {
+                    var x = entity as SimExa;
+                    if (x != null && x.maybe_2.method_0() && x.maybe_2.method_2().method_0() == s)
+                        list.Add(x);
+                }
+                if (list.Count == 0) return;
+                var cur = FollowedExa(program);
+                int idx = list.FindIndex(x => ReferenceEquals(x, cur));
+                if (idx < 0) idx = 0;
+                idx = ((idx + dir) % list.Count + list.Count) % list.Count;
+                var next = list[idx];
+                _followedEntity = next.entityID_0.Number;
+                // Land ON the instance's currently executing line and announce it exactly
+                // like an arrow move would — the current-marker carries the name (user
+                // spec: "LINK 800, current, XA:1"; no special wording).
+                string announce = next.string_0; // fallback when it has no pending line
+                try
+                {
+                    int cl = CurrentListingLine(next);
+                    if (cl >= 0)
+                    {
+                        _virtExa = s;
+                        _virtLine = cl;
+                        string listing = next.method_9() ?? string.Empty;
+                        int start = CaretText.OffsetOfLine(listing, cl);
+                        int end = listing.IndexOf('\n', start);
+                        if (end < 0) end = listing.Length;
+                        string lineText = end > start
+                            ? listing.Substring(start, end - start)
+                            : Loc.T("text.blank");
+                        announce = lineText + (CurrentMarker(program, cl) ?? "");
+                    }
+                }
+                catch { }
+                Speech.Tts.Speak(announce, interrupt: true);
+            }
+            catch (Exception ex) { Log.Error("[editor] follow instance failed", ex); }
+        }
+
+        /// <summary>The window-row half of Shift+Enter: consumed (true) whenever focus sits
+        /// on a win.exa row, whatever the outcome — never falls through to the code path.</summary>
+        private bool TryPinFromWindowRow(EditorScreen e)
+        {
+            int n;
+            var key = Navigation.FocusedNodeId?.StructuralKey as string;
+            if (key == null || !key.StartsWith("win.exa.", StringComparison.Ordinal)
+                || !int.TryParse(key.Substring(8), out n)) return false;
+            var target = FindExaByEntity(n);
+            if (target == null || !target.maybe_2.method_0())
+            {
+                Speech.Tts.Speak(Loc.T("value.unavailable"), interrupt: true); // row went stale
+                return true;
+            }
+            var program = target.maybe_2.method_2();
+            int line, expanded;
+            if (!Editing(e) && _virtLine >= 0 && ReferenceEquals(FocusedCodeExa(e), program))
+                line = expanded = _virtLine; // the read cursor: the latest expressed intent
+            else
+                ResolveCaretLine(program, out line, out expanded); // always defined
+            ArmMarker(e, program, n, (GEnum175)0, line, expanded, target.string_0);
+            return true;
+        }
+
+        /// <summary>The written line under a PROGRAM's edit caret (frozen mid-run) and its
+        /// macro-expanded index.</summary>
+        private static void ResolveCaretLine(SolutionExa exa, out int line, out int expanded)
+        {
+            string text = exa.string_1 ?? string.Empty;
+            int caret = (int)CaretField.GetValue(exa.codeEditorWidget_0);
+            if (caret > text.Length) caret = text.Length;
+            line = CaretText.LineIndex(text, caret);
+            if (!exa.gclass276_0.gclass286_1.dictionary_0.TryGetValue(line, out expanded)) expanded = line;
+        }
+
+        /// <summary>Forward-snap a target to the first REAL instruction at-or-after it.
+        /// Blanks, NOTEs and MARKs compile to EmptyLine and OCCUPY line indices — keyboard
+        /// browsing lands on them constantly, and a jump target IS its MARK line — so
+        /// refusing there was a keyboard dead-end the mouse never hits (Alt+Click only
+        /// offers opcode lines). Execution itself skips EmptyLines; "run to this MARK"
+        /// means its first real instruction. false = nothing runnable at or below.</summary>
+        private static bool SnapToInstruction(SolutionExa program, bool editing,
+            ref int line, ref int expanded, out string lineText)
+        {
+            var pass = program.gclass276_0.gclass286_1;
+            if (editing)
+            {
+                var written = (program.string_1 ?? string.Empty).Split('\n');
+                for (int w = line; w < written.Length; w++)
+                {
+                    int exp;
+                    if (!pass.dictionary_0.TryGetValue(w, out exp)) exp = w;
+                    if (exp < pass.list_0.Count && Sim.smethod_13(pass.list_0[exp]))
+                    {
+                        line = w;
+                        expanded = exp;
+                        lineText = written[w];
+                        return true;
+                    }
+                }
+            }
+            else
+            {
+                var listing = (pass.string_0 ?? string.Empty).Split('\n');
+                for (int x = Math.Max(0, expanded); x < pass.list_0.Count; x++)
+                {
+                    if (Sim.smethod_13(pass.list_0[x]))
+                    {
+                        line = expanded = x;
+                        lineText = x < listing.Length ? listing[x] : null;
+                        return true;
+                    }
+                }
+            }
+            lineText = null;
+            return false;
+        }
+
+        /// <summary>Shared arm tail: snap to the first real instruction, clear any stale
+        /// marker, arm, and say where (line + ITS TEXT, so a mistarget is instantly
+        /// audible) and — when pinned — who.</summary>
+        private void ArmMarker(EditorScreen e, SolutionExa program, int entityNumber, GEnum175 mode,
+            int line, int expanded, string name)
+        {
+            bool editing = Editing(e);
+            string lineText;
+            if (!SnapToInstruction(program, editing, ref line, ref expanded, out lineText))
+            {
+                Speech.Tts.Speak(Loc.T("editor.runto.invalid"), interrupt: true);
+                return;
+            }
+            // The name is DISAMBIGUATION — with a single live instance it is noise (user
+            // rule 2026-08-23), the same principle as the bare "current" marker.
+            if (name != null && LiveInstanceCount(program) <= 1) name = null;
+            Invoke(PreActionMethod, e); // also clears any stale marker
+            e.method_52(mode, program, EntityID.Exa(entityNumber), editing ? line : expanded);
+            _runToLine = line + 1;
+            _suppressRunAnnounce = true;
+            _stepEcho = false;
+            string text = string.IsNullOrWhiteSpace(lineText) ? "" : lineText.Trim();
+            Speech.Tts.Speak(name == null
+                    ? Loc.T("editor.runto", new { line = line + 1, text })
+                    : Loc.T("editor.runto.exa", new { line = line + 1, text, exa = name }),
+                interrupt: true);
         }
 
         private void RunSim(bool fast)

@@ -295,7 +295,10 @@ Module (each reload starts this half cold — statics are per-load):
   WrathAccess: `Navigator` (contract) / `Navigation` (static facade) /
   `GraphNavigator` (pull-based announce differ over the graph core: per-frame
   EnsureFocus, live-part watch, the ui.* input vocabulary; type-ahead and sound cues
-  deliberately deferred). SELECTION-FOLLOWS-FOCUS: a node with `NodeVtable.OnSelect`
+  deliberately deferred). TRAP: SCREEN-SCOPED action ids (ui.step, ui.runto,
+  ui.followNext, …) are dispatched through an explicit whitelist switch in
+  OnInputJustPressed — a new action id must be added there or its binding
+  matches and then goes nowhere (bit ui.followNext, 2026-08-23). SELECTION-FOLLOWS-FOCUS: a node with `NodeVtable.OnSelect`
   runs it on every DIRECTIONAL landing (arrows/Home/End/region jumps — never Tab-stop
   cycling), before the announce; tabs and list rows select as you scroll, no Enter
   needed (Enter/OnActivate stays separate — task rows open on it). Such controls
@@ -644,14 +647,51 @@ live generation.
     narration fires) then arms the step echo. RUN-TO SEMANTICS
     (2026-08-23, decompile-verified): the marker is ONE-SHOT — first
     arrival pauses AND CLEARS it (re-arm after each pause, the native
-    workflow); we arm mode 1, matching ANY SimExa sharing the SolutionExa
-    (REPL copies included, first-arrival-wins). The game's pin-one-EXA
-    mode 0 (native Alt+Click in a specific window, EntityID-matched) was
-    exposed on Shift+Enter, tried, and REMOVED (user decision 2026-08-23:
-    the re-arm F8 flow covers it; the pinning dance — line from the code
-    stop, target from a window row — wasn't worth its weight). The
-    Shift+Enter chord is free again (the editor consumes Enter only
-    modifier-exact). Don't re-add without being asked. PuzzleCompleteScreen: scores
+    workflow); F8 arms mode 1, matching ANY SimExa sharing the
+    SolutionExa (REPL copies included, first-arrival-wins). SHIFT+ENTER =
+    PIN ONE EXA (mode 0, EntityID-matched — the native Alt+Click in a
+    specific window; v2 after a redesign the same day: v1 required the
+    read cursor to have been touched SINCE ARMING — an invisible
+    precondition that got it removed, then rebuilt). Row-aware, no
+    preconditions: on an EXA WINDOW row it pins THAT row's EXA — the line
+    is the read cursor when the code stop is on its program, else the
+    program's FROZEN EDIT CARET (always defined; usually the line you
+    edited last), so it always resolves; in the code editor it pins the
+    program's ORIGINAL at the caret/read-cursor line. Every arm announces
+    "Running to line N: TEXT, NAME" — the resolved instruction's own text,
+    so a mistarget is instantly audible. TARGETS SNAP FORWARD to the first
+    real instruction at-or-after the chosen line (blank/NOTE/MARK compile
+    to EmptyLine and OCCUPY indices — browsing lands on them constantly
+    and a jump target IS its MARK line; refusing there was a keyboard
+    dead-end the mouse never hits). Enter on a COPY's window row opens its
+    program's code with the read cursor on THE COPY's current instruction
+    (the entry snap only re-snaps on program change/unset cursor). THE
+    CODE NODE'S LANDING LINE IS MODE-AWARE (fixed 2026-08-23, the "lines
+    don't follow" bug): while ARMED it speaks the VIRTUAL read cursor's
+    line (snapping like NarrateVirtual) — the line arrows will move from —
+    never the frozen edit caret, which lives in another region entirely.
+    FOLLOWED INSTANCE (armed only, user design 2026-08-23): the code view
+    tracks ONE live EXA of the focused program — the original by default,
+    a REPL copy after Enter on its window row or Alt+Up/Down cycling
+    (original then copies in spawn order, wrapping; same axis as the
+    game's Ctrl+Up/Down PROGRAM switch, one modifier over — Ctrl walks
+    programs, Alt walks instances; the actions exist only while armed so
+    editing chords stay the game's). The state is
+    always audible: the code node's label names the instance ("XA:1, text
+    field"), switching lands ON the instance's executing line and
+    announces it exactly like an arrow move (the current-marker carries
+    the name — no special wording; user spec), and Shift+Enter in the
+    code field pins WHOEVER THE LABEL SAYS. THE LISTING LINE of a pending
+    instruction is method_10().maybe_0 (the instruction's own line
+    annotation — what the game highlights); int_0 is the instruction
+    COUNTER and drifts off the listing when EmptyLines are consumed —
+    never use it as a line (bit the switch landing, 2026-08-23;
+    CurrentListingLine is the one accessor). Falls back to the
+    original when the instance dies, the program changes, or the run
+    stops. CURRENT MARKERS name their instance when the program has more
+    than one alive ("current, XA:1"; bare "current" with one — user spec
+    2026-08-23), and mark EVERY instance's line, not just the followed
+    one's. PuzzleCompleteScreen: scores
     as rows, the Leaderboards/Test Run Data flip, Record Solution GIF, and
     a leave BUTTON under the game's own label (Return to Desktop /
     VirtualNetwork+ via the internal Puzzles registry through Deobf; click

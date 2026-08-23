@@ -87,6 +87,17 @@ namespace ExaAccess.Screens
         {
             yield return new ElementAction("ui.step", StepSim);
             yield return new ElementAction("ui.runto", RunToCaret);
+            yield return new ElementAction("ui.runto.exa", RunToPinned);
+            // Instance cycling exists only while ARMED (copies can't exist otherwise) —
+            // while editing the chord stays the game's, untouched.
+            var ed = Editor;
+            bool armed = false;
+            try { armed = ed != null && !Editing(ed); } catch { }
+            if (armed)
+            {
+                yield return new ElementAction("ui.followNext", () => FollowInstance(1));
+                yield return new ElementAction("ui.followPrev", () => FollowInstance(-1));
+            }
             // Escape closes the popups (their game-side Escape is suppressed while
             // ModalCapturesEscape holds — see GameKeySuppression).
             if (_popupFile != null) yield return new ElementAction(ActionIds.Back, CloseFilePopup);

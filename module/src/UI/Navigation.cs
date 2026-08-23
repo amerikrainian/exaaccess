@@ -40,6 +40,9 @@ namespace ExaAccess.UI
         /// <summary>The Tab-stop the focused node belongs to, or null.</summary>
         public static object FocusedStopKey => Active?.FocusedStopKey;
 
+        /// <summary>The focused node's ControlId, when the active navigator is graph-based.</summary>
+        public static Graph.ControlId FocusedNodeId => (Active as GraphNavigator)?.FocusedNodeId;
+
         /// <summary>True while the focused node is a live type-target — see Navigator.</summary>
         public static bool TextEntryFocused => Active != null && Active.TextEntryFocused;
 

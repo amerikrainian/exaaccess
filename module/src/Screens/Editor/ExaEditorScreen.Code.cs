@@ -122,7 +122,16 @@ namespace ExaAccess.Screens
                     new NodeAnnouncement(() =>
                     {
                         var exa = TargetCodeExa(Editor);
-                        return exa == null ? null : Loc.T("editor.code", new { exa = exa.string_0 });
+                        if (exa == null) return null;
+                        string nm = exa.string_0;
+                        // Armed: the label names the FOLLOWED instance ("XA:1") — the mode
+                        // must be audible, never guessed.
+                        if (!Editing(Editor))
+                        {
+                            var f = FollowedExa(exa);
+                            if (f != null) nm = f.string_0;
+                        }
+                        return Loc.T("editor.code", new { exa = nm });
                     }, kind: AnnouncementKinds.Label),
                     new NodeAnnouncement(() => CurrentLineText(), kind: AnnouncementKinds.Value),
                 },
@@ -238,6 +247,7 @@ namespace ExaAccess.Screens
                 return;
             }
             _virtLine = -1; // back in edit mode: the real caret resumes; the next arm re-snaps
+            _followedEntity = -1; // copies are gone with the run — follow the original again
             var exa = FocusedCodeExa(e);
             if (exa == null) return;
             int caret, exaNum;
@@ -369,6 +379,91 @@ namespace ExaAccess.Screens
         private int _virtLine = -1;
         private int _virtExa = int.MinValue;
 
+        // ---- the FOLLOWED instance (armed only): which live EXA of the focused program the
+        // code view tracks — the original by default, a REPL copy after Enter on its window
+        // row or Ctrl+Left/Right cycling. Audible everywhere it matters: the code node's
+        // label carries the name, switching announces it, Shift+Enter pins it. Falls back to
+        // the original the moment the instance dies or the program changes. ----
+        private int _followedEntity = -1; // EntityID number; -1 = the original
+
+        private SimExa FollowedExa(SolutionExa program)
+        {
+            try
+            {
+                int s = program.method_0();
+                if (_followedEntity >= 0)
+                {
+                    var exa = FindExaByEntity(_followedEntity);
+                    if (exa != null && exa.maybe_2.method_0() && exa.maybe_2.method_2().method_0() == s)
+                        return exa;
+                    _followedEntity = -1; // died, or a different program — back to the original
+                }
+                return FindExa(s);
+            }
+            catch { return null; }
+        }
+
+        /// <summary>The LISTING line of an EXA's pending instruction — the line the game's
+        /// window highlights. int_0 (the instruction counter) drifts off the listing when
+        /// EmptyLines are consumed, so the instruction's own line annotation is the
+        /// truth (the step narration's source).</summary>
+        private static int CurrentListingLine(SimExa exa)
+        {
+            try
+            {
+                var instr = exa.method_10();
+                if (instr.maybe_0.method_0()) return instr.maybe_0.method_2();
+            }
+            catch { }
+            try { return exa.int_0; } catch { return -1; }
+        }
+
+        /// <summary>How many live EXAs run this program (1 = just the original).</summary>
+        private int LiveInstanceCount(SolutionExa program)
+        {
+            try
+            {
+                var sim = TheSim(Editor);
+                if (sim == null) return 0;
+                int s = program.method_0(), n = 0;
+                foreach (var entity in sim.list_1)
+                {
+                    var x = entity as SimExa;
+                    if (x != null && x.maybe_2.method_0() && x.maybe_2.method_2().method_0() == s) n++;
+                }
+                return n;
+            }
+            catch { return 0; }
+        }
+
+        /// <summary>", current" when this listing line is a live instance's current
+        /// instruction — naming the instance(s) whenever the program has more than one
+        /// alive (user spec 2026-08-23: one EXA = bare "current"; several =
+        /// "current, XA:1").</summary>
+        private string CurrentMarker(SolutionExa program, int line)
+        {
+            try
+            {
+                var sim = TheSim(Editor);
+                if (sim == null) return null;
+                int s = program.method_0();
+                var here = new System.Collections.Generic.List<string>();
+                int total = 0;
+                foreach (var entity in sim.list_1)
+                {
+                    var x = entity as SimExa;
+                    if (x == null || !x.maybe_2.method_0()) continue;
+                    if (x.maybe_2.method_2().method_0() != s) continue;
+                    total++;
+                    if (CurrentListingLine(x) == line) here.Add(x.string_0);
+                }
+                if (here.Count == 0) return null;
+                string marker = ", " + Loc.T("editor.line.current");
+                return total <= 1 ? marker : marker + ", " + string.Join(", ", here.ToArray());
+            }
+            catch { return null; }
+        }
+
         private void NarrateVirtual(EditorScreen e)
         {
             _pendingMove = MoveNone; // never let a stale edit-mode edge re-land later
@@ -378,11 +473,11 @@ namespace ExaAccess.Screens
             int current = -1;
             try
             {
-                var simExa = FindExa(exa.method_0());
+                var simExa = FollowedExa(exa);
                 if (simExa != null)
                 {
                     text = simExa.method_9();
-                    current = simExa.int_0;
+                    current = CurrentListingLine(simExa);
                 }
                 else
                 {
@@ -393,11 +488,16 @@ namespace ExaAccess.Screens
             catch { }
             if (string.IsNullOrEmpty(text)) return;
 
+            // Chorded arrows are COMMANDS (Alt = instance switch, Ctrl = region nav) — the
+            // read cursor moves on BARE keys only, or the chord lands on the executing
+            // line and instantly walks off its own landing (bit Alt+Up/Down, 2026-08-23).
+            bool chorded = Input.SdlKeyboard.CtrlHeld || Input.SdlKeyboard.AltHeld
+                || Input.SdlKeyboard.ShiftHeld;
             int edgeIdx = -1;
             for (int i = 0; i < CaretKeys.Length; i++)
             {
                 bool held = Input.SdlKeyboard.Held(CaretKeys[i]);
-                if (held && !_caretKeyWas[i]) edgeIdx = i;
+                if (held && !_caretKeyWas[i] && !chorded) edgeIdx = i;
                 _caretKeyWas[i] = held;
             }
 
@@ -426,19 +526,61 @@ namespace ExaAccess.Screens
             int end = text.IndexOf('\n', start);
             if (end < 0) end = text.Length;
             string lineText = end > start ? text.Substring(start, end - start) : Loc.T("text.blank");
-            if (_virtLine == current) lineText += ", " + Loc.T("editor.line.current");
+            string marker = CurrentMarker(exa, _virtLine);
+            if (marker != null) lineText += marker;
             Speech.Tts.Speak(lineText, interrupt: true);
         }
 
 
         /// <summary>The text of the line the caret sits on ("blank" for an empty line).</summary>
-        private static string CurrentLineText()
+        private string CurrentLineText()
         {
             var e = Editor;
             var exa = TargetCodeExa(e); // arming is queued; read the target
             if (exa == null) return null;
             try
             {
+                // ARMED: the landing must speak the line the arrows will move FROM — the
+                // virtual read cursor over the EXECUTING listing (snapped to the current
+                // instruction when unset, mirroring NarrateVirtual) — never the frozen edit
+                // caret, which lives in another region entirely ("the lines don't follow",
+                // 2026-08-23).
+                if (!Editing(e))
+                {
+                    string listing = null;
+                    int current = -1;
+                    var simExa = FollowedExa(exa);
+                    if (simExa != null)
+                    {
+                        listing = simExa.method_9();
+                        current = CurrentListingLine(simExa);
+                    }
+                    else
+                    {
+                        listing = exa.gclass276_0.gclass286_1.string_0;
+                    }
+                    if (!string.IsNullOrEmpty(listing))
+                    {
+                        int lineCount = 1;
+                        for (int i = 0; i < listing.Length; i++)
+                            if (listing[i] == '\n') lineCount++;
+                        if (_virtExa != exa.method_0() || _virtLine < 0)
+                        {
+                            _virtExa = exa.method_0();
+                            _virtLine = current >= 0 ? current : 0;
+                        }
+                        if (_virtLine >= lineCount) _virtLine = lineCount - 1;
+                        int vstart = CaretText.OffsetOfLine(listing, _virtLine);
+                        int vend = listing.IndexOf('\n', vstart);
+                        if (vend < 0) vend = listing.Length;
+                        string vline = vend > vstart
+                            ? listing.Substring(vstart, vend - vstart)
+                            : Loc.T("text.blank");
+                        string vmark = CurrentMarker(exa, _virtLine);
+                        if (vmark != null) vline += vmark;
+                        return vline;
+                    }
+                }
                 int caret = (int)CaretField.GetValue(exa.codeEditorWidget_0);
                 string text = exa.string_1 ?? string.Empty;
                 if (caret > text.Length) caret = text.Length;

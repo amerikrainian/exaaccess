@@ -49,6 +49,9 @@ namespace ExaAccess.Screens
                             new NodeAnnouncement(() => FindExaByEntity(cn)?.string_0, kind: AnnouncementKinds.Label),
                             new NodeAnnouncement(() => ExaReadoutOf(FindExaByEntity(cn)), kind: AnnouncementKinds.Value),
                         },
+                        // Enter = its program's code, read cursor on THE COPY's current line;
+                        // Shift+Enter (ui.runto.exa) pins it — see RunToPinned.
+                        OnActivate = () => JumpToCopyCode(cn),
                     });
                     continue;
                 }
@@ -60,9 +63,9 @@ namespace ExaAccess.Screens
                         new NodeAnnouncement(() => FindExa(n)?.string_0, kind: AnnouncementKinds.Label),
                         new NodeAnnouncement(() => ExaReadout(n), kind: AnnouncementKinds.Value),
                     },
-                    // Enter = edit this EXA's code; Backspace = delete it (the game's own
-                    // method_36, instantly undoable with the native Ctrl+Z).
-                    OnActivate = () => JumpToCode(n),
+                    // Enter = edit this EXA's code (following the ORIGINAL again); Backspace =
+                    // delete it (the game's own method_36, instantly undoable with Ctrl+Z).
+                    OnActivate = () => { _followedEntity = -1; JumpToCode(n); },
                     OnSecondary = () => DeleteExa(n),
                 });
                 b.AddItem(ControlId.Structural("win.mbus." + n), new NodeVtable
