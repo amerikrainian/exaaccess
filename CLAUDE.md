@@ -391,6 +391,25 @@ Module (each reload starts this half cold — statics are per-load):
   `TrashWorldNewsScreen` — name-only over the zine reader (deob GClass214, obfuscated
   live; ghast-1/2 cutscenes end by pushing it): announces the game's own hotspot
   label, content reading is future work.
+- `module/src/Screens/SolitaireGameScreen.cs` — ПАСЬЯНС (game type SolitaireScreen,
+  name-preserved; state PUBLIC on GameLogic.solitaireState_0, persists across visits;
+  natively 100% mouse — press=grab, release=drop-or-silent-snapback; game reads only
+  Escape). 36 cards: suits 0=spades 1=hearts 2=diamonds 3=clubs (0,3 black —
+  screenshot-verified), ranks 6-10 number / 11-14 = jack/queen/king/ace. Board = a
+  RAW-WIRED grid (GraphBuilder AddNode/Connect — VerticalTarget clamps by index so
+  menu rows would drift over variable column heights): left/right = same depth in the
+  next column (clamped), up/down = within a column; locked (bool_0) and empty columns
+  are single nodes. Moves are a SELECTION model, not a drag: Enter picks (validated by
+  the screen's private method_5 via Deobf), Enter on a destination drops (method_6 +
+  the public SolitaireItem.method_4 re-parent + the game's own sounds) — ATOMIC, so
+  the per-frame lock/win logic never sees a detached card and the mouse still works;
+  illegal moves are SPOKEN (the mouse's silent snap-back made audible); Backspace
+  cancels (nothing was detached). Watches: deal phases (genum157_0), per-column lock
+  flips, the win (which itself calls saveData method_21 = the campaign task). The
+  INSTRUCTIONS view (private bool_0) = 4 paragraphs of game text (loc keys ARE the
+  literals; '*' bold markup stripped) + RETURN TO GAME; buttons/win-count labels are
+  game loc keys ("INSTRUCTIONS"/"NEW GAME"/"WIN COUNT"). Escape stays native (leave /
+  close instructions).
 - `module/src/Patches/GameKeySuppression.cs` — the focus-mode key-suppression seam:
   Harmony prefixes on `GClass64.smethod_17/22` (via `Expr.MethodOf`; positional `__0`
   binding — shipping param names are obfuscated) return not-pressed for the navigator's
