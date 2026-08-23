@@ -1,0 +1,206 @@
+using System;
+using System.Reflection;
+using ExaAccess.Game;
+using ExaAccess.Localization;
+using ExaAccess.UI;
+using ExaAccess.UI.Graph;
+
+namespace ExaAccess.Screens
+{
+    public sealed partial class ExaEditorScreen
+    {
+        // ---- the task panel: description + the live goal checklist ----
+
+        private void BuildTask(GraphBuilder b, EditorScreen e)
+        {
+            b.BeginStop("task");
+            b.PushContext(Loc.T("editor.task"), positions: false);
+            b.AddItem(ControlId.Structural("ed.desc"), new NodeVtable
+            {
+                ControlType = ControlTypes.Text,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => GameText.Speech(Meta(Editor)?.locString_2.ToString()),
+                        kind: AnnouncementKinds.Label),
+                },
+            });
+
+            var sim = TheSim(e);
+            if (sim != null)
+                for (int i = 0; i < sim.list_2.Count; i++)
+                {
+                    int index = i;
+                    b.AddItem(ControlId.Structural("ed.goal." + i), new NodeVtable
+                    {
+                        ControlType = ControlTypes.Text,
+                        Announcements = new[]
+                        {
+                            new NodeAnnouncement(() => GoalLabel(index), kind: AnnouncementKinds.Label),
+                            new NodeAnnouncement(() => GoalState(index), kind: AnnouncementKinds.Value),
+                        },
+                    });
+                }
+            // The accessible Show Goal: opens the goal popup — the F1 view as text (required
+            // files, register goal readouts, and the special-puzzle panels via PanelCapture).
+            b.AddItem(ControlId.Structural("ed.goalbtn"), new NodeVtable
+            {
+                ControlType = ControlTypes.Button,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => GameText.T("Show Goal"), kind: AnnouncementKinds.Label),
+                },
+                OnActivate = RequestGoalPopup,
+            });
+            b.PopContext();
+        }
+
+        // ---- the goal popup: everything the game's F1 view shows, as bare terse rows. Opening
+        // forces the game's own show-goal flag (PanelCapture.ForceGoal — the screen visibly flips
+        // to the F1 view, same as a sighted player holding the key) and arms the panel-text
+        // capture; the open DEFERS two ticks so a full goal-view frame has been drawn and
+        // published before the first row speaks. Enter/Backspace/Escape close. ----
+
+        private bool _goalPopup;
+        private int _goalPopupPending;
+        private ControlId _goalReturnFocus;
+
+        private void RequestGoalPopup()
+        {
+            if (_goalPopup || _goalPopupPending > 0) return;
+            // F1 opens from anywhere — closing returns to wherever the user was.
+            _goalReturnFocus = (Navigation.Active as GraphNavigator)?.FocusedNodeId;
+            _goalPopupPending = 2;
+            Patches.PanelCapture.SetArmed(true, forceGoal: true);
+        }
+
+        private void CloseGoalPopup()
+        {
+            _goalPopup = false;
+            _goalPopupPending = 0;
+            Patches.PanelCapture.SetArmed(false, false);
+            Navigation.FocusNode(_goalReturnFocus ?? ControlId.Structural("ed.goalbtn"));
+        }
+
+        private bool BuildGoalPopup(GraphBuilder b)
+        {
+            var rows = GoalRowTexts(Editor);
+            if (rows.Count == 0) return false;
+            // Bare rows, no context, no position counts — the file-popup precedent (user rule).
+            b.BeginStop("goalpop");
+            for (int i = 0; i < rows.Count; i++)
+            {
+                string text = rows[i];
+                b.AddItem(ControlId.Structural("ed.gpop." + i), new NodeVtable
+                {
+                    ControlType = ControlTypes.Text,
+                    SpeaksOwnPosition = true,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => text, kind: AnnouncementKinds.Label),
+                    },
+                    OnActivate = CloseGoalPopup,
+                    OnSecondary = CloseGoalPopup,
+                });
+            }
+            return true;
+        }
+
+        /// <summary>The popup's rows: required files (the model, structured), the register goal
+        /// readouts and host statuses (the GClass298 virtual API — vmethod_9's consume arg stays
+        /// false, a pure read; per-puzzle logics throw for registers they don't own), then the
+        /// captured panel lines. All game text.</summary>
+        private System.Collections.Generic.List<string> GoalRowTexts(EditorScreen e)
+        {
+            var rows = new System.Collections.Generic.List<string>();
+            try
+            {
+                var sim = TheSim(e);
+                if (sim == null) return rows;
+                foreach (var host in sim.list_0)
+                {
+                    // Hosts still hidden UNDER the goal view keep their secrets there too.
+                    if (HostHidden(host, true)) continue;
+                    foreach (var required in host.list_0)
+                    {
+                        string id = required.maybe_0.method_0()
+                            ? required.maybe_0.method_2().ToString() : GameText.T("NEW");
+                        var values = new System.Collections.Generic.List<string>();
+                        for (int i = 0; i < required.exaValue_0.Length && i < FileValuesSpoken; i++)
+                            values.Add(required.exaValue_0[i].method_2(true));
+                        rows.Add(Loc.T("editor.goal.file", new
+                        {
+                            id,
+                            host = HostName(host, true),
+                            values = string.Join(", ", values),
+                        }));
+                    }
+                }
+                var logic = sim.method_43();
+                if (logic != null)
+                    foreach (var host in sim.list_0)
+                    {
+                        if (HostHidden(host, true)) continue;
+                        foreach (var reg in host.list_2)
+                        {
+                            string id = RegName(reg);
+                            string value = null;
+                            if (reg.genum160_0 == (GEnum160)0) // the game only shows values on readable plates
+                                try { value = logic.vmethod_9(reg, true, e.method_24(), false).method_2(true); }
+                                catch { } // per-puzzle logics throw for registers they don't own
+                            else if (reg.genum160_0 == (GEnum160)1)
+                                value = Loc.T("editor.reg.writeonly");
+                            rows.Add(string.IsNullOrEmpty(value)
+                                ? Loc.T("editor.goal.register.plain", new { id, host = HostName(host, true) })
+                                : Loc.T("editor.goal.register", new { id, host = HostName(host, true), value }));
+                        }
+                        try
+                        {
+                            // Prefix with the MAP-side name: HostName(goal:true) would resolve to
+                            // this same override, reading "X: X".
+                            var status = logic.vmethod_10(host, true);
+                            if (status.method_0())
+                                rows.Add(HostName(host) + ": " + GameText.Speech(status.method_2()));
+                        }
+                        catch { }
+                    }
+                foreach (var line in Patches.PanelCapture.Lines)
+                    rows.Add(GameText.Speech(line));
+            }
+            catch { }
+            return rows;
+        }
+
+        // Mirrors the checklist draw: label (+ " (n/m)" when the goal has progress), and the
+        // tick/cross state — neutral until the sim has actually run a cycle.
+        private static string GoalLabel(int index)
+        {
+            try
+            {
+                var e = Editor;
+                var sim = TheSim(e);
+                if (sim == null || index >= sim.list_2.Count) return null;
+                var goal = sim.list_2[index];
+                string label = GameText.Speech(goal.imethod_0());
+                var state = goal.imethod_1(sim, sim.list_5);
+                if (state.int_1 > 1) label = label + " (" + state.int_0 + "/" + state.int_1 + ")";
+                return label;
+            }
+            catch { return null; }
+        }
+
+        private static string GoalState(int index)
+        {
+            try
+            {
+                var e = Editor;
+                var sim = TheSim(e);
+                if (sim == null || index >= sim.list_2.Count) return null;
+                bool neutral = !e.method_0() || sim.method_52() < 1;
+                var state = sim.list_2[index].imethod_1(sim, sim.list_5);
+                if (state.genum152_0 == (GEnum152)0 || neutral) return null;
+                return state.genum152_0 == (GEnum152)1 ? Loc.T("value.complete") : Loc.T("value.failed");
+            }
+            catch { return null; }
+        }
+    }
+}

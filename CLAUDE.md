@@ -488,7 +488,8 @@ live generation.
     fully playable (`WorkhouseScreen.cs`), TRASH WORLD NEWS launcher fully modeled
     (`TrashWorldNewsScreen.cs` — tabs/PDF buttons/close; the zines ship as
     text-layer PDFs read in the user's own viewer).
-11. **(in progress)** The EXA editor (`ExaEditorScreen.cs` over the name-preserved
+11. **(in progress)** The EXA editor (`module/src/Screens/Editor/` — one partial
+    `ExaEditorScreen` split per section, plus `PuzzleCompleteScreen.cs` — over the name-preserved
     EditorScreen). DONE (tasks 1-4): browse stops task/windows/CODE/scores/
     simulation/solution; goal checklist + stats with game tooltips; window rows
     (registers, files, host names mirroring the map incl. the hostname-as-home-host
