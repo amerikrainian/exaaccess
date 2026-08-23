@@ -554,7 +554,12 @@ live generation.
     (the game cancels silently + flips its locked error view), non-opcode
     lines refuse (blank/NOTE/MARK = EmptyLine), and an OnUpdate watch
     narrates the arrival pause (armed + zero step budget — no native
-    narration fires) then arms the step echo. PROBLEMS stop (before code,
+    narration fires) then arms the step echo. While the sim is ARMED the
+    code node runs a VIRTUAL read cursor (the real caret is frozen outside
+    edit mode): vertical keys walk SimExa.method_9() — the executing
+    listing, line-per-instruction — speaking lines, current instruction
+    (int_0) marked "current", snap-to-current on entry; the real caret
+    resumes on reset. PROBLEMS stop (before code,
     only while editing with compile errors): one row per error, "Line n:
     message" (EXA-prefixed when several), Enter jumps the caret to the
     line; PuzzleCompleteScreen

@@ -227,6 +227,17 @@ namespace ExaAccess.Screens
 
         private void NarrateCaret(EditorScreen e, bool baseline)
         {
+            // While the sim is ARMED the game's caret is FROZEN (the edit widget only runs in
+            // edit mode — every arrow would be a no-move and re-announce the same line): the
+            // virtual read cursor takes the keys instead.
+            bool armed = false;
+            try { armed = e.method_0(); } catch { }
+            if (armed)
+            {
+                NarrateVirtual(e);
+                return;
+            }
+            _virtLine = -1; // back in edit mode: the real caret resumes; the next arm re-snaps
             var exa = FocusedCodeExa(e);
             if (exa == null) return;
             int caret, exaNum;
@@ -347,6 +358,77 @@ namespace ExaAccess.Screens
         }
 
         private static int LineIndex(string text, int caret) => CaretText.LineIndex(text, caret);
+
+        // ---- the virtual read cursor (armed sim only): a mod-side line index over the
+        // EXECUTING listing — SimExa.method_9(), the exact text the sim window draws, one line
+        // per instruction index — because the real caret is frozen mid-run. Vertical keys move
+        // and speak lines (PgUp/PgDn ±10, Home/End first/last), the game's highlighted current
+        // instruction (int_0) is marked, and entry snaps to it. Read-only by nature; horizontal
+        // keys mean nothing here. ----
+
+        private int _virtLine = -1;
+        private int _virtExa = int.MinValue;
+
+        private void NarrateVirtual(EditorScreen e)
+        {
+            _pendingMove = MoveNone; // never let a stale edit-mode edge re-land later
+            var exa = TargetCodeExa(e);
+            if (exa == null) return;
+            string text = null;
+            int current = -1;
+            try
+            {
+                var simExa = FindExa(exa.method_0());
+                if (simExa != null)
+                {
+                    text = simExa.method_9();
+                    current = simExa.int_0;
+                }
+                else
+                {
+                    // The EXA died mid-run — the listing still reads, nothing is current.
+                    text = exa.gclass276_0.gclass286_1.string_0;
+                }
+            }
+            catch { }
+            if (string.IsNullOrEmpty(text)) return;
+
+            int edgeIdx = -1;
+            for (int i = 0; i < CaretKeys.Length; i++)
+            {
+                bool held = Input.SdlKeyboard.Held(CaretKeys[i]);
+                if (held && !_caretKeyWas[i]) edgeIdx = i;
+                _caretKeyWas[i] = held;
+            }
+
+            int lineCount = 1;
+            for (int i = 0; i < text.Length; i++)
+                if (text[i] == '\n') lineCount++;
+            if (_virtExa != exa.method_0() || _virtLine < 0)
+            {
+                _virtExa = exa.method_0();
+                _virtLine = current >= 0 ? current : 0;
+            }
+            if (_virtLine >= lineCount) _virtLine = lineCount - 1;
+            if (edgeIdx < 0) return;
+
+            int line = _virtLine;
+            if (edgeIdx == 0 || edgeIdx == 4) line--;                 // Up / KP_8
+            else if (edgeIdx == 1 || edgeIdx == 5) line++;            // Down / KP_2
+            else if (edgeIdx == 2) line -= 10;                        // PageUp
+            else if (edgeIdx == 3) line += 10;                        // PageDown
+            else if (edgeIdx == 10 || edgeIdx == 12) line = 0;        // Home / KP_7
+            else if (edgeIdx == 11 || edgeIdx == 13) line = lineCount - 1; // End / KP_1
+            else return;
+            _virtLine = Math.Max(0, Math.Min(lineCount - 1, line));
+
+            int start = CaretText.OffsetOfLine(text, _virtLine);
+            int end = text.IndexOf('\n', start);
+            if (end < 0) end = text.Length;
+            string lineText = end > start ? text.Substring(start, end - start) : Loc.T("text.blank");
+            if (_virtLine == current) lineText += ", " + Loc.T("editor.line.current");
+            Speech.Tts.Speak(lineText, interrupt: true);
+        }
 
 
         /// <summary>The text of the line the caret sits on ("blank" for an empty line).</summary>
