@@ -559,7 +559,8 @@ live generation.
     edit mode): vertical keys walk SimExa.method_9() — the executing
     listing, line-per-instruction — speaking lines, current instruction
     (int_0) marked "current", snap-to-current on entry; the real caret
-    resumes on reset. PROBLEMS stop (before code,
+    resumes on reset — and F8 targets the VIRTUAL line while armed (the
+    caret's line while editing). PROBLEMS stop (before code,
     only while editing with compile errors): one row per error, "Line n:
     message" (EXA-prefixed when several), Enter jumps the caret to the
     line; PuzzleCompleteScreen

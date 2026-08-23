@@ -142,15 +142,29 @@ namespace ExaAccess.Screens
             }
             try
             {
-                string text = exa.string_1 ?? string.Empty;
-                int caret = (int)CaretField.GetValue(exa.codeEditorWidget_0);
-                if (caret > text.Length) caret = text.Length;
-                int line = CaretText.LineIndex(text, caret);
+                var pass = exa.gclass276_0.gclass286_1;
+                int line, expanded;
+                if (!Editing(e))
+                {
+                    // Armed: the target is the VIRTUAL read cursor's line — it already indexes
+                    // the executing (expanded) listing, which is what method_52 takes mid-run.
+                    if (_virtLine < 0)
+                    {
+                        Speech.Tts.Speak(Loc.T("value.unavailable"), interrupt: true);
+                        return;
+                    }
+                    line = expanded = _virtLine;
+                }
+                else
+                {
+                    string text = exa.string_1 ?? string.Empty;
+                    int caret = (int)CaretField.GetValue(exa.codeEditorWidget_0);
+                    if (caret > text.Length) caret = text.Length;
+                    line = CaretText.LineIndex(text, caret);
+                    if (!pass.dictionary_0.TryGetValue(line, out expanded)) expanded = line;
+                }
                 // Eligibility mirrors the game's hover filter: real opcodes only (blank, NOTE
                 // and MARK lines all compile to EmptyLine; a marker there would hunt forever).
-                var pass = exa.gclass276_0.gclass286_1;
-                int expanded;
-                if (!pass.dictionary_0.TryGetValue(line, out expanded)) expanded = line;
                 if (expanded >= pass.list_0.Count || !Sim.smethod_13(pass.list_0[expanded]))
                 {
                     Speech.Tts.Speak(Loc.T("editor.runto.invalid"), interrupt: true);
