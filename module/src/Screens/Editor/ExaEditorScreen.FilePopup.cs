@@ -86,8 +86,7 @@ namespace ExaAccess.Screens
         public override System.Collections.Generic.IEnumerable<ElementAction> GetActions()
         {
             yield return new ElementAction("ui.step", StepSim);
-            yield return new ElementAction("ui.runto", () => RunToCaret(false));
-            yield return new ElementAction("ui.runto.exa", () => RunToCaret(true));
+            yield return new ElementAction("ui.runto", RunToCaret);
             // Escape closes the popups (their game-side Escape is suppressed while
             // ModalCapturesEscape holds — see GameKeySuppression).
             if (_popupFile != null) yield return new ElementAction(ActionIds.Back, CloseFilePopup);

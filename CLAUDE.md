@@ -635,15 +635,23 @@ live generation.
     hardcode the flag false, GClass218) and visible parity for sighted
     co-players. Open defers 2 ticks (a goal-view frame must publish first);
     zero rows = "No details", no popup; Escape/Enter/Backspace close with
-    focus restored to wherever F1 was pressed. F8 = RUN TO CARET LINE
-    (Shift+Enter pins the EXA — the game's editor consumes Enter only
-    modifier-exact, so the shifted chord is free) — the game's Alt+Click
-    "run to instruction"
+    focus restored to wherever F1 was pressed. F8 = RUN TO CARET LINE —
+    the game's Alt+Click "run to instruction"
     through the public method_52; compile errors speak instead of arming
     (the game cancels silently + flips its locked error view), non-opcode
     lines refuse (blank/NOTE/MARK = EmptyLine), and an OnUpdate watch
     narrates the arrival pause (armed + zero step budget — no native
-    narration fires) then arms the step echo. PuzzleCompleteScreen: scores
+    narration fires) then arms the step echo. RUN-TO SEMANTICS
+    (2026-08-23, decompile-verified): the marker is ONE-SHOT — first
+    arrival pauses AND CLEARS it (re-arm after each pause, the native
+    workflow); we arm mode 1, matching ANY SimExa sharing the SolutionExa
+    (REPL copies included, first-arrival-wins). The game's pin-one-EXA
+    mode 0 (native Alt+Click in a specific window, EntityID-matched) was
+    exposed on Shift+Enter, tried, and REMOVED (user decision 2026-08-23:
+    the re-arm F8 flow covers it; the pinning dance — line from the code
+    stop, target from a window row — wasn't worth its weight). The
+    Shift+Enter chord is free again (the editor consumes Enter only
+    modifier-exact). Don't re-add without being asked. PuzzleCompleteScreen: scores
     as rows, the Leaderboards/Test Run Data flip, Record Solution GIF, and
     a leave BUTTON under the game's own label (Return to Desktop /
     VirtualNetwork+ via the internal Puzzles registry through Deobf; click

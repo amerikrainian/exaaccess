@@ -122,7 +122,11 @@ namespace ExaAccess.Screens
         private int _runToLine;              // 1-based, for speech; 0 = idle
         private bool _suppressRunAnnounce;   // the arm announce replaces the generic "Running."
 
-        private void RunToCaret(bool specificExa)
+        // Unpinned only — the game also has a pin-one-EXA mode (GEnum175 0, the native
+        // Alt+Click in a specific window), tried behind Shift+Enter and REMOVED (user
+        // decision 2026-08-23): the re-arm F8 flow covers it and the pinning dance
+        // (line from the code stop, target from a window row) wasn't worth its weight.
+        private void RunToCaret()
         {
             var e = Editor;
             if (e == null) return;
@@ -171,7 +175,7 @@ namespace ExaAccess.Screens
                     return;
                 }
                 Invoke(PreActionMethod, e); // also clears any stale marker
-                e.method_52((GEnum175)(specificExa ? 0 : 1), exa, EntityID.Exa(exa.method_0()),
+                e.method_52((GEnum175)1, exa, EntityID.Exa(exa.method_0()),
                     Editing(e) ? line : expanded);
                 _runToLine = line + 1;
                 _suppressRunAnnounce = true;
