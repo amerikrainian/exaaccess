@@ -79,6 +79,9 @@ namespace ExaAccess.Screens
                 // PB008 "UNKNOWN NETWORK 1": the brand + department line, screenshot-verified
                 // 2026-08-23 — the art is the only place the network names itself.
                 { "PB008", "НГТУ, ОТДЕЛ ПРИКЛАДНОЙ СЕМИОТИКИ" },
+                // PB010B: the Workhouse brand plus the slogan the spoken title lacks,
+                // screenshot-verified 2026-08-23.
+                { "PB010B", "Workhouse. Easy work. Easy money." },
             };
 
         private static string NetworkLogoText()

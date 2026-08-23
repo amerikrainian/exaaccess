@@ -632,7 +632,9 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     the NetworkLogos per-puzzle transcription table (Goals.cs;
     language-invariant so NOT ui.json, keyed by meta.string_0 =
     puzzle id; no entry = no row) — PB008 seeded from the
-    screenshot. ENTITY NAMES PASS THROUGH RAW (user rule,
+    screenshot; PB010B added the same day (the Workhouse brand plus
+    its "Easy work. Easy money." slogan — lettering the spoken title
+    lacks, so sublines and taglines count, title restatements do not). ENTITY NAMES PASS THROUGH RAW (user rule,
     2026-08-23): PB008's defender EXA is named "???" — speak it
     as-is and let the user's TTS render it; the sign cells'
     glyph-naming rule stays confined to sign cells. No
