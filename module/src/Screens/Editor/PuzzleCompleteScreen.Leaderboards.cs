@@ -10,7 +10,9 @@ namespace ExaAccess.Screens
 {
     public sealed partial class PuzzleCompleteScreen
     {
-        // ---- the Leaderboards view as a browsable Tab stop. Rows mirror what the game DRAWS,
+        // ---- the Leaderboards view as browsable Tab stops — ONE PER STAT (user rule,
+        // 2026-08-22: Tab jumps Cycles/Size/Activity like the three drawn panels; arrows
+        // stay within a stat). Rows mirror what the game DRAWS,
         // per stat (Cycles / Size / Activity): the "Currently N" caption, the percentile
         // cutoffs and friends' scores merged best-first (the game's own list under each
         // histogram), then the histogram one row per NON-EMPTY bin — "lo to hi: N%", percent
@@ -33,10 +35,10 @@ namespace ExaAccess.Screens
                 if (TabField == null || (bool)TabField.GetValue(s)) return;
                 var dict = ScoreDictField?.GetValue(s) as Dictionary<GEnum178, GClass296>;
                 if (dict == null || dict.Count == 0) return;
-                b.BeginStop("leaderboards");
                 int size, limit;
                 if (!Eligible(s, out size, out limit))
                 {
+                    b.BeginStop("leaderboards");
                     AddLbRow(b, "lb.ineligible", Loc.T("lb.ineligible", new { size, limit }));
                     return;
                 }
@@ -48,6 +50,7 @@ namespace ExaAccess.Screens
 
         private void BuildStatRows(GraphBuilder b, GClass296 g, int si)
         {
+            b.BeginStop("lb." + si); // one Tab stop per stat panel
             b.PushContext(StatName(g), positions: false);
             string caption = CurrentCaption(g);
             if (caption != null) AddLbRow(b, "lb." + si + ".cur", caption);

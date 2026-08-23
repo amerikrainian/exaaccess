@@ -593,7 +593,9 @@ live generation.
     activates the FOCUSED node — the old Enter pass-through to the game's
     leave shortcut made the flip/GIF nodes unactivatable (removed
     2026-08-22); Escape (Continue Editing) stays native. The Leaderboards
-    VIEW is a second Tab stop (PuzzleCompleteScreen.Leaderboards.cs),
+    VIEW is ONE TAB STOP PER STAT (PuzzleCompleteScreen.Leaderboards.cs;
+    user rule 2026-08-22 — Tab jumps Cycles/Size/Activity like the three
+    drawn panels, arrows stay within a stat),
     present only while that view is SHOWN and scores are size-eligible
     (else the game's replacement notice, mirrored): per stat — the
     "Currently N[, previously M|, unchanged]" caption (mirrored game
