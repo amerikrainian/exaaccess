@@ -25,6 +25,21 @@ namespace ExaAccess.Screens
                 },
             });
 
+            // The map's NETWORK LOGO decal (meta.texture_0, drawn on every network's
+            // backdrop) is baked art — a lettered brand reaches only sighted players, and
+            // on the mystery networks the logo says what no spoken string does (the game
+            // titles them "UNKNOWN NETWORK"). Transcribed per puzzle; no entry = no row.
+            if (NetworkLogoText() != null)
+                b.AddItem(ControlId.Structural("ed.logo"), new NodeVtable
+                {
+                    ControlType = ControlTypes.Text,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => Loc.T("editor.logo", new { text = NetworkLogoText() }),
+                            kind: AnnouncementKinds.Label),
+                    },
+                });
+
             var sim = TheSim(e);
             if (sim != null)
                 for (int i = 0; i < sim.list_2.Count; i++)
@@ -52,6 +67,29 @@ namespace ExaAccess.Screens
                 OnActivate = RequestGoalPopup,
             });
             b.PopContext();
+        }
+
+        // Logo transcriptions are language-invariant (one set of map textures ships for all
+        // six game languages), so they live here rather than in ui.json. Keyed by puzzle id
+        // (meta.string_0); add an entry when an audit finds a logo whose lettering says
+        // something no spoken title/description carries.
+        private static readonly System.Collections.Generic.Dictionary<string, string> NetworkLogos =
+            new System.Collections.Generic.Dictionary<string, string>
+            {
+                // PB008 "UNKNOWN NETWORK 1": the brand + department line, screenshot-verified
+                // 2026-08-23 — the art is the only place the network names itself.
+                { "PB008", "НГТУ, ОТДЕЛ ПРИКЛАДНОЙ СЕМИОТИКИ" },
+            };
+
+        private static string NetworkLogoText()
+        {
+            try
+            {
+                var meta = Meta(Editor);
+                string text;
+                return meta != null && NetworkLogos.TryGetValue(meta.string_0, out text) ? text : null;
+            }
+            catch { return null; }
         }
 
         // ---- the goal popup: everything the game's F1 view shows, as bare terse rows. Opening

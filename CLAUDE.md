@@ -448,6 +448,12 @@ Ask the host which module actually runs:
 `typeof(ExaAccess.Bootstrap).GetField("_moduleLoader", NonPublic|Static).GetValue(null)`,
 then `.GetType().GetProperty("Module").GetValue(...)` → `.GetType().Assembly` is the
 live generation.
+Two more `/eval` traps (PB008 audit, 2026-08-23): while EDITING a puzzle the sim is
+rebuilt EVERY FRAME, so game objects captured by an earlier `/eval` are stale by the
+next call — identity-based reads (the home-plate substitution, HolderOf) silently miss
+on them; fetch via TheSim in the SAME eval as the read. And a failed compile of a block
+containing an anonymous type can wedge Mono.CSharp ("builder already exists" on every
+subsequent input, even `1+1`) — `/reload` resets the evaluator.
 
 ## Hard rules
 - **Never commit or ship game code.** `game/` (deob exe, decompiled source, copied game
@@ -601,7 +607,28 @@ live generation.
     addresses hosts by exactly these), 1x1 relays unlettered → speak
     string_0.ToUpper for multi-cell plate-0 hosts, second sprite-content
     case after the highway sign; (3) plate-0 via SimHost.method_5 means
-    "the ART carries the name", not always "secret". FILE IDENTITY
+    "the ART carries the name", not always "secret". NETWORK LOGO
+    DECAL (PB008 parity audit, 2026-08-23): every puzzle meta's
+    texture_0 is the network's lettered BRAND drawn on the map
+    backdrop — pure baked art, and on the mystery networks (title
+    "UNKNOWN NETWORK n") that art is the ONLY place the network
+    names itself. The task stop grew a "Network logo: …" row fed by
+    the NetworkLogos per-puzzle transcription table (Goals.cs;
+    language-invariant so NOT ui.json, keyed by meta.string_0 =
+    puzzle id; no entry = no row) — PB008 seeded from the
+    screenshot. ENTITY NAMES PASS THROUGH RAW (user rule,
+    2026-08-23): PB008's defender EXA is named "???" — speak it
+    as-is and let the user's TTS render it; the sign cells'
+    glyph-naming rule stays confined to sign cells. No
+    window-stop change needed: the game windows only YOUR team's
+    EXAs plus unheld files (EditorScreen.method_39; a held file's
+    window merges into its holder via Sim.method_77/78), so an
+    enemy EXA and the file it holds draw no window for anyone —
+    the player-only gate already mirrors that. Otherwise PB008
+    parity CONFIRMED: plate-0 relays are letterless in the art
+    (Unnamed host correct), home plate = the player's hostname by
+    identity, all links two-way and unlocked, goal rows mirror the
+    drawn checklist. FILE IDENTITY
     (2026-08-23): file ids repeat across hosts (three 200s here) — files
     stop rows, readouts, and the values popup are all HOST-QUALIFIED
     (FindFileAt; ControlId ed.file.{host}.{id}), never resolved by id

@@ -115,6 +115,7 @@
   "editor.goal.sign.col1": "Sign row {row}, column {col}: {text}.",
   "editor.goal.sign.size": "Sign: {rows} rows by {cols} columns.",
   "editor.sign": "{host} sign",
+  "editor.logo": "Network logo: {text}",
   "text.dot": "dot",
   "text.question": "question",
   "text.exclamation": "exclamation",
