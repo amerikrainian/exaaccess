@@ -71,6 +71,8 @@
   "editor.link.oneway": "One way",
   "editor.mbus": "{exa} M-bus",
   "editor.exa.deleted": "{exa} deleted",
+  "editor.runto": "Running to line {line}.",
+  "editor.runto.invalid": "Not an instruction line.",
   "editor.goal.file": "File {id} at {host}: {values}.",
   "editor.goal.register": "{id} at {host}: {value}.",
   "editor.goal.register.plain": "{id} at {host}.",

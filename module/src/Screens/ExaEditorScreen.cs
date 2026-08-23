@@ -73,6 +73,13 @@ namespace ExaAccess.Screens
         // run None), method_20 pauses by setting Some(0). So "free-running" = armed AND no budget.
         private static readonly FieldInfo StepBudgetField = Deobf.Field(typeof(EditorScreen), "maybe_0");
 
+        // maybe_13 = the pending run-to-instruction marker (the game's Alt+Click feature): while
+        // set, the frame draw auto-starts a run that pauses when the target line is reached; any
+        // sim button (method_57) or a compile error cancels it SILENTLY.
+        private static readonly FieldInfo RunToMarkerField = Deobf.Field(typeof(EditorScreen), "maybe_13");
+        private static readonly object EmptyRunToMarker =
+            RunToMarkerField != null ? Activator.CreateInstance(RunToMarkerField.FieldType) : null;
+
         private static Maybe<int> StepBudget(EditorScreen e)
         {
             try { return (Maybe<int>)StepBudgetField.GetValue(e); }
@@ -1129,6 +1136,8 @@ namespace ExaAccess.Screens
         public override System.Collections.Generic.IEnumerable<ElementAction> GetActions()
         {
             yield return new ElementAction("ui.step", StepSim);
+            yield return new ElementAction("ui.runto", () => RunToCaret(false));
+            yield return new ElementAction("ui.runto.exa", () => RunToCaret(true));
             // Escape closes the popups (their game-side Escape is suppressed while
             // ModalCapturesEscape holds — see GameKeySuppression).
             if (_popupFile != null) yield return new ElementAction(ActionIds.Back, CloseFilePopup);
@@ -1240,6 +1249,61 @@ namespace ExaAccess.Screens
             catch { }
             _stepEcho = true;
             Invoke(AdvanceMethod, e, false, (Maybe<int>)(e.method_0() ? 1 : 0));
+        }
+
+        // ---- run to caret line: the keyboard shape of the game's Alt+Click "run to
+        // instruction". F8 arms the game's own marker (method_52, which does the
+        // written->expanded remap while editing) at the caret's line — the game then runs and
+        // pauses when ANY EXA of this program reaches it; Shift+F8 pins the SPECIFIC EXA. The
+        // arrival pause keeps the sim ARMED with a zero step budget, which the stop narration
+        // ignores — the OnUpdate watch below speaks the landing and arms the step echo. ----
+
+        private int _runToLine;              // 1-based, for speech; 0 = idle
+        private bool _suppressRunAnnounce;   // the arm announce replaces the generic "Running."
+
+        private void RunToCaret(bool specificExa)
+        {
+            var e = Editor;
+            if (e == null) return;
+            var exa = FocusedCodeExa(e);
+            if (exa == null || !Navigation.CaretTextEntryFocused)
+            {
+                Speech.Tts.Speak(Loc.T("value.unavailable"), interrupt: true);
+                return;
+            }
+            string exaName; CompileError error;
+            if (FirstCompileError(e, expanded: true, out exaName, out error))
+            {
+                // Same guard as Run: the game would flip the LOCKED error view and drop the
+                // marker without a word.
+                SpeakCompileError(exaName, error);
+                return;
+            }
+            try
+            {
+                string text = exa.string_1 ?? string.Empty;
+                int caret = (int)CaretField.GetValue(exa.codeEditorWidget_0);
+                if (caret > text.Length) caret = text.Length;
+                int line = CaretText.LineIndex(text, caret);
+                // Eligibility mirrors the game's hover filter: real opcodes only (blank, NOTE
+                // and MARK lines all compile to EmptyLine; a marker there would hunt forever).
+                var pass = exa.gclass276_0.gclass286_1;
+                int expanded;
+                if (!pass.dictionary_0.TryGetValue(line, out expanded)) expanded = line;
+                if (expanded >= pass.list_0.Count || !Sim.smethod_13(pass.list_0[expanded]))
+                {
+                    Speech.Tts.Speak(Loc.T("editor.runto.invalid"), interrupt: true);
+                    return;
+                }
+                Invoke(PreActionMethod, e); // also clears any stale marker
+                e.method_52((GEnum175)(specificExa ? 0 : 1), exa, EntityID.Exa(exa.method_0()),
+                    Editing(e) ? line : expanded);
+                _runToLine = line + 1;
+                _suppressRunAnnounce = true;
+                _stepEcho = false;
+                Speech.Tts.Speak(Loc.T("editor.runto", new { line = line + 1 }), interrupt: true);
+            }
+            catch (Exception ex) { Log.Error("[editor] run-to failed", ex); }
         }
 
         private void RunSim(bool fast)
@@ -1389,6 +1453,8 @@ namespace ExaAccess.Screens
                 _popupFile = null;
                 _goalPopup = false;
                 _goalPopupPending = 0;
+                _runToLine = 0;
+                _suppressRunAnnounce = false;
                 Patches.PanelCapture.SetArmed(false, false);
             }
 
@@ -1439,7 +1505,8 @@ namespace ExaAccess.Screens
             if (_stepEcho && running && !StepBudget(e).method_0())
             {
                 _stepEcho = false;
-                Speech.Tts.Speak(Loc.T("editor.running"));
+                if (_suppressRunAnnounce) _suppressRunAnnounce = false;
+                else Speech.Tts.Speak(Loc.T("editor.running"));
             }
 
             // Stop transition FIRST: a reset rebuilds the sim at cycle 0, and the echo below
@@ -1448,6 +1515,8 @@ namespace ExaAccess.Screens
             {
                 _stepEcho = false;
                 _lastCycle = -1;
+                _runToLine = 0;
+                _suppressRunAnnounce = false;
                 Speech.Tts.Speak(_runCycles > 0
                     ? Loc.T("editor.stopped.at", new { n = _runCycles })
                     : Loc.T("editor.stopped"));
@@ -1457,7 +1526,10 @@ namespace ExaAccess.Screens
             // A free run started by the NATIVE F4/F5 gets the same "Running." confirmation our
             // buttons give (stepping stays quiet — its cycle echo is the feedback).
             if (running && !_wasRunning && !_stepEcho)
-                Speech.Tts.Speak(Loc.T("editor.running"));
+            {
+                if (_suppressRunAnnounce) _suppressRunAnnounce = false;
+                else Speech.Tts.Speak(Loc.T("editor.running"));
+            }
             _wasRunning = running;
 
             int cycles = 0;
@@ -1471,6 +1543,27 @@ namespace ExaAccess.Screens
                 if (_lastCycle >= 0 || cycles == 0)
                     Speech.Tts.Speak(StepNarration(e, cycles), interrupt: true);
                 _lastCycle = cycles;
+            }
+
+            // Run-to arrival: the marker clears when the hunt ends. Still armed with a zero
+            // step budget = PAUSED at the target — speak the landing and hand over to the step
+            // echo (a cancel or a stop clears the marker too; those announce themselves).
+            if (_runToLine > 0 && EmptyRunToMarker != null)
+            {
+                bool pending = true;
+                try { pending = !RunToMarkerField.GetValue(e).Equals(EmptyRunToMarker); }
+                catch { }
+                if (!pending)
+                {
+                    if (running && StepBudget(e).method_0())
+                    {
+                        _stepEcho = true;
+                        _lastCycle = cycles;
+                        Speech.Tts.Speak(StepNarration(e, cycles), interrupt: true);
+                    }
+                    _runToLine = 0;
+                    _suppressRunAnnounce = false;
+                }
             }
 
             // Buffered sim events (errors captured by the SimNarration patch — the model deletes

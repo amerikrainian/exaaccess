@@ -78,6 +78,10 @@ namespace ExaAccess
             // navigator doesn't claim the key. F2 = step the sim in the EXA editor (the game's own
             // Tab-step is suppressed there so Tab can stay stop-navigation everywhere).
             Input.InputManager.Register("ui.step", "Step simulation", Input.InputCategory.UI).AddBinding(Input.Scancode.F2).Repeating();
+            // Run to the caret's line (the game's Alt+Click "run to instruction"); Shift pins
+            // the specific EXA instead of any copy of its program.
+            Input.InputManager.Register("ui.runto", "Run to caret line", Input.InputCategory.UI).AddBinding(Input.Scancode.F8);
+            Input.InputManager.Register("ui.runto.exa", "Run to caret line, this EXA", Input.InputCategory.UI).AddBinding(Input.Scancode.F8, shift: true);
 
             Input.InputManager.ActiveCategoriesProvider = () =>
                 new System.Collections.Generic.List<Input.InputCategory>(Screens.ScreenManager.ActiveInputCategories());

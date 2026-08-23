@@ -271,6 +271,8 @@ namespace ExaAccess.UI
                 case "ui.back":
                     return Screen != null && Screen.InvokeAction(ActionIds.Back);
                 case "ui.step":
+                case "ui.runto":
+                case "ui.runto.exa":
                     // Screen-scoped actions: the focused screen may advertise a handler by id.
                     return Screen != null && Screen.InvokeAction(action.Key);
                 case "ui.tooltip":
