@@ -42,10 +42,14 @@ namespace ExaAccess.Game
 
         // The M/F rows are keyed by DEOB type name; at runtime the remapped typeof() gives the
         // SHIPPING name — the T rows bridge back. Name-preserved types pass through unchanged.
+        // NESTING separators differ: the map is Cecil-style ('/'), runtime FullName uses '+' —
+        // T-row keys are normalized to '+' at load, and a preserved nested type (no T row, e.g.
+        // SpecialPuzzleLogics.HighwaySign) converts here so it matches the map's '/' form.
         private static string DeobTypeName(Type type)
         {
             string n = type.FullName;
-            return _typeToDeob != null && _typeToDeob.TryGetValue(n, out var deob) ? deob : n;
+            if (_typeToDeob != null && _typeToDeob.TryGetValue(n, out var deob)) return deob;
+            return n.Replace('+', '/');
         }
 
         private static void Load()
@@ -62,7 +66,7 @@ namespace ExaAccess.Game
                 foreach (var line in File.ReadAllLines(path))
                 {
                     var parts = line.Split('\t');
-                    if (parts.Length >= 3 && parts[0] == "T") _typeToDeob[parts[2]] = parts[1];
+                    if (parts.Length >= 3 && parts[0] == "T") _typeToDeob[parts[2].Replace('/', '+')] = parts[1];
                     else if (parts.Length < 4) continue;
                     else if (parts[0] == "M") _methods[parts[1] + "\n" + parts[2]] = parts[3];
                     else if (parts[0] == "F") _fields[parts[1] + "\n" + parts[2]] = parts[3];
