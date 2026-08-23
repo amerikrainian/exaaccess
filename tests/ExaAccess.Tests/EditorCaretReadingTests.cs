@@ -19,5 +19,14 @@ namespace ExaAccess.Tests
             Assert.Equal(0, CaretText.LineIndex("LINK 800\nGRAB 200", 4));
             Assert.Equal(1, CaretText.LineIndex("LINK 800\nGRAB 200", 9));
         }
+
+        [Fact]
+        public void OffsetOfLineIsTheLineStartAndClampsPastTheEnd()
+        {
+            Assert.Equal(0, CaretText.OffsetOfLine("LINK 800\nGRAB 200", 0));
+            Assert.Equal(9, CaretText.OffsetOfLine("LINK 800\nGRAB 200", 1));
+            Assert.Equal(9, CaretText.OffsetOfLine("LINK 800\nGRAB 200", 5)); // clamp: last line's start
+            Assert.Equal(0, CaretText.OffsetOfLine("", 3));
+        }
     }
 }

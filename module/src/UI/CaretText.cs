@@ -17,6 +17,20 @@ namespace ExaAccess.UI
             return line;
         }
 
+        /// <summary>The character offset of the START of a 0-based line (a line past the end
+        /// clamps to the start of the last line).</summary>
+        public static int OffsetOfLine(string text, int line)
+        {
+            int offset = 0;
+            for (int l = 0; l < line; l++)
+            {
+                int next = text.IndexOf('\n', offset);
+                if (next < 0) break;
+                offset = next + 1;
+            }
+            return offset;
+        }
+
         /// <summary>The character to the right of the caret — the one the cursor "sits on".
         /// A newline (or the text end) says just "new line" (user rule, 2026-08-22).</summary>
         public static string CharAt(string text, int caret)

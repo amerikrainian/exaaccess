@@ -140,6 +140,7 @@ namespace ExaAccess.Screens
             BuildLinks(b, e);
             BuildFiles(b, e);
             BuildRegisters(b, e);
+            BuildProblems(b, e);
             BuildCode(b, e);
             BuildStats(b, e);
             BuildControls(b);
@@ -326,6 +327,69 @@ namespace ExaAccess.Screens
             }
             catch { }
             return null;
+        }
+
+        // ---- problems: every compile error as its own row, "Line n: message" (EXA-prefixed
+        // when the solution has several), Enter = jump the caret to that line. The rows read
+        // the WRITTEN pass (the code the user navigates); no errors — or a running sim, which
+        // only ever runs clean code — means no stop at all. ----
+
+        private void BuildProblems(GraphBuilder b, EditorScreen e)
+        {
+            if (!Editing(e)) return;
+            var labels = new System.Collections.Generic.List<string>();
+            var exaNums = new System.Collections.Generic.List<int>();
+            var errLines = new System.Collections.Generic.List<int>();
+            try
+            {
+                bool multi = e.solution_0.list_0.Count > 1;
+                foreach (var exa in e.solution_0.list_0)
+                    foreach (var err in exa.gclass276_0.gclass286_0.list_1)
+                    {
+                        string message = GameText.Speech(err.string_0);
+                        labels.Add(multi
+                            ? Loc.T("editor.problem.exa",
+                                new { exa = exa.string_0, line = err.int_0 + 1, message })
+                            : Loc.T("editor.problem", new { line = err.int_0 + 1, message }));
+                        exaNums.Add(exa.method_0());
+                        errLines.Add(err.int_0);
+                    }
+            }
+            catch { }
+            if (labels.Count == 0) return;
+            b.BeginStop("problems");
+            b.PushContext(Loc.T("editor.problems"));
+            for (int r = 0; r < labels.Count; r++)
+            {
+                string label = labels[r];
+                int exaNum = exaNums[r], line = errLines[r];
+                b.AddItem(ControlId.Structural("ed.prob." + r), new NodeVtable
+                {
+                    ControlType = ControlTypes.Text,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => label, kind: AnnouncementKinds.Label),
+                    },
+                    OnActivate = () => JumpToProblem(exaNum, line),
+                });
+            }
+            b.PopContext();
+        }
+
+        private void JumpToProblem(int exaNumber, int line)
+        {
+            var e = Editor;
+            var exa = SolutionExaOf(exaNumber);
+            if (e == null || exa == null) return;
+            ArmCodeFor(e, exa);
+            try
+            {
+                int offset = CaretText.OffsetOfLine(exa.string_1 ?? string.Empty, line);
+                CaretField.SetValue(exa.codeEditorWidget_0, offset);
+                AnchorField.SetValue(exa.codeEditorWidget_0, offset);
+            }
+            catch (Exception ex) { Log.Error("[editor] problem jump failed", ex); }
+            Navigation.FocusStop("code");
         }
 
         private void BuildCode(GraphBuilder b, EditorScreen e)
