@@ -8,20 +8,19 @@ using ExaAccess.UI.Graph;
 namespace ExaAccess.Screens
 {
     /// <summary>The puzzle-completion screen (name-preserved), BROWSABLE (user rule): the final
-    /// scores as arrow-navigable rows (no position counts) plus the two native options as rows
-    /// naming their keys. Enter and Escape stay on the game's own paths — Enter (Return to
-    /// Desktop) rides the suppression pass-through, Escape (Continue Editing) is never
-    /// suppressed. Scores: size from the screen's field; cycles/activity as the maxima of the
-    /// editor's public per-run table.</summary>
+    /// scores as arrow-navigable rows (no position counts), the Leaderboards/Test Run Data
+    /// flip, the Record Solution GIF button, and the leave button under the game's own label
+    /// (Return to Desktop / Return to VirtualNetwork+). Enter activates the FOCUSED control —
+    /// it no longer rides the suppression pass-through to the game's leave shortcut, which
+    /// made the flip/GIF nodes unactivatable (user request, 2026-08-22); Escape (Continue
+    /// Editing) stays on the game's own never-suppressed path. Scores: size from the screen's
+    /// field; cycles/activity as the maxima of the editor's public per-run table.</summary>
     public sealed class PuzzleCompleteScreen : Screen
     {
         public override string Key => "puzzle.complete";
         public override string ScreenName => Loc.T("screen.PuzzleCompletionScreen");
 
         public override bool IsActive() => GameState.TopScreen() is PuzzleCompletionScreen;
-
-        // Enter must reach the game's Return to Desktop even while our graph browses.
-        public override bool PassKeyToGame(int keycode) => keycode == 13 || keycode == 1073741912;
 
         private static readonly FieldInfo SizeField = Deobf.Field(typeof(PuzzleCompletionScreen), "int_0");
         private static readonly FieldInfo EditorField = Deobf.Field(typeof(PuzzleCompletionScreen), "editorScreen_0");
@@ -62,10 +61,25 @@ namespace ExaAccess.Screens
                 },
                 OnActivate = () => RecordGif(s),
             });
+            // The leave button (mouse-only art aside, the game's own Enter shortcut): label
+            // read live — Redshift-type puzzles say Return to VirtualNetwork+ — activation
+            // replicating the game's click path exactly (leave sound, the editor's teardown
+            // hook, the double pop past the editor).
+            b.AddItem(ControlId.Structural("pc.leave"), new NodeVtable
+            {
+                ControlType = ControlTypes.Button,
+                SpeaksOwnPosition = true,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => LeaveLabel(s), kind: AnnouncementKinds.Label),
+                },
+                OnActivate = () => Leave(s),
+            });
             b.PopContext();
         }
 
-        // The options are announced once on entry (user rule) — the browsable rows are the stats.
+        // The Escape option is announced once on entry (user rule) — leaving is now the
+        // browsable pc.leave button, so Enter is no longer named here.
         public override void OnFocus()
         {
             base.OnFocus();
@@ -74,7 +88,6 @@ namespace ExaAccess.Screens
                 Speech.Tts.Speak(Loc.T("editor.complete.options", new
                 {
                     resume = GameText.T("Continue Editing"),
-                    leave = GameText.T("Return to Desktop"),
                 }));
                 // The game's undrawn native shortcut: Ctrl+C copies the per-run score table.
                 Speech.Tts.Speak(Loc.T("editor.complete.copy"));
@@ -99,6 +112,51 @@ namespace ExaAccess.Screens
         {
             try { TabField?.SetValue(s, !(bool)TabField.GetValue(s)); }
             catch (Exception ex) { Log.Error("[complete] tab flip failed", ex); }
+        }
+
+        // The puzzle-details registry (Puzzles.smethod_2) is INTERNAL game-side — resolved via
+        // Deobf like any private member (the Puzzles type name is preserved live).
+        private static readonly MethodInfo PuzzleDetailsMethod = ResolvePuzzleDetails();
+
+        private static MethodInfo ResolvePuzzleDetails()
+        {
+            try
+            {
+                var t = typeof(Puzzle).Assembly.GetType("Puzzles");
+                return t != null ? Deobf.Method(t, "smethod_2") : null;
+            }
+            catch { return null; }
+        }
+
+        private static string LeaveLabel(PuzzleCompletionScreen s)
+        {
+            try
+            {
+                bool vnet = false;
+                var solution = SolutionField?.GetValue(s) as Solution;
+                if (solution != null && PuzzleDetailsMethod != null)
+                {
+                    var details = PuzzleDetailsMethod.Invoke(null, new object[] { solution.method_0() });
+                    var mode = details == null ? null : Deobf.Field(details.GetType(), "genum145_0");
+                    vnet = mode != null && Convert.ToInt32(mode.GetValue(details)) != 0;
+                }
+                return GameText.T(vnet ? "Return to VirtualNetwork+" : "Return to Desktop");
+            }
+            catch { return GameText.T("Return to Desktop"); }
+        }
+
+        private static void Leave(PuzzleCompletionScreen s)
+        {
+            try
+            {
+                var editor = EditorField?.GetValue(s) as EditorScreen;
+                if (editor == null) return;
+                try { GClass45.soundsNamespace_0.sound_34.smethod_1(1f); } catch { }
+                editor.method_19();
+                GameApi.PopScreen();
+                GameApi.PopScreen();
+            }
+            catch (Exception ex) { Log.Error("[complete] leave failed", ex); }
         }
 
         private static void RecordGif(PuzzleCompletionScreen s)

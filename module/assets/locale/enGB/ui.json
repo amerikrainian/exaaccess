@@ -85,7 +85,7 @@
   "editor.link.locked": "locked",
   "editor.file.immovable": "immovable",
   "editor.reg.writeonly": "write-only",
-  "editor.complete.options": "Escape: {resume}. Enter: {leave}.",
+  "editor.complete.options": "Escape: {resume}.",
   "editor.complete.copy": "Ctrl+C: copy test run data.",
   "editor.run.type": "Type a run number.",
   "editor.line.current": "current",

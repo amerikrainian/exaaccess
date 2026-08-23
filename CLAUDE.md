@@ -558,7 +558,14 @@ live generation.
     (the game cancels silently + flips its locked error view), non-opcode
     lines refuse (blank/NOTE/MARK = EmptyLine), and an OnUpdate watch
     narrates the arrival pause (armed + zero step budget — no native
-    narration fires) then arms the step echo. While the sim is ARMED the
+    narration fires) then arms the step echo. PuzzleCompleteScreen: scores
+    as rows, the Leaderboards/Test Run Data flip, Record Solution GIF, and
+    a leave BUTTON under the game's own label (Return to Desktop /
+    VirtualNetwork+ via the internal Puzzles registry through Deobf; click
+    path replicated — sound, editor method_19, double pop). Enter
+    activates the FOCUSED node — the old Enter pass-through to the game's
+    leave shortcut made the flip/GIF nodes unactivatable (removed
+    2026-08-22); Escape (Continue Editing) stays native. While the sim is ARMED the
     code node runs a VIRTUAL read cursor (the real caret is frozen outside
     edit mode): vertical keys walk SimExa.method_9() — the executing
     listing, line-per-instruction — speaking lines, current instruction
@@ -567,9 +574,7 @@ live generation.
     caret's line while editing). PROBLEMS stop (before code,
     only while editing with compile errors): one row per error, "Line n:
     message" (EXA-prefixed when several), Enter jumps the caret to the
-    line; PuzzleCompleteScreen
-    announces final
-    scores + the native Escape/Enter options). DEFERRED: EXA rename
+    line). DEFERRED: EXA rename
     (cosmetic — names auto-assign XA..XZ). The code-node label reads the
     QUEUED focus target (focus applies a frame late — TargetCodeExa).
 11. Map the remaining obfuscated transition/overlay screens to friendly names.
