@@ -15,6 +15,13 @@ namespace ExaAccess.Tests
         }
 
         [Fact]
+        public void StripsKeywordMarkers()
+        {
+            Assert.Equal("Remove the keyword PEANUTS (file 300).",
+                GameText.Speech("Remove the keyword ‗PEANUTS‗ (file 300)."));
+        }
+
+        [Fact]
         public void KeepsEscapedLiterals()
         {
             Assert.Equal("HACK*MATCH", GameText.Speech("HACK\\*MATCH"));
