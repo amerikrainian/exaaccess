@@ -11,20 +11,33 @@ namespace ExaAccess.Patches
     /// for roughly ONE cycle before the sim deletes it (and at fast-forward the whole run passes
     /// in a blink). A postfix on the error seam — Sim.smethod_16(SimExa, isError, message), the
     /// single chokepoint every runtime error and kill goes through — buffers player-EXA errors as
-    /// composed announcements; the editor screen drains the queue each frame. The typed line
-    /// number is recovered by inverting the compiler's written→expanded line map (identity for
-    /// macro-free code).
+    /// composed announcements tagged with the test run they landed on; the editor screen drains
+    /// the queue each frame into its TEST LOG (and speaks them live only while stepping). The
+    /// typed line number is recovered by inverting the compiler's written→expanded line map
+    /// (identity for macro-free code).
     /// </summary>
     internal static class SimNarration
     {
-        private static readonly Queue<string> Events = new Queue<string>();
+        /// <summary>One buffered sim event: the composed message and the 0-based test run it
+        /// happened on (-1 when unknown).</summary>
+        public struct SimEvent
+        {
+            public int Test;
+            public string Message;
+        }
+
+        private static readonly Queue<SimEvent> Events = new Queue<SimEvent>();
         private static readonly object Gate = new object();
+        // A fast-forwarded free run can raise hundreds of routine errors in ONE frame (eight
+        // search copies dying per test, times the tests swept that frame) — they all belong
+        // in the log, so the cap only guards against a runaway.
+        private const int QueueCap = 512;
 
         // ---- which test run the current run STARTED on (0-based; -1 = none). A passing run
-        // AUTO-ADVANCES through the validation tests, so an error can land on a DIFFERENT
-        // random layout than the one the user was looking at — the error then names its test
-        // ("Test 2: …"), and only then: failing the test you started on stays unprefixed
-        // (user rule, 2026-08-23). The editor's run-state watch marks start/stop. ----
+        // AUTO-ADVANCES through the validation tests, so an event can land on a DIFFERENT
+        // random layout than the one the user was looking at — spoken, it then names its
+        // test ("Test 2: …"), and only then: failing the test you started on stays
+        // unprefixed (user rule, 2026-08-23). The editor's run-state watch marks start/stop. ----
         private static readonly System.Reflection.MethodInfo RunNumber =
             Deobf.Method(typeof(EditorScreen), "method_23"); // the ACTIVE run while armed
         private static int _runStartTest = -1;
@@ -32,10 +45,20 @@ namespace ExaAccess.Patches
         public static void MarkRunStart(EditorScreen e) { _runStartTest = CurrentTest(e); }
         public static void ClearRunStart() { _runStartTest = -1; }
 
-        private static int CurrentTest(EditorScreen e)
+        /// <summary>The 0-based test run the editor is on right now (-1 if unreadable).</summary>
+        public static int CurrentTest(EditorScreen e)
         {
             try { return e != null && RunNumber != null ? (int)RunNumber.Invoke(e, null) : -1; }
             catch { return -1; }
+        }
+
+        /// <summary>The spoken form of an event: "Test n: …" when it landed on a later test than
+        /// the run started on, bare otherwise.</summary>
+        public static string Prefix(int test, string message)
+        {
+            if (_runStartTest >= 0 && test >= 0 && test != _runStartTest)
+                return Loc.T("editor.error.test", new { test = test + 1, message });
+            return message;
         }
 
         public static void Apply(Harmony harmony)
@@ -50,12 +73,12 @@ namespace ExaAccess.Patches
             catch (Exception ex) { Log.Error("[patch] sim narration failed to apply", ex); }
         }
 
-        public static bool TryDequeue(out string message)
+        public static bool TryDequeue(out SimEvent ev)
         {
             lock (Gate)
             {
-                if (Events.Count > 0) { message = Events.Dequeue(); return true; }
-                message = null;
+                if (Events.Count > 0) { ev = Events.Dequeue(); return true; }
+                ev = default(SimEvent);
                 return false;
             }
         }
@@ -78,15 +101,12 @@ namespace ExaAccess.Patches
                 if (editor == null || !editor.method_0()) return;
                 lock (Gate)
                 {
-                    if (Events.Count > 16) return; // safety cap
+                    if (Events.Count >= QueueCap) return;
                     string line = WrittenLine(__0);
                     string msg = line != null
                         ? Loc.T("editor.error.line", new { exa = __0.string_0, line, message = GameText.Speech(__2) })
                         : Loc.T("editor.error", new { exa = __0.string_0, message = GameText.Speech(__2) });
-                    int test = CurrentTest(editor);
-                    if (_runStartTest >= 0 && test >= 0 && test != _runStartTest)
-                        msg = Loc.T("editor.error.test", new { test = test + 1, message = msg });
-                    Events.Enqueue(msg);
+                    Events.Enqueue(new SimEvent { Test = CurrentTest(editor), Message = msg });
                 }
             }
             catch { }

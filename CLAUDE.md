@@ -560,7 +560,23 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     prefixed one a later random layout (user rule 2026-08-23; baseline =
     EditorScreen.method_23 at any arming, cleared on stop);
     F2 narrates Cycle n + the pending instruction incl. cycle 0; goal flips
-    announce while running; Stopped at cycle n); task 6 network topology
+    announce while running; Stopped at cycle n). TEST LOG STOP (user rule 2026-08-23): a
+    FREE run (F4/F5, run-to) no longer voices routine EXA errors —
+    a fan-out solution's probes dying by design, times 100
+    auto-advancing tests, was hundreds of lines — it voices GOAL
+    FAILURES only (a failure on a later test than the run started on
+    is prefixed "Test n:", same rule as errors); stepping still voices
+    every error and both goal directions. EVERY event lands in the
+    "Test log" Tab stop (ExaEditorScreen.TestLog.cs over the BCL-pure
+    UI/TestLog store, unit-tested): one REGION per test run
+    (Ctrl+Up/Down hop tests, arrows read within), rows = errors and
+    goal flips in arrival order, cleared on each arming (so the last
+    run stays browsable after it stops), absent while empty like
+    Problems; capped to the newest 24 tests / 40 rows per test with an
+    "and N more" row. SimNarration events are STRUCTURED (test index +
+    message; Prefix() applies the run-start rule at speech time) and
+    its queue cap is 512 — fast-forward raises hundreds per frame and
+    they all belong in the log; task 6 network topology
     (Hosts stop: name + terse occupants, selection follows focus; Links stop:
     the selected host's links as id, destination — One way prefixed when the
     far side has no return id, ids per team); task 7 polish (Test Run row is

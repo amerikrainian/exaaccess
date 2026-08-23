@@ -29,6 +29,7 @@ namespace ExaAccess.Screens
                 _goalPopupPending = 0;
                 _runToLine = 0;
                 _suppressRunAnnounce = false;
+                _testLog.Clear();
                 Patches.PanelCapture.SetArmed(false, false);
             }
 
@@ -113,8 +114,14 @@ namespace ExaAccess.Screens
                 else Speech.Tts.Speak(Loc.T("editor.running"));
             }
             // ANY arming (run buttons, native F4/F5, F2 stepping) baselines the test run the
-            // run started on — errors landing on a LATER auto-advanced test name their test.
-            if (running && !_wasRunning) Patches.SimNarration.MarkRunStart(e);
+            // run started on — events landing on a LATER auto-advanced test name their test —
+            // and starts a fresh test log (the previous run's log lives until now, so it can
+            // be browsed after the stop).
+            if (running && !_wasRunning)
+            {
+                Patches.SimNarration.MarkRunStart(e);
+                _testLog.Clear();
+            }
             _wasRunning = running;
 
             int cycles = 0;
@@ -152,13 +159,21 @@ namespace ExaAccess.Screens
             }
 
             // Buffered sim events (errors captured by the SimNarration patch — the model deletes
-            // errored EXAs after one cycle, so polling could never catch them). Drained AFTER the
-            // cycle echo: its interrupt would cut an error spoken first (a step onto an error
-            // lands both in the same frame), while errors queue behind the echo untouched.
-            string ev;
-            int drained = 0;
-            while (drained++ < 4 && Patches.SimNarration.TryDequeue(out ev))
-                Speech.Tts.Speak(ev);
+            // errored EXAs after one cycle, so polling could never catch them). EVERY event lands
+            // in the test log; it is SPOKEN live only while STEPPING (user rule 2026-08-23: a
+            // free run's error deaths are routine — a fan-out solution's probes dying by design,
+            // times up to 100 tests — so a free run voices goal failures only, see WatchGoals).
+            // Drained AFTER the cycle echo: its interrupt would cut an error spoken first (a
+            // step onto an error lands both in the same frame), while errors queue behind the
+            // echo untouched.
+            Patches.SimNarration.SimEvent ev;
+            int drained = 0, spoken = 0;
+            while (drained++ < 1024 && Patches.SimNarration.TryDequeue(out ev))
+            {
+                _testLog.Add(ev.Test, ev.Message);
+                if (_stepEcho && spoken++ < 4)
+                    Speech.Tts.Speak(Patches.SimNarration.Prefix(ev.Test, ev.Message));
+            }
 
             WatchGoals(e, sim, running, cycles);
 
@@ -203,7 +218,11 @@ namespace ExaAccess.Screens
             return detail == null ? cycleText : cycleText + ". " + detail;
         }
 
-        // Announce goal-state flips while the sim runs — the key feedback during Run/Fast.
+        // Goal-state flips while the sim runs: every flip lands in the test log; live speech is
+        // the key feedback during Run/Fast — FAILURES only there (the per-run completes across
+        // 100 auto-advancing test runs were pure spam — user rule), both directions while
+        // stepping; the completion screen announces overall success. A failure on a later
+        // test than the run started on names its test, like errors do.
         private void WatchGoals(EditorScreen e, Sim sim, bool running, int cycles)
         {
             if (sim == null || !running || cycles < 1) { _goalStates = null; return; }
@@ -217,15 +236,17 @@ namespace ExaAccess.Screens
                         _goalStates[i] = (int)goals[i].imethod_1(sim, sim.list_5).genum152_0;
                     return;
                 }
+                int test = Patches.SimNarration.CurrentTest(e);
                 for (int i = 0; i < goals.Count; i++)
                 {
                     int state = (int)goals[i].imethod_1(sim, sim.list_5).genum152_0;
-                    // Free runs (Run/Fast) voice FAILURES only — the per-run completes across
-                    // 100 auto-advancing test runs were pure spam (user rule). Stepping keeps
-                    // both directions; the completion screen announces overall success.
-                    if (state != _goalStates[i] && state != 0 && (_stepEcho || state != 1))
-                        Speech.Tts.Speak(GoalLabel(i) + ", "
-                            + Loc.T(state == 1 ? "value.complete" : "value.failed"));
+                    if (state != _goalStates[i] && state != 0)
+                    {
+                        string text = GoalLabel(i) + ", " + Loc.T(state == 1 ? "value.complete" : "value.failed");
+                        _testLog.Add(test, text);
+                        if (_stepEcho || state != 1)
+                            Speech.Tts.Speak(Patches.SimNarration.Prefix(test, text));
+                    }
                     _goalStates[i] = state;
                 }
             }

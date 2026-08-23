@@ -145,6 +145,7 @@ namespace ExaAccess.Screens
             BuildCode(b, e);
             BuildStats(b, e);
             BuildControls(b);
+            BuildTestLog(b, e);
             BuildSolution(b, e);
         }
     }
