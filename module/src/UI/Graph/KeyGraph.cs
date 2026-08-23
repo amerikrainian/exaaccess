@@ -82,8 +82,20 @@ namespace ExaAccess.UI.Graph
 
             if (old != null)
             {
-                // Tier 1: the same backing object, even if its structural key changed (it moved).
+                // Tier 0: the very same node — its structural key survives WITH the same backing
+                // object behind it. Two nodes may legitimately reference one object (a task
+                // listed in the organizer AND offered as a launcher); the node focus was on
+                // wins while it survives — tier 1 below would otherwise "follow the object" to
+                // the FIRST node referencing it, every rebuild.
                 if (old.Reference != null)
+                {
+                    GraphNode same;
+                    if (render.Nodes.TryGetValue(old, out same) && same.Id.ReferenceMatches(old.Reference))
+                        resolved = same.Id;
+                }
+
+                // Tier 1: the same backing object, even if its structural key changed (it moved).
+                if (resolved == null && old.Reference != null)
                 {
                     foreach (var kv in render.Nodes)
                         if (kv.Value.Id.ReferenceMatches(old.Reference)) { resolved = kv.Value.Id; break; }

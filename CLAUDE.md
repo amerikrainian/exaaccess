@@ -330,6 +330,11 @@ Module (each reload starts this half cold — statics are per-load):
   (menu/raw modes, groups, position stamping), GraphAnnouncer (path-diff speech;
   wording hooks localized in module Load). Immediate-mode: screens re-declare controls
   each render; focus persists by ControlId.
+  TRAP (the ПАСЬЯНС double-focus, 2026-08-23): focus recovery on rebuild follows a
+  Referenced id's OBJECT to the first node referencing it, so two nodes sharing a backing
+  object (a campaign item listed as a task AND as a launcher) snapped focus to the earlier
+  one every frame. Reconcile now keeps the exact surviving node first (tier 0); still, give
+  a node a Structural id unless it IS the object's one representation.
 - `module/src/Input/` — WrathAccess input substrate over SDL: `SdlKeyboard` (per-frame
   snapshot of `SDL_GetKeyboardState` — no obfuscated members needed, independent of
   what the game consumes), `Scancode`, `SdlKeyboardBinding` (exact-match modifiers),
@@ -634,7 +639,12 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     puzzle id; no entry = no row) — PB008 seeded from the
     screenshot; PB010B added the same day (the Workhouse brand plus
     its "Easy work. Easy money." slogan — lettering the spoken title
-    lacks, so sublines and taglines count, title restatements do not). ENTITY NAMES PASS THROUGH RAW (user rule,
+    lacks, so sublines and taglines count, title restatements do not);
+    PB012 too (the bank decal's full brand name carries a word the title
+    drops — a fuller brand name counts; the same brand restated on the
+    ATM sprites does not). PB012's Atm DIGICAM feed is a sprite
+    animation mirroring the goal counter + live #CASH plates — hearable
+    already, no per-puzzle read. ENTITY NAMES PASS THROUGH RAW (user rule,
     2026-08-23): PB008's defender EXA is named "???" — speak it
     as-is and let the user's TTS render it; the sign cells'
     glyph-naming rule stays confined to sign cells. No

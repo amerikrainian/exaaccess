@@ -108,6 +108,25 @@ namespace ExaAccess.Tests
         }
 
         [Fact]
+        public void ReconcileKeepsTheExactNodeWhenTwoNodesShareAnObject()
+        {
+            // A campaign item listed as a task AND offered as a launcher: two nodes, one
+            // backing object. Focus on the later one must survive a rebuild — tier 1's
+            // "follow the object" used to snap it to the FIRST node referencing it.
+            var state = new GraphState();
+            var thing = new object();
+            var g = new KeyGraph(() => new GraphBuilder()
+                .AddItem(ControlId.Referenced(thing, "task"), Vt("Task"))
+                .AddItem(ControlId.Referenced(thing, "prog"), Vt("Program"))
+                .Build(), state);
+
+            g.Move(GraphDir.Down); // onto "prog"
+            Assert.Equal("prog", state.CurKey.StructuralKey);
+            Assert.True(g.Rerender());
+            Assert.Equal("prog", state.CurKey.StructuralKey); // the exact node, not the first same-object node
+        }
+
+        [Fact]
         public void ReconcileFallsBackToNearestSurvivor()
         {
             var state = new GraphState();

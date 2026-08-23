@@ -455,7 +455,11 @@ namespace ExaAccess.Screens
                 catch { }
                 if (item == null || !Visible(d, item)) continue;
                 var prog = item;
-                b.AddItem(ControlId.Referenced(prog, "prog." + id), new NodeVtable
+                // STRUCTURAL identity, not Referenced: the campaign item is already the
+                // task row's backing object, and focus recovery follows an object to the
+                // FIRST node referencing it — a Referenced launcher snapped focus back to the
+                // organizer row every frame (the ПАСЬЯНС double-focus, 2026-08-23).
+                b.AddItem(ControlId.Structural("prog." + id), new NodeVtable
                 {
                     ControlType = ControlTypes.Button,
                     Announcements = new[]
