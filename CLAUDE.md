@@ -545,9 +545,27 @@ live generation.
     captured as TEXT. Panel content drawn as SPRITES needs a per-puzzle
     MODEL read instead — first case done (2026-08-22): the SFCTA highway
     sign's goal view renders the target message as font-atlas glyphs, so
-    the goal popup reads HighwaySign.string_1 and speaks "Sign row N:
-    text" (0-based rows — the same index a #DATA write addresses, split
-    exactly as the 3×9 sign displays, words may break across rows).
+    the goal popup reads HighwaySign.string_1 and speaks a "Sign: 3 rows
+    by 9 columns" geometry row (from the game statics) then "Sign row N,
+    columns L to H: text" per row (0-based — the same numbers a #DATA
+    write addresses; blank rows say blank; spans carry the drawn
+    alignment). The LIVE sign is an explorable GRID
+    (ExaEditorScreen.Sign.cs, user design 2026-08-22): a "sign" Tab stop
+    after registers, PER-HOST like links/files/registers (user rule —
+    host-scoped info always follows the SELECTED host, never a general
+    stop): present only when the selected host owns the sign's
+    registers, labeled "{host} sign" —
+    3x9 cell nodes, up/down rows with the column preserved (rows MUST
+    share one StartRow key: GraphBuilder.VerticalTarget column-navigates
+    only between same-key rows), left/right columns, cells speak BARE
+    (the character, "blank", or dot/question/exclamation for the lone
+    punctuation the sign font carries — a bare "." is TTS silence),
+    values re-resolved per announce (edit-time rebuild) and Live so the
+    focused cell re-announces on #DATA/#CLRS writes — verified live incl.
+    the reset revert. The game's drawn WAITING FOR ROW/COLUMN/CHARACTER
+    protocol status is deliberately NOT voiced as a live node
+    (zine-documented; user decision 2026-08-22) — the goal popup's
+    captured text lines still carry it, unfiltered generic capture.
     Mechanics: Patches/PanelCapture patches every
     GClass298 draw-hook override (vmethod_0..3, found by slot at load — 33
     in this build) with a depth toggle + the three GClass230 text statics

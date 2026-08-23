@@ -201,12 +201,20 @@ namespace ExaAccess.Screens
                 for (int row = 0; row * cols < text.Length; row++)
                 {
                     int len = Math.Min(cols, text.Length - row * cols);
-                    string line = text.Substring(row * cols, len).Trim();
-                    rows.Add(Loc.T("editor.goal.sign", new
-                    {
-                        row,
-                        text = line.Length == 0 ? Loc.T("text.blank") : line,
-                    }));
+                    string line = text.Substring(row * cols, len);
+                    // Column span (0-based, the same numbers a #DATA write addresses) — the
+                    // drawn sign shows WHERE in the row the words sit, so the rows say it too.
+                    int first = -1, last = -1;
+                    for (int i = 0; i < line.Length; i++)
+                        if (line[i] != ' ') { if (first < 0) first = i; last = i; }
+                    if (first < 0)
+                        rows.Add(Loc.T("editor.goal.sign", new { row, text = Loc.T("text.blank") }));
+                    else if (first == last)
+                        rows.Add(Loc.T("editor.goal.sign.col1", new
+                        { row, col = first, text = CharSpeech(line[first].ToString()) }));
+                    else
+                        rows.Add(Loc.T("editor.goal.sign.cols", new
+                        { row, lo = first, hi = last, text = line.Substring(first, last - first + 1) }));
                 }
             }
             catch { }

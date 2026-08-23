@@ -140,6 +140,7 @@ namespace ExaAccess.Screens
             BuildLinks(b, e);
             BuildFiles(b, e);
             BuildRegisters(b, e);
+            BuildSign(b, e);
             BuildProblems(b, e);
             BuildCode(b, e);
             BuildStats(b, e);
