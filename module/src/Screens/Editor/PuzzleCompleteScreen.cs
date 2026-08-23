@@ -15,7 +15,7 @@ namespace ExaAccess.Screens
     /// made the flip/GIF nodes unactivatable (user request, 2026-08-22); Escape (Continue
     /// Editing) stays on the game's own never-suppressed path. Scores: size from the screen's
     /// field; cycles/activity as the maxima of the editor's public per-run table.</summary>
-    public sealed class PuzzleCompleteScreen : Screen
+    public sealed partial class PuzzleCompleteScreen : Screen
     {
         public override string Key => "puzzle.complete";
         public override string ScreenName => Loc.T("screen.PuzzleCompletionScreen");
@@ -76,6 +76,7 @@ namespace ExaAccess.Screens
                 OnActivate = () => Leave(s),
             });
             b.PopContext();
+            BuildLeaderboards(b, s);
         }
 
         // The Escape option is announced once on entry (user rule) — leaving is now the

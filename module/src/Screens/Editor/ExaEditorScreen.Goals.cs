@@ -163,11 +163,53 @@ namespace ExaAccess.Screens
                         }
                         catch { }
                     }
+                AddHighwaySignRows(logic, rows);
                 foreach (var line in Patches.PanelCapture.Lines)
                     rows.Add(GameText.Speech(line));
             }
             catch { }
             return rows;
+        }
+
+        // The highway sign (SFCTA) draws its content as glyph SPRITES from a font atlas — no
+        // text for PanelCapture to record — and in the goal view those glyphs render the TARGET
+        // message. Read it from the model instead: HighwaySign.string_1, the sign as one flat
+        // 3x9 string. Rows speak with their 0-based index — the same row number a #DATA write
+        // addresses — split exactly as the sign displays them (words may break across rows).
+        private static readonly FieldInfo SignTargetField =
+            Deobf.Field(typeof(SpecialPuzzleLogics.HighwaySign), "string_1");
+        // The sign's geometry (9 columns x 3 rows, static readonly game-side) — drawn as a
+        // countable cell grid in the DIGICAM FEED panel, so its dimensions are sighted-visible;
+        // the leading row states them (columns are the 0..8 range a #DATA write addresses).
+        private static readonly FieldInfo SignColsField =
+            Deobf.Field(typeof(SpecialPuzzleLogics.HighwaySign), "int_0");
+        private static readonly FieldInfo SignRowsField =
+            Deobf.Field(typeof(SpecialPuzzleLogics.HighwaySign), "int_1");
+
+        private static void AddHighwaySignRows(GClass298 logic, System.Collections.Generic.List<string> rows)
+        {
+            try
+            {
+                var sign = logic as SpecialPuzzleLogics.HighwaySign;
+                if (sign == null || SignTargetField == null) return;
+                var text = SignTargetField.GetValue(sign) as string;
+                if (text == null) return;
+                int cols = 9, signRows = 3;
+                try { if (SignColsField != null) cols = (int)SignColsField.GetValue(null); } catch { }
+                try { if (SignRowsField != null) signRows = (int)SignRowsField.GetValue(null); } catch { }
+                rows.Add(Loc.T("editor.goal.sign.size", new { rows = signRows, cols }));
+                for (int row = 0; row * cols < text.Length; row++)
+                {
+                    int len = Math.Min(cols, text.Length - row * cols);
+                    string line = text.Substring(row * cols, len).Trim();
+                    rows.Add(Loc.T("editor.goal.sign", new
+                    {
+                        row,
+                        text = line.Length == 0 ? Loc.T("text.blank") : line,
+                    }));
+                }
+            }
+            catch { }
         }
 
         // Mirrors the checklist draw: label (+ " (n/m)" when the goal has progress), and the

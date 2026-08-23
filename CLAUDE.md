@@ -90,7 +90,10 @@ shipping game at runtime once names are fixed up:
   `S.gclass52_5.method_2(v)`, `new GClass21(cell)` — compiler-checked, IntelliSense'd.
 - The two escape hatches: PRIVATE members can't compile — resolve by deob name via
   `Game/Deobf` (reads the same namemap; works on RENAMED types too — the map's T rows
-  translate the runtime shipping type name back to the deob name the M/F rows key by);
+  translate the runtime shipping type name back to the deob name the M/F rows key by —
+  and on NESTED types: the map nests Cecil-style `Outer/Inner`, runtime FullName uses
+  `+`; Deobf normalizes both directions — fixed 2026-08-22, first hit by
+  SpecialPuzzleLogics.HighwaySign);
   Harmony targets for PUBLIC methods via `Game/Expr.MethodOf(() => …)` so the ldtoken
   remaps (STRING-based reflection with deob names does NOT remap — never use it).
 - **Title screen decoded** (deob `GClass368`, live type index 1055): the room scene.
@@ -539,7 +542,13 @@ live generation.
     registers (genum160_0==1) speak their state. Still open: whether
     single-cell link ids are drawn (verify visually before gating), and
     the special-puzzle panels (I/O logs, uplink status, custom windows)
-    captured as TEXT. Mechanics: Patches/PanelCapture patches every
+    captured as TEXT. Panel content drawn as SPRITES needs a per-puzzle
+    MODEL read instead — first case done (2026-08-22): the SFCTA highway
+    sign's goal view renders the target message as font-atlas glyphs, so
+    the goal popup reads HighwaySign.string_1 and speaks "Sign row N:
+    text" (0-based rows — the same index a #DATA write addresses, split
+    exactly as the 3×9 sign displays, words may break across rows).
+    Mechanics: Patches/PanelCapture patches every
     GClass298 draw-hook override (vmethod_0..3, found by slot at load — 33
     in this build) with a depth toggle + the three GClass230 text statics
     (smethod_33/34/36) recording (string, pos) while armed; UI/PanelText
@@ -565,7 +574,20 @@ live generation.
     path replicated — sound, editor method_19, double pop). Enter
     activates the FOCUSED node — the old Enter pass-through to the game's
     leave shortcut made the flip/GIF nodes unactivatable (removed
-    2026-08-22); Escape (Continue Editing) stays native. While the sim is ARMED the
+    2026-08-22); Escape (Continue Editing) stays native. The Leaderboards
+    VIEW is a second Tab stop (PuzzleCompleteScreen.Leaderboards.cs),
+    present only while that view is SHOWN and scores are size-eligible
+    (else the game's replacement notice, mirrored): per stat — the
+    "Currently N[, previously M|, unchanged]" caption (mirrored game
+    literals), percentile cutoffs + friends' scores merged best-first
+    (each behind the game's own Steam options: EnableHistograms/
+    EnableLeaderboards default ON, ShowTop/TenthPercentile default OFF —
+    absent rows are usually that gate), then ONE ROW PER NON-EMPTY
+    HISTOGRAM BIN "lo to hi: N%" (percent of the FULLEST bin — the server
+    sends peak-normalized shape, no counts; single-value bins read as the
+    bare number; empty bins skipped, the gap reads from the ranges) with
+    ", your score" on the game's marker bucket ((score-1)*len/max), which
+    speaks even at 0%. Verified live on PB007, 2026-08-22. While the sim is ARMED the
     code node runs a VIRTUAL read cursor (the real caret is frozen outside
     edit mode): vertical keys walk SimExa.method_9() — the executing
     listing, line-per-instruction — speaking lines, current instruction
