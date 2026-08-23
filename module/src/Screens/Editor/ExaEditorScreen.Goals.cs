@@ -82,6 +82,9 @@ namespace ExaAccess.Screens
                 // PB010B: the Workhouse brand plus the slogan the spoken title lacks,
                 // screenshot-verified 2026-08-23.
                 { "PB010B", "Workhouse. Easy work. Easy money." },
+                // PB012: the bank's numeral mark + full brand name (the spoken title drops
+                // "National"), screenshot-verified 2026-08-23.
+                { "PB012", "1, Equity First National Bank" },
             };
 
         private static string NetworkLogoText()
