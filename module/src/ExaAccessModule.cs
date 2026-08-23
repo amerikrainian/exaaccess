@@ -32,9 +32,11 @@ namespace ExaAccess
             _harmony = new Harmony("com.exaaccess.module." + Guid.NewGuid().ToString("N"));
             if (!host.GameInitialized)
                 Patches.SplashPatches.Apply(_harmony); // pre-init only: the splash is long gone on a reload
-            Patches.GameKeySuppression.Apply(_harmony); // focus-mode key swallow (see the class doc)
-            Patches.SimNarration.Apply(_harmony);       // buffer sim errors the model deletes too fast
-            Patches.PanelCapture.Apply(_harmony);       // special-puzzle panel text + goal-view force
+            // Every OTHER patch waits for the first tick — see Tick(). Patching here would run each
+            // target type's STATIC CONSTRUCTOR before game init (Harmony's detour JIT-prepares the
+            // method), and a cctor that reads the game's loc registry (EditorScreen's tooltip
+            // LocStrings) then dies on the not-yet-loaded strings table. The CLR caches that failure
+            // for the life of the process and the game crashes on first use of the type instead.
 
             RegisterInput();
             Screens.ScreenManager.Initialize();
@@ -96,7 +98,23 @@ namespace ExaAccess
             };
         }
 
-        public void Tick() => FrameLoop.Tick();
+        /// <summary>Ticks come from the GameLogic tick prefix, which never runs until init has
+        /// returned — so first-tick arming guarantees the game's loc registry (and everything else
+        /// init builds) exists before any patched type's static constructor can be forced. On a hot
+        /// reload the next frame arms immediately; cold boots arm one frame after the title appears.</summary>
+        private bool _gamePatchesArmed;
+
+        public void Tick()
+        {
+            if (!_gamePatchesArmed)
+            {
+                _gamePatchesArmed = true;
+                Patches.GameKeySuppression.Apply(_harmony); // focus-mode key swallow (see the class doc)
+                Patches.SimNarration.Apply(_harmony);       // buffer sim errors the model deletes too fast
+                Patches.PanelCapture.Apply(_harmony);       // special-puzzle panel text + goal-view force
+            }
+            FrameLoop.Tick();
+        }
 
         public void Dispose()
         {

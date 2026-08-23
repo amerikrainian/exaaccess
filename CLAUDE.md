@@ -270,6 +270,18 @@ Module (each reload starts this half cold — statics are per-load):
 - `module/src/ExaAccessModule.cs` — `IModModule` implementation, module composition
   root: loc first, then patches/hooks/FrameLoop steps; speaks "ExaAccess ready." once
   at boot (generation 1 only — the splash prompt is the next thing the user hears).
+  TWO-PHASE PATCH ARMING (hard-won, 2026-08-23): only SplashPatches applies in Load;
+  every other Harmony patch arms on the FIRST TICK (ticks start only after GameLogic
+  init returns). Harmony's detour JIT-prepares the patched method, WHICH RUNS ITS
+  DECLARING TYPE'S STATIC CONSTRUCTOR — at Load that's pre-init, and EditorScreen's
+  cctor builds 16 tooltip LocStrings via GClass7.smethod_5, whose backing dictionary
+  only exists once init loads Content\strings.csv. The NRE is swallowed inside
+  MonoMod, the CLR CACHES the cctor failure for the process lifetime, and the game
+  then crashes ("type initializer for 'EditorScreen'") the first time ANY puzzle
+  opens — on COLD BOOTS only, which is why a whole day of hot-reload dev sessions
+  (reloads arm post-init) never saw it. Audited 2026-08-23: of all load-patched
+  types only EditorScreen has a loc-reading cctor — but never move patch arming
+  back into Load.
 - `module/src/Localization/` — the WrathAccess loc layer: `Loc.T`, lazy `Message` with
   `{var}` substitution, `LocalizationManager` (enGB fallback manifest + per-frame
   language poll via the pluggable `LanguageSource`; game-language mapping is future
@@ -458,6 +470,13 @@ live generation.
   the same commit.
 - **Keep `module/src/UI/Graph` BCL-pure** (no game/SDL/host-dev references) — its test
   suite compiles it standalone in spirit; purity is what made the WotR port free.
+- **Never apply a Harmony patch before game init** (SplashPatches is the one vetted
+  exception): patching runs the target type's STATIC CONSTRUCTOR, a cctor that touches
+  uninitialized game state fails, and the CLR caches that failure until the game
+  crashes on first real use of the type. Game patches arm on the module's first tick
+  (post-init by construction) — see ExaAccessModule and the 2026-08-23 note above.
+  Cold-boot test editor-open before shipping any new load-order change: the hot-reload
+  dev loop CANNOT catch this class of bug.
 
 ## Roadmap
 1. **(done)** In-process injection, Harmony on obfuscated members, Prism speech,
