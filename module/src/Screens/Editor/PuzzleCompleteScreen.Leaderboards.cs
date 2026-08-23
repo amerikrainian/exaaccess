@@ -142,7 +142,12 @@ namespace ExaAccess.Screens
                 {
                     int pct = (int)Math.Round(hist.float_0[j] * 100f);
                     if (pct <= 0 && j != yours) continue;
-                    int lo = max * j / len + 1, hi = max * (j + 1) / len;
+                    // The bucket→score range must be the exact INVERSE of the game's
+                    // score→bucket map ((s-1)*len/max): ceil-based bounds. The floor form
+                    // drifted a value low whenever max doesn't divide by len — an activity
+                    // score of 7 (max 20, 16 bins) read as "6" instead of "6 to 7".
+                    int lo = (j * max + len - 1) / len + 1, hi = ((j + 1) * max - 1) / len + 1;
+                    if (lo > hi) continue; // a bucket no integer score can land in
                     string text = lo == hi // a single-value bin reads as just the number
                         ? Loc.T(j == yours ? "lb.bin.one.yours" : "lb.bin.one", new { lo, pct })
                         : Loc.T(j == yours ? "lb.bin.yours" : "lb.bin", new { lo, hi, pct });

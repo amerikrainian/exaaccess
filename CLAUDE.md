@@ -673,7 +673,11 @@ live generation.
     sends peak-normalized shape, no counts; single-value bins read as the
     bare number; empty bins skipped, the gap reads from the ranges) with
     ", your score" on the game's marker bucket ((score-1)*len/max), which
-    speaks even at 0%. Verified live on PB007, 2026-08-22. While the sim is ARMED the
+    speaks even at 0%. Bin ranges are the exact CEIL-based INVERSE of that
+    bucket map — the floor form drifted a value low whenever max doesn't
+    divide by len (activity 7, max 20, 16 bins read as "6" instead of
+    "6 to 7"; fixed 2026-08-23, verified live on the UC Berkeley scores).
+    Verified live on PB007, 2026-08-22. While the sim is ARMED the
     code node runs a VIRTUAL read cursor (the real caret is frozen outside
     edit mode): vertical keys walk SimExa.method_9() — the executing
     listing, line-per-instruction — speaking lines, current instruction
