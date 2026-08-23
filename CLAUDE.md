@@ -628,7 +628,24 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     parity CONFIRMED: plate-0 relays are letterless in the art
     (Unnamed host correct), home plate = the player's hostname by
     identity, all links two-way and unlocked, goal rows mirror the
-    drawn checklist. FILE IDENTITY
+    drawn checklist. CAMPAIGN SWEEP (2026-08-23, all unlocked
+    pre-ghost-network puzzles opened + audited pixels/model/speech):
+    PB000/PB001/PB037/PB002 (tutorials), PB003B (pizza), PB004
+    (nerve), PB005 (snaxnet), PB006B (zebros), PB007 (sign) — ALL
+    parity-confirmed, zero code changes. Findings that generalize:
+    every brand decal in range matches its spoken title (no new
+    NetworkLogos entries); plate enums 2/3 draw the internal name
+    (spoken identically), plate 4 on a NON-home host (zebros
+    terminal) draws the internal name too; the tutorial one-way
+    link (799) speaks "One way" from the id side while its id-less
+    far side draws only a BLANK connector plate — per-host silence
+    there matches the art (the id-less sales↔terminal wires
+    likewise); "???" NPC EXAs (pizza/zebros terminals) speak raw
+    per the user rule; text panels capture whole (nerve I/O LOG:
+    caption + 30-row table; snaxnet I/O STATUS: 5 status lines,
+    markup stripped by GameText.Speech which also strips ‗);
+    sprite panels (pizza/zebros DIGICAM feeds) mirror hearable
+    register values, so no per-puzzle read needed. FILE IDENTITY
     (2026-08-23): file ids repeat across hosts (three 200s here) — files
     stop rows, readouts, and the values popup are all HOST-QUALIFIED
     (FindFileAt; ControlId ed.file.{host}.{id}), never resolved by id
