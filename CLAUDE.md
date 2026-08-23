@@ -792,6 +792,13 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     line). DEFERRED: EXA rename
     (cosmetic — names auto-assign XA..XZ). The code-node label reads the
     QUEUED focus target (focus applies a frame late — TargetCodeExa).
+    The solution stop's ed.exacount row ("EXA programs, 1 / 9")
+    counts AUTHORED programs against the create gate min(home free
+    cells, battle cap) — relabeled from "EXAs" 2026-08-23 after it
+    read as a global live-EXA limit. REVISIT ON THE FIRST BATTLE
+    PUZZLE: there the game draws a LIVE counter (method_76(team) /
+    int_6, EditorScreen line ~2477) — mirror that as a second row
+    or switch this one to match the drawn column.
 11. Map the remaining obfuscated transition/overlay screens to friendly names.
 12. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
     code editor for program text — this game is text-centric, a strong a11y target.
