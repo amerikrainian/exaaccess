@@ -522,7 +522,11 @@ live generation.
     write-only plates plain; registers also speak on host-stop rows, and a
     Registers stop grouped by SELECTED host like links/files — after files,
     absent when that host has none — reads the LIVE plate value while
-    stepping). MAP PARITY (per-host audit, 2026-08-22): HIDDEN hosts
+    stepping; the value part is Live, so a register changing on its own
+    (the Zebros copiers draining their print queue in real time — wall-clock,
+    ~0.9s/copy, sim-persisting while armed) re-announces each new value
+    while the row stays focused, the sighted player's ticking plate —
+    verified live on PB006B, 2026-08-22). MAP PARITY (per-host audit, 2026-08-22): HIDDEN hosts
     (SimHost.method_10(showGoal); the goal flag can reveal) speak only
     their cover caption — occupants/files/registers gated on the map AND
     in the goal popup; plateless hosts (genum154_0==0) read "Unnamed

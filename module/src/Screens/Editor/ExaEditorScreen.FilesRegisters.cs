@@ -59,7 +59,10 @@ namespace ExaAccess.Screens
         // registers, one terse row each — label + name, value = the LIVE plate read (the
         // sighted player's glance while stepping; goal-side values live in the goal popup;
         // write-only plates draw none, so their row is the name alone). No stop when the
-        // selected host has no registers — the usual case. ----
+        // selected host has no registers — the usual case. The value part is Live: a register
+        // that changes on its own (the Zebros copiers draining their queue in real time) keeps
+        // announcing while the row stays focused — the sighted player's continuously ticking
+        // plate. ----
 
         private void BuildRegisters(GraphBuilder b, EditorScreen e)
         {
@@ -79,7 +82,7 @@ namespace ExaAccess.Screens
                     Announcements = new[]
                     {
                         new NodeAnnouncement(() => RegName(RegAt(hi, ri)), kind: AnnouncementKinds.Label),
-                        new NodeAnnouncement(() => RegValue(hi, ri), kind: AnnouncementKinds.Value),
+                        new NodeAnnouncement(() => RegValue(hi, ri), live: true, kind: AnnouncementKinds.Value),
                     },
                 });
             }
