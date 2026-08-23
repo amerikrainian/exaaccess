@@ -40,6 +40,13 @@
       <HintPath>..\game\EXAPUNKS-deob.exe</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- The game's own Steamworks wrapper (unobfuscated, next to the deob exe; binds to the
+         game's loaded copy at runtime): the opponent home host's plate shows the Steam persona
+         in multiplayer battles. -->
+    <Reference Include="Steamworks.NET">
+      <HintPath>..\game\Steamworks.NET.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <!-- In-box framework assembly (nothing shipped): locale JSON parsing. -->
     <Reference Include="System.Web.Extensions" />
   </ItemGroup>

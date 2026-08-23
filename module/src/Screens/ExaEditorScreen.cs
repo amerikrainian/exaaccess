@@ -859,20 +859,36 @@ namespace ExaAccess.Screens
             {
                 if (HostHidden(host, goal)) return LockedLabel(host);
                 if (host.genum154_0 == (GEnum154)0) return Loc.T("editor.host.unnamed");
-                string name = host.string_0.ToUpperInvariant();
-                // The player's home host displays the HOSTNAME setting — or, in puzzles played
-                // under a cover identity, that character's handle ("UNKNOWN" for Moss).
-                if (name == "PLAYER")
+                var e = Editor;
+                var meta = Meta(e);
+                string name = null;
+                // The two HOME hosts substitute by IDENTITY, exactly as the plate draw does
+                // (EditorScreen's flag2/flag3, not the host's name): mine shows the player's
+                // hostname — or the cover identity's handle ("UNKNOWN" for Moss) — except in
+                // sandbox mode; the opponent's shows their handle.
+                if (e != null && meta != null)
                 {
-                    var meta = Meta(Editor);
-                    if (meta != null && meta.bool_2)
-                        name = meta.vignetteCharacter_1 == VignetteCharacter.Moss
-                            ? "UNKNOWN"
-                            : Vignette.dictionary_0[meta.vignetteCharacter_1].Replace("\\", "");
-                    else
-                        name = GameLogic.gameLogic_0.saveData_0.method_32();
-                    name = name.ToUpperInvariant();
+                    Team mine = e.method_24();
+                    bool myHome = false, theirHome = false;
+                    var teams = TheSim(e);
+                    if (teams != null)
+                        foreach (var pair in teams.dictionary_0)
+                        {
+                            if (!ReferenceEquals(pair.Value.simHost_0, host)) continue;
+                            if (pair.Key == mine) myHome = true;
+                            else theirHome = true;
+                        }
+                    if (myHome && meta.genum18_0 != (GEnum18)2)
+                        name = meta.bool_2
+                            ? (meta.vignetteCharacter_1 == VignetteCharacter.Moss
+                                ? "UNKNOWN" // the game's own literal for the covert identity
+                                : Vignette.dictionary_0[meta.vignetteCharacter_1].Replace("\\", ""))
+                            : GameLogic.gameLogic_0.saveData_0.method_32();
+                    else if (theirHome)
+                        name = OpponentName(e, meta);
                 }
+                if (name == null) name = host.string_0;
+                name = name.ToUpperInvariant();
                 var sim = TheSim(Editor);
                 if (sim != null)
                 {
@@ -883,6 +899,24 @@ namespace ExaAccess.Screens
                 int hash = name.IndexOf('#');
                 return hash >= 0 ? name.Substring(0, hash) : name;
             }
+            catch { return null; }
+        }
+
+        private static readonly FieldInfo OpponentInfoField =
+            Deobf.Field(typeof(EditorScreen), "multiplayerOpponentInfo_0");
+
+        /// <summary>The opponent home host's plate: their Steam persona in a multiplayer battle
+        /// (NetID converts implicitly to CSteamID), else the battle character's name.</summary>
+        private static string OpponentName(EditorScreen e, GClass361 meta)
+        {
+            try
+            {
+                var mp = OpponentInfoField?.GetValue(e) as MultiplayerOpponentInfo;
+                if (mp != null && mp.maybe_0.method_0())
+                    return Steamworks.SteamFriends.GetFriendPersonaName(mp.maybe_0.method_2());
+            }
+            catch { }
+            try { return Vignette.dictionary_0[meta.vignetteCharacter_0].Replace("\\", ""); }
             catch { return null; }
         }
 
