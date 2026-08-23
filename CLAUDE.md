@@ -546,7 +546,9 @@ live generation.
     co-players. Open defers 2 ticks (a goal-view frame must publish first);
     zero rows = "No details", no popup; Escape/Enter/Backspace close with
     focus restored to wherever F1 was pressed. F8 = RUN TO CARET LINE
-    (Shift+F8 pins the EXA) — the game's Alt+Click "run to instruction"
+    (Shift+Enter pins the EXA — the game's editor consumes Enter only
+    modifier-exact, so the shifted chord is free) — the game's Alt+Click
+    "run to instruction"
     through the public method_52; compile errors speak instead of arming
     (the game cancels silently + flips its locked error view), non-opcode
     lines refuse (blank/NOTE/MARK = EmptyLine), and an OnUpdate watch
