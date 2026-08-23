@@ -25,6 +25,8 @@ namespace ExaAccess.Screens
 
         private static readonly FieldInfo SizeField = Deobf.Field(typeof(PuzzleCompletionScreen), "int_0");
         private static readonly FieldInfo EditorField = Deobf.Field(typeof(PuzzleCompletionScreen), "editorScreen_0");
+        private static readonly FieldInfo TabField = Deobf.Field(typeof(PuzzleCompletionScreen), "bool_0");
+        private static readonly FieldInfo SolutionField = Deobf.Field(typeof(PuzzleCompletionScreen), "solution_0");
 
         public override void Build(GraphBuilder b)
         {
@@ -34,6 +36,32 @@ namespace ExaAccess.Screens
             StatRow(b, "pc.cycles", () => ScoreManager.locString_0.ToString(), () => Stat(s, 0));
             StatRow(b, "pc.size", () => ScoreManager.locString_1.ToString(), () => Stat(s, 1));
             StatRow(b, "pc.activity", () => ScoreManager.locString_2.ToString(), () => Stat(s, 2));
+            // The Leaderboards / Test Run Data view flip (mouse-only in the game): a toggle
+            // announcing the tab now shown. The views are drawn content; the flip is parity
+            // for a sighted co-viewer and the entry point for reading them later.
+            b.AddItem(ControlId.Structural("pc.tab"), new NodeVtable
+            {
+                ControlType = ControlTypes.Toggle,
+                SpeaksOwnPosition = true,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => ActiveTab(s), kind: AnnouncementKinds.Label),
+                },
+                StateText = () => ActiveTab(s),
+                OnActivate = () => FlipTab(s),
+            });
+            // The Record Solution GIF button (mouse-only in the game): the exact click handler.
+            b.AddItem(ControlId.Structural("pc.gif"), new NodeVtable
+            {
+                ControlType = ControlTypes.Button,
+                SpeaksOwnPosition = true,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => GameText.T("Record Solution GIF     ").Trim(),
+                        kind: AnnouncementKinds.Label),
+                },
+                OnActivate = () => RecordGif(s),
+            });
             b.PopContext();
         }
 
@@ -48,8 +76,41 @@ namespace ExaAccess.Screens
                     resume = GameText.T("Continue Editing"),
                     leave = GameText.T("Return to Desktop"),
                 }));
+                // The game's undrawn native shortcut: Ctrl+C copies the per-run score table.
+                Speech.Tts.Speak(Loc.T("editor.complete.copy"));
             }
             catch { }
+        }
+
+        /// <summary>bool_0 picks the right-hand view: false = Leaderboards (histograms), true =
+        /// Test Run Data (the per-run table) — the game's clickable tab is always the INACTIVE
+        /// one, so the toggle speaks what is now SHOWN.</summary>
+        private static string ActiveTab(PuzzleCompletionScreen s)
+        {
+            try
+            {
+                bool data = TabField != null && (bool)TabField.GetValue(s);
+                return GameText.T(data ? "Test Run Data" : "Leaderboards");
+            }
+            catch { return null; }
+        }
+
+        private static void FlipTab(PuzzleCompletionScreen s)
+        {
+            try { TabField?.SetValue(s, !(bool)TabField.GetValue(s)); }
+            catch (Exception ex) { Log.Error("[complete] tab flip failed", ex); }
+        }
+
+        private static void RecordGif(PuzzleCompletionScreen s)
+        {
+            try
+            {
+                var solution = SolutionField?.GetValue(s) as Solution;
+                var editor = EditorField?.GetValue(s) as EditorScreen;
+                if (solution == null || editor == null) return;
+                GameApi.PushScreen(new GifRecorderScreen(solution, editor.int_4));
+            }
+            catch (Exception ex) { Log.Error("[complete] gif failed", ex); }
         }
 
         private static void StatRow(GraphBuilder b, string id, Func<string> label, Func<string> value)

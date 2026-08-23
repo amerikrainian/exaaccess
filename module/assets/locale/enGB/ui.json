@@ -86,6 +86,8 @@
   "editor.file.immovable": "immovable",
   "editor.reg.writeonly": "write-only",
   "editor.complete.options": "Escape: {resume}. Enter: {leave}.",
+  "editor.complete.copy": "Ctrl+C: copy test run data.",
+  "editor.run.type": "Type a run number.",
   "text.newline": "new line",
 
   "desktop.details": "Task details",

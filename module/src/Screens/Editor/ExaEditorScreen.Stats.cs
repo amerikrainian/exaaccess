@@ -16,25 +16,47 @@ namespace ExaAccess.Screens
             b.BeginStop("stats");
             b.PushContext(Loc.T("editor.stats"), positions: false);
 
-            // The test-run row is ADJUSTABLE (Left/Right) while editing — the keyboard version of
-            // the game's mouse-only arrows; while running it reads the current run and is inert.
-            b.AddItem(ControlId.Structural("ed.run"), new NodeVtable
-            {
-                ControlType = ControlTypes.Slider,
-                Announcements = new[]
+            // The test-run row is ADJUSTABLE (Left/Right, PgUp/PgDn) while editing — the
+            // keyboard version of the game's mouse-only arrows, riding the game's own request
+            // path (maybe_10, clamped + rebuilt at the next tick) — and Enter opens the game's
+            // inline TYPED field (bool_8): the row flips to a text field, digits flow to the
+            // game's widget whose parse applies live, Enter or leaving closes. While running
+            // the row reads the current run and is inert.
+            if (!RunFieldOpen(e))
+                b.AddItem(ControlId.Structural("ed.run"), new NodeVtable
                 {
-                    new NodeAnnouncement(() => GameText.T("Test Run"), kind: AnnouncementKinds.Label),
-                    new NodeAnnouncement(RunText, kind: AnnouncementKinds.Value),
-                },
-                StateText = RunText,
-                OnAdjust = (sign, large) =>
+                    ControlType = ControlTypes.Slider,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => GameText.T("Test Run"), kind: AnnouncementKinds.Label),
+                        new NodeAnnouncement(RunText, kind: AnnouncementKinds.Value),
+                    },
+                    StateText = RunText,
+                    OnAdjust = (sign, large) =>
+                    {
+                        var ed = Editor;
+                        if (ed == null || !Editing(ed)) return;
+                        try { RunRequestField?.SetValue(ed, (Maybe<int>)(ed.int_4 + sign * (large ? 10 : 1))); }
+                        catch { }
+                    },
+                    OnActivate = OpenRunField,
+                    OnTooltip = () => Speech.Tts.Speak(GameText.TSpeech("To complete a task you must complete all 100 test runs. You can change the initial test run to more easily debug problems that only occur on specific test runs.")),
+                });
+            else
+                b.AddItem(ControlId.Structural("ed.run"), new NodeVtable
                 {
-                    var ed = Editor;
-                    if (ed == null || !Editing(ed)) return;
-                    ed.int_4 = Math.Max(0, Math.Min(99, ed.int_4 + sign * (large ? 10 : 1)));
-                },
-                OnTooltip = () => Speech.Tts.Speak(GameText.TSpeech("To complete a task you must complete all 100 test runs. You can change the initial test run to more easily debug problems that only occur on specific test runs.")),
-            });
+                    ControlType = ControlTypes.TextField,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => GameText.T("Test Run"), kind: AnnouncementKinds.Label),
+                        new NodeAnnouncement(RunFieldValue, kind: AnnouncementKinds.Value),
+                    },
+                    TextEntry = true,
+                    TextEchoCaps = false,
+                    TextValue = RunFieldValue,
+                    OnSelect = () => { }, // Enter on the slider already armed the game's field
+                    OnActivate = () => CloseRunField(announce: true),
+                });
 
             StatRow(b, "ed.cycles", () => ScoreManager.locString_0.ToString(), () =>
             {
@@ -70,6 +92,54 @@ namespace ExaAccess.Screens
             b.PopContext();
         }
 
+        // The game's typed test-run field: bool_8 = the open flag, string_0 = its text buffer,
+        // maybe_10 = the pending run request the tick clamps and applies (method_25 + method_45).
+        private static readonly FieldInfo RunFieldFlag = Deobf.Field(typeof(EditorScreen), "bool_8");
+        private static readonly FieldInfo RunFieldText = Deobf.Field(typeof(EditorScreen), "string_0");
+        private static readonly FieldInfo RunRequestField = Deobf.Field(typeof(EditorScreen), "maybe_10");
+
+        private static bool RunFieldOpen(EditorScreen e)
+        {
+            try { return e != null && RunFieldFlag != null && (bool)RunFieldFlag.GetValue(e); }
+            catch { return false; }
+        }
+
+        private static string RunFieldValue()
+        {
+            try { return (string)RunFieldText.GetValue(Editor); }
+            catch { return null; }
+        }
+
+        private static void OpenRunField()
+        {
+            var e = Editor;
+            if (e == null || !Editing(e) || RunFieldOpen(e)) return;
+            try
+            {
+                // The game's click on the number, exactly (close fields, flag, blink, clear).
+                Invoke(CloseFieldsMethod, e);
+                RunFieldFlag.SetValue(e, true);
+                GClass288.smethod_1();
+                RunFieldText.SetValue(e, string.Empty);
+                Speech.Tts.Speak(Loc.T("editor.run.type"), interrupt: true);
+            }
+            catch (Exception ex) { Log.Error("[editor] run field open failed", ex); }
+        }
+
+        /// <summary>The typed parse already applied itself (the game re-parses into maybe_10 as
+        /// the text changes) — closing is just the flag, like Enter or a click-away.</summary>
+        private static void CloseRunField(bool announce)
+        {
+            var e = Editor;
+            if (e == null || !RunFieldOpen(e)) return;
+            try
+            {
+                RunFieldFlag.SetValue(e, false);
+                if (announce) Speech.Tts.Speak(RunText(), interrupt: true);
+            }
+            catch (Exception ex) { Log.Error("[editor] run field close failed", ex); }
+        }
+
         private static string RunText()
         {
             var ed = Editor;
@@ -77,6 +147,16 @@ namespace ExaAccess.Screens
             int run = ed.int_4;
             if (!Editing(ed))
                 try { run = (int)RunNumberMethod.Invoke(ed, null); } catch { }
+            else
+                // A request the tick hasn't applied yet (our adjust, or the typed field's live
+                // parse) IS the value to speak — mirror the clamp it will get.
+                try
+                {
+                    var pending = (Maybe<int>)RunRequestField.GetValue(ed);
+                    if (pending.method_0())
+                        run = Math.Max(0, Math.Min(GClass68.int_0 - 1, pending.method_2()));
+                }
+                catch { }
             return (run + 1) + " / 100";
         }
 

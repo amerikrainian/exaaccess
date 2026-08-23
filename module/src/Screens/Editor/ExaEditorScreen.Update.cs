@@ -58,8 +58,15 @@ namespace ExaAccess.Screens
             else _caretExa = int.MinValue;
             _wasCodeFocused = codeFocused;
 
-            // Leaving the solution-name field commits it, like the game's click-away.
+            // Leaving the solution-name field commits it, like the game's click-away; leaving
+            // the test-run field closes it the same way (silently — the landing speaks). The
+            // run field keys on the NODE, not TextEntryFocused: it opens from the slider
+            // vtable, which only becomes a text field at the NEXT rebuild — the flag check
+            // would kill it on the opening frame.
             if (NameArmed(e) && !Navigation.TextEntryFocused) CommitName(e);
+            if (RunFieldOpen(e)
+                && !ControlId.Structural("ed.run").Equals((Navigation.Active as GraphNavigator)?.FocusedNodeId))
+                CloseRunField(announce: false);
 
             // The native F1 press opens the goal popup, same as our button (while the popup
             // forces the flag, method_7 reads true — no re-trigger until a fresh press).
