@@ -507,6 +507,11 @@ live generation.
     narration (Patches/SimNarration.cs — Harmony on the error seam Sim.smethod_16
     buffers player-EXA errors with typed-line recovery; GATED on method_0()
     because the edit-time per-frame rebuild re-errors empty EXAs every frame;
+    an error landing on a DIFFERENT test run than the one the run started
+    on prefixes "Test {n}:" — a passing run auto-advances through the
+    validation tests, so an unprefixed failure is the visible layout and a
+    prefixed one a later random layout (user rule 2026-08-23; baseline =
+    EditorScreen.method_23 at any arming, cleared on stop);
     F2 narrates Cycle n + the pending instruction incl. cycle 0; goal flips
     announce while running; Stopped at cycle n); task 6 network topology
     (Hosts stop: name + terse occupants, selection follows focus; Links stop:

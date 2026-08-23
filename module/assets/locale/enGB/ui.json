@@ -55,6 +55,7 @@
   "editor.compile_error": "Compile error in {exa}, line {line}: {message}",
   "editor.error.line": "{exa} error, line {line}: {message}",
   "editor.error": "{exa} error: {message}",
+  "editor.error.test": "Test {test}: {message}",
   "editor.stopped.at": "Stopped at cycle {n}.",
   "editor.windows": "Windows",
   "editor.exa.readout": "on {host}. X {x}, T {t}, F {f}, M {m}.",

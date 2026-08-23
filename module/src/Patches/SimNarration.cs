@@ -20,6 +20,24 @@ namespace ExaAccess.Patches
         private static readonly Queue<string> Events = new Queue<string>();
         private static readonly object Gate = new object();
 
+        // ---- which test run the current run STARTED on (0-based; -1 = none). A passing run
+        // AUTO-ADVANCES through the validation tests, so an error can land on a DIFFERENT
+        // random layout than the one the user was looking at — the error then names its test
+        // ("Test 2: …"), and only then: failing the test you started on stays unprefixed
+        // (user rule, 2026-08-23). The editor's run-state watch marks start/stop. ----
+        private static readonly System.Reflection.MethodInfo RunNumber =
+            Deobf.Method(typeof(EditorScreen), "method_23"); // the ACTIVE run while armed
+        private static int _runStartTest = -1;
+
+        public static void MarkRunStart(EditorScreen e) { _runStartTest = CurrentTest(e); }
+        public static void ClearRunStart() { _runStartTest = -1; }
+
+        private static int CurrentTest(EditorScreen e)
+        {
+            try { return e != null && RunNumber != null ? (int)RunNumber.Invoke(e, null) : -1; }
+            catch { return -1; }
+        }
+
         public static void Apply(Harmony harmony)
         {
             try
@@ -65,6 +83,9 @@ namespace ExaAccess.Patches
                     string msg = line != null
                         ? Loc.T("editor.error.line", new { exa = __0.string_0, line, message = GameText.Speech(__2) })
                         : Loc.T("editor.error", new { exa = __0.string_0, message = GameText.Speech(__2) });
+                    int test = CurrentTest(editor);
+                    if (_runStartTest >= 0 && test >= 0 && test != _runStartTest)
+                        msg = Loc.T("editor.error.test", new { test = test + 1, message = msg });
                     Events.Enqueue(msg);
                 }
             }

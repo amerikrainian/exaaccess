@@ -98,6 +98,7 @@ namespace ExaAccess.Screens
                 _lastCycle = -1;
                 _runToLine = 0;
                 _suppressRunAnnounce = false;
+                Patches.SimNarration.ClearRunStart();
                 Speech.Tts.Speak(_runCycles > 0
                     ? Loc.T("editor.stopped.at", new { n = _runCycles })
                     : Loc.T("editor.stopped"));
@@ -111,6 +112,9 @@ namespace ExaAccess.Screens
                 if (_suppressRunAnnounce) _suppressRunAnnounce = false;
                 else Speech.Tts.Speak(Loc.T("editor.running"));
             }
+            // ANY arming (run buttons, native F4/F5, F2 stepping) baselines the test run the
+            // run started on — errors landing on a LATER auto-advanced test name their test.
+            if (running && !_wasRunning) Patches.SimNarration.MarkRunStart(e);
             _wasRunning = running;
 
             int cycles = 0;
