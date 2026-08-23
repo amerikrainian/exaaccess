@@ -65,6 +65,8 @@ namespace ExaAccess
             Input.InputManager.Register("ui.prev", "Previous group", Input.InputCategory.UI).AddBinding(Input.Scancode.Tab, shift: true).Repeating();
             Input.InputManager.Register("ui.home", "First item", Input.InputCategory.UI).AddBinding(Input.Scancode.Home);
             Input.InputManager.Register("ui.end", "Last item", Input.InputCategory.UI).AddBinding(Input.Scancode.End);
+            Input.InputManager.Register("ui.pageUp", "Adjust up, large step", Input.InputCategory.UI).AddBinding(Input.Scancode.PageUp).Repeating();
+            Input.InputManager.Register("ui.pageDown", "Adjust down, large step", Input.InputCategory.UI).AddBinding(Input.Scancode.PageDown).Repeating();
             Input.InputManager.Register("ui.activate", "Activate", Input.InputCategory.UI)
                 .AddBinding(Input.Scancode.Return).AddBinding(Input.Scancode.KpEnter);
             Input.InputManager.Register("ui.secondary", "Secondary action", Input.InputCategory.UI).AddBinding(Input.Scancode.Backspace);

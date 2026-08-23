@@ -227,6 +227,8 @@ namespace ExaAccess.UI
                     case "ui.right":
                     case "ui.home":
                     case "ui.end":
+                    case "ui.pageUp":
+                    case "ui.pageDown":
                     case "ui.activate":
                     case "ui.secondary":
                     case "ui.tooltip":
@@ -245,6 +247,10 @@ namespace ExaAccess.UI
                 case "ui.prev": return Tab(-1);
                 case "ui.home": return JumpEdge(first: true);
                 case "ui.end": return JumpEdge(first: false);
+                // The COARSE slider step (PgUp = increase, the screen-reader convention);
+                // non-slider nodes bubble.
+                case "ui.pageUp": return VtableAdjust(1, large: true);
+                case "ui.pageDown": return VtableAdjust(-1, large: true);
                 // Region jumps consume only when the focused node is IN a region — elsewhere they bubble.
                 case "ui.regionPrev": return _graph?.CurrentNode?.RegionKey != null && RegionJump(-1);
                 case "ui.regionNext": return _graph?.CurrentNode?.RegionKey != null && RegionJump(1);
@@ -546,11 +552,11 @@ namespace ExaAccess.UI
             return true;
         }
 
-        private bool VtableAdjust(int sign)
+        private bool VtableAdjust(int sign, bool large = false)
         {
             var node = _graph.CurrentNode;
             if (node?.Vtable.OnAdjust == null) return false;
-            _graph.TryAdjust(sign, large: false);
+            _graph.TryAdjust(sign, large);
             node = _graph.CurrentNode;
             var st = node?.Vtable.StateText;
             if (st != null)

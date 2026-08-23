@@ -508,7 +508,9 @@ live generation.
     (Hosts stop: name + terse occupants, selection follows focus; Links stop:
     the selected host's links as id, destination — One way prefixed when the
     far side has no return id, ids per team); task 7 polish (Test Run row is
-    an adjustable slider mirroring the mouse arrows; per-EXA M-bus TOGGLE
+    an adjustable slider mirroring the mouse arrows — PgUp/PgDn = the
+    coarse step, every slider (ui.pageUp/Down -> OnAdjust large, volume
+    sliders included); per-EXA M-bus TOGGLE
     rows; EXA row Enter = jump to its code, Backspace = delete via the public
     method_36, undoable; Create New EXA button mirroring the full handler
     incl. focus-jump to the new code; solution name is a TextEntry field over

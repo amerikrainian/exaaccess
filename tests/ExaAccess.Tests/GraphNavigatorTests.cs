@@ -93,6 +93,39 @@ namespace ExaAccess.Tests
         }
 
         [Fact]
+        public void PageKeysAdjustSlidersCoarselyAndBubbleElsewhere()
+        {
+            int value = 50;
+            var screen = new TestScreen
+            {
+                Declare = b =>
+                {
+                    b.AddItem(ControlId.Structural("s"), new NodeVtable
+                    {
+                        Announcements = new[] { NodeAnnouncement.Static("Run") },
+                        OnAdjust = (sign, large) => value += sign * (large ? 10 : 1),
+                        StateText = () => value.ToString(),
+                    });
+                    b.AddItem(ControlId.Structural("t"), Vt("Text"));
+                },
+            };
+            _nav.Attach(screen);
+            _nav.EnsureFocus();
+
+            Assert.True(_nav.OnInputJustPressed(Action("ui.pageUp")));
+            Assert.Equal(60, value);
+            Assert.True(_nav.OnInputJustPressed(Action("ui.pageDown")));
+            Assert.Equal(50, value);
+            Assert.True(_nav.OnInputJustPressed(Action("ui.right"))); // fine step unchanged
+            Assert.Equal(51, value);
+            Assert.Contains("60", _speech.Spoken);
+
+            _nav.OnInputJustPressed(Action("ui.down")); // the plain text node
+            Assert.False(_nav.OnInputJustPressed(Action("ui.pageUp"))); // bubbles
+            Assert.Equal(51, value);
+        }
+
+        [Fact]
         public void ReattachingADifferentScreenResetsAndRestoringKeepsFocus()
         {
             var a = TwoItemScreen();
