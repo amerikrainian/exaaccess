@@ -240,8 +240,28 @@ namespace ExaAccess.Screens
         // "on RHIZOME. X 0, T 0, F none, M none global." — the register plate as one readout,
         // with the EXA's error line appended while it lasts (the sim keeps it ~one cycle).
         private static string ExaReadout(int number)
+            => ExaReadoutOf(FindExa(number));
+
+        /// <summary>A live EXA by its ENTITY number (EntityID.Exa) — unique even while REPL
+        /// copies share their parent's SOLUTION number.</summary>
+        private static SimExa FindExaByEntity(int entityNumber)
         {
-            var exa = FindExa(number);
+            try
+            {
+                var sim = TheSim(Editor);
+                if (sim == null) return null;
+                foreach (var entity in sim.list_1)
+                {
+                    var exa = entity as SimExa;
+                    if (exa != null && exa.entityID_0.Number == entityNumber) return exa;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        private static string ExaReadoutOf(SimExa exa)
+        {
             if (exa == null) return null;
             try
             {

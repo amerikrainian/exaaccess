@@ -588,6 +588,17 @@ live generation.
     EntityID keys are Type/Hostname/Number — immovable files key
     id@hostname), label = the drawn title (bare id), value = "at {host}" +
     the usual readout, Enter = the values popup (origin-aware close). The
+    REPL COPIES (2026-08-23): a replicated SimExa carries its PARENT's
+    SolutionExa (same SOLUTION number) but a FRESH EntityID.Exa number
+    and the game's own ":1"/":​*n" name — and the game windows EVERY
+    visible live entity (EditorScreen method_11: all of sim.list_1 minus
+    hidden-host occupants), copies included. So the Windows stop keys
+    rows by ENTITY number (unique; keying by solution number made the
+    duplicate ControlId kill the whole graph rebuild — Tab died, arrows
+    limped on the stale graph), gives copies read-only rows (name +
+    readout; edit/delete/M-bus stay on the original, like the drawn
+    buttons), and gates rows the way the game does (entity gone or in a
+    hidden host = no window; file windows too). The
     special-puzzle panels (I/O logs, uplink status, custom windows)
     captured as TEXT stay open. Panel content drawn as SPRITES needs a
     per-puzzle MODEL read instead — first case done (2026-08-22): the SFCTA highway

@@ -21,13 +21,37 @@ namespace ExaAccess.Screens
             if (sim == null) return;
             b.BeginStop("windows");
             b.PushContext(Loc.T("editor.windows"));
+            var seen = new System.Collections.Generic.HashSet<int>();
             foreach (var entity in sim.list_1)
             {
                 var exa = entity as SimExa;
-                if (exa == null || !exa.maybe_2.method_0()) continue; // player-authored EXAs only
-                int number = 0;
-                try { number = exa.maybe_2.method_2().method_0(); } catch { }
-                int n = number;
+                if (exa == null || !exa.maybe_2.method_0()) continue; // player-authored programs only
+                int solution = 0;
+                try { solution = exa.maybe_2.method_2().method_0(); } catch { }
+                int n = solution;
+                try { n = exa.entityID_0.Number; } catch { }
+                // Rows are keyed by ENTITY number: unique per live EXA. The game windows
+                // every visible entity — a REPL copy gets its own window (fresh EntityID,
+                // the game's own ":1" name) with the same registers readout; the authored
+                // controls (edit / delete / M-bus) stay on the ORIGINAL's row only, like the
+                // drawn window's buttons. A copy shares its parent's SOLUTION number, which
+                // is what tells the two kinds apart. Hidden-host occupants get no window.
+                if (!seen.Add(n)) continue;
+                try { if (HostHidden(exa.method_0(), false)) continue; } catch { }
+                if (n != solution)
+                {
+                    int cn = n;
+                    b.AddItem(ControlId.Structural("win.exa." + cn), new NodeVtable
+                    {
+                        ControlType = ControlTypes.Text,
+                        Announcements = new[]
+                        {
+                            new NodeAnnouncement(() => FindExaByEntity(cn)?.string_0, kind: AnnouncementKinds.Label),
+                            new NodeAnnouncement(() => ExaReadoutOf(FindExaByEntity(cn)), kind: AnnouncementKinds.Value),
+                        },
+                    });
+                    continue;
+                }
                 b.AddItem(ControlId.Structural("win.exa." + n), new NodeVtable
                 {
                     ControlType = ControlTypes.Text,
@@ -68,6 +92,17 @@ namespace ExaAccess.Screens
                     {
                         if (winId.Type != (GEnum147)1) continue; // files only — EXAs handled above
                         var id = winId;
+                        // The game hides a window whose entity is gone or sits in a hidden
+                        // host — gate at build; announcements still re-find live.
+                        var f0 = FindFileForWindow(id.Number, id.Hostname);
+                        if (f0 == null) continue;
+                        try
+                        {
+                            var h0 = HolderOf(f0);
+                            var at0 = h0 != null ? h0.method_0() : f0.method_0();
+                            if (HostHidden(at0, false)) continue;
+                        }
+                        catch { }
                         string key = "win.file." + id.Number + "."
                             + (id.Hostname.method_0() ? id.Hostname.method_2() : "-");
                         b.AddItem(ControlId.Structural(key), new NodeVtable
