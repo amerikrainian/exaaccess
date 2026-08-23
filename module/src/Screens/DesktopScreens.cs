@@ -271,6 +271,28 @@ namespace ExaAccess.Screens
                 });
             }
 
+            // The detail pane's right half for an UNSOLVED puzzle: the game's own placeholder
+            // line (the solved variant — histograms + leaderboards — is still deferred).
+            // Gate mirrors the draw exactly: a puzzle item with no recorded solve.
+            bool boardsHint = false;
+            try
+            {
+                boardsHint = kind == (GEnum20)0 && sel.maybe_1.method_0()
+                    && !GameLogic.gameLogic_0.saveData_0.method_6(sel.maybe_1.method_2(), false);
+            }
+            catch { }
+            if (boardsHint)
+                b.AddItem(ControlId.Structural("details.boards"), new NodeVtable
+                {
+                    ControlType = ControlTypes.Text,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(
+                            () => GameText.TSpeech("Solve this puzzle to view histograms and leaderboards."),
+                            kind: AnnouncementKinds.Label),
+                    },
+                });
+
             // The action button, labeled by the game per task type ("PLAY CUTSCENE", "CONNECT TO
             // NETWORK", ...) — the same open path as Enter on the task row.
             b.AddItem(ControlId.Structural("details.action"), new NodeVtable
@@ -348,16 +370,17 @@ namespace ExaAccess.Screens
             });
         }
 
-        private const int ChatLinesShown = 30;
 
         private void BuildChatLog(GraphBuilder b, DesktopScreen d)
         {
             var log = ChatLog(d);
             if (log == null || log.Count == 0) return;
-            // A log reads oldest -> newest; positions would be noise on a growing stream.
+            // A log reads oldest -> newest, THE WHOLE HISTORY (the game persists every played
+            // conversation and rebuilds the log each desktop — sighted players scroll all the
+            // way back, so a cap here loses real content; user report, 2026-08-22). Positions
+            // would be noise on a growing stream.
             b.PushContext(Loc.T("desktop.chat.log"), positions: false);
-            int first = Math.Max(0, log.Count - ChatLinesShown);
-            for (int i = first; i < log.Count; i++)
+            for (int i = 0; i < log.Count; i++)
             {
                 var line = log[i];
                 b.AddItem(ControlId.Referenced(line, "chat.line." + i), new NodeVtable
