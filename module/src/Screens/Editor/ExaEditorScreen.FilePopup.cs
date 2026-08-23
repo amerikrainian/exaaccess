@@ -14,23 +14,35 @@ namespace ExaAccess.Screens
         // Backspace closes, focus back on the file row. ----
 
         private string _popupFile;
+        private int _popupFileHost = -1; // ids repeat across hosts — the popup stays host-qualified
+        private ControlId _popupOrigin; // the row that opened it (files stop OR a file window)
 
-        private void OpenFilePopup(string id)
+        private void OpenFilePopup(string id, int hostIndex)
+            => OpenFilePopup(id, hostIndex, ControlId.Structural("ed.file." + hostIndex + "." + id));
+
+        private void OpenFilePopup(string id, int hostIndex, ControlId origin)
         {
             _popupFile = id;
+            _popupFileHost = hostIndex;
+            _popupOrigin = origin;
             Navigation.FocusStop("filepop");
         }
 
         private void CloseFilePopup()
         {
-            string id = _popupFile;
+            var origin = _popupOrigin;
             _popupFile = null;
-            if (id != null) Navigation.FocusNode(ControlId.Structural("ed.file." + id));
+            _popupFileHost = -1;
+            _popupOrigin = null;
+            if (origin != null) Navigation.FocusNode(origin);
         }
+
+        private SimFile PopupFile()
+            => _popupFile == null ? null : (FindFileAt(_popupFile, _popupFileHost) ?? FindFile(_popupFile));
 
         private bool BuildFilePopup(GraphBuilder b)
         {
-            var file = FindFile(_popupFile);
+            var file = PopupFile();
             if (file == null) return false;
             int count = 0;
             try { count = file.list_0.Count; } catch { }
@@ -57,9 +69,9 @@ namespace ExaAccess.Screens
             return true;
         }
 
-        private static string PopupValueAt(string id, int i)
+        private string PopupValueAt(string id, int i)
         {
-            var file = FindFile(id);
+            var file = PopupFile();
             if (file == null) return null;
             try
             {

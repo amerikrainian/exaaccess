@@ -563,11 +563,34 @@ live generation.
     Steamworks.NET, referenced Private=false, else the battle character);
     locked links (SimHostLink.bool_0, drawn red, ids usually cleared)
     speak "locked"; immovable files ((genum142_0 & 2)==0) and write-only
-    registers (genum160_0==1) speak their state. Still open: whether
-    single-cell link ids are drawn (verify visually before gating), and
-    the special-puzzle panels (I/O logs, uplink status, custom windows)
-    captured as TEXT. Panel content drawn as SPRITES needs a per-puzzle
-    MODEL read instead — first case done (2026-08-22): the SFCTA highway
+    registers (genum160_0==1) speak their state. RESOLVED 2026-08-23
+    (UC Berkeley parity audit, screenshot-verified): single-cell hosts DO
+    draw their link ids (on the connector plates) — no gating; speak them.
+    THREE MORE NAME MECHANISMS the plate enum misses, all in HostName:
+    (1) NAME-DISPLAY MODE (GClass361.genum145_0 != 0): the game letters
+    every non-home host's INTERNAL name along a free 3-cell edge strip —
+    mirrored incl. the free-strip scan (NameLabelDrawn: strips occupied by
+    host cells/link endpoints draw nothing — single-cell relays and
+    edge-crowded hosts stay unnamed for everyone; UC Berkeley's EECS host
+    would be edge-crowded, but that puzzle uses baked art, not this mode);
+    (2) UC BERKELEY BAKED ART (mode is SpecialPuzzleLogics.GClass304): the
+    whole map's labels are ONE overlay texture (Puzzles: sim.method_34) —
+    banners transcribe the internal names (TAPE-1/2/3, EECS — file 300
+    addresses hosts by exactly these), 1x1 relays unlettered → speak
+    string_0.ToUpper for multi-cell plate-0 hosts, second sprite-content
+    case after the highway sign; (3) plate-0 via SimHost.method_5 means
+    "the ART carries the name", not always "secret". FILE IDENTITY
+    (2026-08-23): file ids repeat across hosts (three 200s here) — files
+    stop rows, readouts, and the values popup are all HOST-QUALIFIED
+    (FindFileAt; ControlId ed.file.{host}.{id}), never resolved by id
+    alone. WINDOWS STOP now mirrors the game's whole window column: after
+    the EXA rows, one row per FILE window (private dictionary_1 via Deobf,
+    EntityID keys are Type/Hostname/Number — immovable files key
+    id@hostname), label = the drawn title (bare id), value = "at {host}" +
+    the usual readout, Enter = the values popup (origin-aware close). The
+    special-puzzle panels (I/O logs, uplink status, custom windows)
+    captured as TEXT stay open. Panel content drawn as SPRITES needs a
+    per-puzzle MODEL read instead — first case done (2026-08-22): the SFCTA highway
     sign's goal view renders the target message as font-atlas glyphs, so
     the goal popup reads HighwaySign.string_1 and speaks a "Sign: 3 rows
     by 9 columns" geometry row (from the game statics) then "Sign row N,

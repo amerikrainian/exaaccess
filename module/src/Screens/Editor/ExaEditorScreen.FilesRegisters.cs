@@ -36,20 +36,21 @@ namespace ExaAccess.Screens
                 if (ReferenceEquals(at, host)) ids.Add(fid);
             }
             if (ids.Count == 0) return; // no files here — no stop at all
+            int hostIdx = _selectedHost; // ids repeat across hosts — every lookup stays host-qualified
             b.BeginStop("files");
             b.PushContext(Loc.T("editor.files", new { host = HostName(host) }));
             foreach (var id in ids)
             {
                 string fid = id;
-                b.AddItem(ControlId.Structural("ed.file." + fid), new NodeVtable
+                b.AddItem(ControlId.Structural("ed.file." + hostIdx + "." + fid), new NodeVtable
                 {
                     ControlType = ControlTypes.Text,
                     Announcements = new[]
                     {
                         new NodeAnnouncement(() => fid, kind: AnnouncementKinds.Label),
-                        new NodeAnnouncement(() => FileReadout(fid), kind: AnnouncementKinds.Value),
+                        new NodeAnnouncement(() => FileReadout(fid, hostIdx), kind: AnnouncementKinds.Value),
                     },
-                    OnActivate = () => OpenFilePopup(fid),
+                    OnActivate = () => OpenFilePopup(fid, hostIdx),
                 });
             }
             b.PopContext();

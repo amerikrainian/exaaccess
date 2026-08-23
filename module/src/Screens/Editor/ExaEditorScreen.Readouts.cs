@@ -143,9 +143,41 @@ namespace ExaAccess.Screens
             try
             {
                 if (HostHidden(host, goal)) return LockedLabel(host);
-                if (host.genum154_0 == (GEnum154)0) return Loc.T("editor.host.unnamed");
                 var e = Editor;
                 var meta = Meta(e);
+                // NAME-DISPLAY MODE (meta.genum145_0 — the legacy-network puzzles): the game
+                // skips plates for every host but YOUR home and letters the INTERNAL name
+                // along a free 3-cell edge strip instead. Where no strip fits (single-cell
+                // relays, edge-crowded hosts) nothing is drawn — unnamed for everyone.
+                if (meta != null && meta.genum145_0 != (GEnum145)0 && e != null)
+                {
+                    var nsim = TheSim(e);
+                    bool nameModeHome = false;
+                    if (nsim != null)
+                    {
+                        Team homeTeam = e.method_24();
+                        foreach (var pair in nsim.dictionary_0)
+                            if (ReferenceEquals(pair.Value.simHost_0, host) && pair.Key == homeTeam)
+                                nameModeHome = true;
+                    }
+                    if (!nameModeHome)
+                        return nsim != null && NameLabelDrawn(host, nsim)
+                            ? host.string_0.ToUpperInvariant()
+                            : Loc.T("editor.host.unnamed");
+                }
+                if (host.genum154_0 == (GEnum154)0)
+                {
+                    // UC BERKELEY (the legacy-storage network): every visible name on this
+                    // map is BAKED background art (Puzzles: one sim.method_34 overlay) — the
+                    // banners transcribe the INTERNAL names (TAPE-1/2/3, EECS; file 300
+                    // addresses hosts by exactly these strings), and the 1x1 relays are
+                    // unlettered. The per-puzzle model read the sprite-content rule calls for.
+                    var bsim = TheSim(e);
+                    if (bsim != null && bsim.method_43() is SpecialPuzzleLogics.GClass304
+                        && host.range2_0.Size.int_0 > 1 && host.range2_0.Size.int_1 > 1)
+                        return host.string_0.ToUpperInvariant();
+                    return Loc.T("editor.host.unnamed");
+                }
                 string name = null;
                 // The two HOME hosts substitute by IDENTITY, exactly as the plate draw does
                 // (EditorScreen's flag2/flag3, not the host's name): mine shows the player's
@@ -307,8 +339,101 @@ namespace ExaAccess.Screens
         }
 
         private static string FileReadout(string id)
+            => FileReadoutOf(FindFile(id));
+
+        /// <summary>File ids are only unique per host (the legacy-storage puzzles ship the
+        /// same id in several hosts) — rows built for a host must re-find by id AND live
+        /// location, or they read the FIRST host's copy of that id.</summary>
+        private static string FileReadout(string id, int hostIndex)
+            => FileReadoutOf(FindFileAt(id, hostIndex) ?? FindFile(id));
+
+        private static SimFile FindFileAt(string id, int hostIndex)
         {
-            var file = FindFile(id);
+            try
+            {
+                var sim = TheSim(Editor);
+                if (sim == null || hostIndex < 0 || hostIndex >= sim.list_0.Count) return null;
+                var host = sim.list_0[hostIndex];
+                foreach (var entity in sim.list_1)
+                {
+                    var file = entity as SimFile;
+                    if (file == null || FileId(file) != id) continue;
+                    var holder = HolderOf(file);
+                    var at = holder != null ? holder.method_0() : file.method_0();
+                    if (ReferenceEquals(at, host)) return file;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>The file behind an EDITOR WINDOW's EntityID: an immovable file is keyed
+        /// id@hostname (the id alone repeats across hosts), a movable one by bare id.</summary>
+        private static SimFile FindFileForWindow(int number, Maybe<string> hostname)
+        {
+            try
+            {
+                var sim = TheSim(Editor);
+                if (sim == null) return null;
+                string id = number.ToString();
+                bool qualified = hostname.method_0();
+                foreach (var entity in sim.list_1)
+                {
+                    var file = entity as SimFile;
+                    if (file == null || FileId(file) != id) continue;
+                    if (!qualified) return file;
+                    var holder = HolderOf(file);
+                    var at = holder != null ? holder.method_0() : file.method_0();
+                    if (at != null && at.string_0 == hostname.method_2()) return file;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>Whether the map actually DRAWS this host's internal-name label in
+        /// name-display mode: the label needs a 3-cell strip along one of the four edges
+        /// free of every host cell and link endpoint — single-cell relays fail the size
+        /// gate and edge-crowded hosts find no strip, and then the name is on screen for
+        /// no one. Mirrors the EditorScreen plate draw (minus label-vs-label crowding
+        /// between two eligible neighbors).</summary>
+        private static bool NameLabelDrawn(SimHost host, Sim sim)
+        {
+            try
+            {
+                var occupied = new System.Collections.Generic.HashSet<Index2>();
+                foreach (var h in sim.list_0)
+                {
+                    foreach (var cell in h.range2_0.Indexes) occupied.Add(cell);
+                    foreach (var link in h.list_1)
+                    {
+                        occupied.Add(link.index2_0);
+                        occupied.Add(link.index2_1);
+                    }
+                }
+                var r = host.range2_0;
+                for (int i = 0; i < 4; i++)
+                {
+                    Index2 start, dir;
+                    switch (i)
+                    {
+                        case 0: start = r.Start + new Index2(0, -1); dir = new Index2(1, 0); break;
+                        case 1: start = new Index2(r.Start.int_0, r.End.int_1); dir = new Index2(1, 0); break;
+                        case 2: start = new Index2(r.End.int_0, r.Start.int_1); dir = new Index2(0, 1); break;
+                        default: start = r.End + new Index2(0, -1); dir = new Index2(0, -1); break;
+                    }
+                    if ((dir.int_0 != 0 && r.Size.int_0 < 2) || (dir.int_1 != 0 && r.Size.int_1 < 2)) continue;
+                    bool free = true;
+                    for (int j = 0; j < 3 && free; j++) free = !occupied.Contains(start + dir * j);
+                    if (free) return true;
+                }
+            }
+            catch { }
+            return false;
+        }
+
+        private static string FileReadoutOf(SimFile file)
+        {
             if (file == null) return null;
             try
             {
