@@ -394,7 +394,8 @@ namespace ExaAccess.Screens
                 if (_followedEntity >= 0)
                 {
                     var exa = FindExaByEntity(_followedEntity);
-                    if (exa != null && exa.maybe_2.method_0() && exa.maybe_2.method_2().method_0() == s)
+                    if (exa != null && exa.maybe_2.method_0() && exa.maybe_2.method_2().method_0() == s
+                        && Mine(exa))
                         return exa;
                     _followedEntity = -1; // died, or a different program — back to the original
                 }
@@ -418,6 +419,22 @@ namespace ExaAccess.Screens
             try { return exa.int_0; } catch { return -1; }
         }
 
+        /// <summary>The viewing player's own EXA? In battle the OPPONENT's solution numbers
+        /// its programs like ours, so EVERY instance walk that matches by solution number
+        /// must also check the team — an unfiltered match counted the enemy's EXA as an
+        /// instance of YOUR program and its internal name leaked into the current markers
+        /// ("current, XA, ALPHA" — user report, 2026-08-25). Fails closed: no leak even if
+        /// the team read ever breaks.</summary>
+        private static bool Mine(SimExa exa)
+        {
+            try
+            {
+                var e = Editor;
+                return e != null && exa.team_0 == e.method_24();
+            }
+            catch { return false; }
+        }
+
         /// <summary>How many live EXAs run this program (1 = just the original).</summary>
         private int LiveInstanceCount(SolutionExa program)
         {
@@ -429,7 +446,8 @@ namespace ExaAccess.Screens
                 foreach (var entity in sim.list_1)
                 {
                     var x = entity as SimExa;
-                    if (x != null && x.maybe_2.method_0() && x.maybe_2.method_2().method_0() == s) n++;
+                    if (x != null && x.maybe_2.method_0() && x.maybe_2.method_2().method_0() == s
+                        && Mine(x)) n++;
                 }
                 return n;
             }
@@ -453,7 +471,7 @@ namespace ExaAccess.Screens
                 {
                     var x = entity as SimExa;
                     if (x == null || !x.maybe_2.method_0()) continue;
-                    if (x.maybe_2.method_2().method_0() != s) continue;
+                    if (x.maybe_2.method_2().method_0() != s || !Mine(x)) continue;
                     total++;
                     if (CurrentListingLine(x) == line) here.Add(x.string_0);
                 }

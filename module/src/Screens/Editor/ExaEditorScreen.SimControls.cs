@@ -236,7 +236,8 @@ namespace ExaAccess.Screens
                 foreach (var entity in sim.list_1)
                 {
                     var x = entity as SimExa;
-                    if (x != null && x.maybe_2.method_0() && x.maybe_2.method_2().method_0() == s)
+                    if (x != null && x.maybe_2.method_0() && x.maybe_2.method_2().method_0() == s
+                        && Mine(x))
                         list.Add(x);
                 }
                 if (list.Count == 0) return;
