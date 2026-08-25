@@ -95,12 +95,17 @@ namespace ExaAccess.Screens
         {
             try
             {
-                var sim = TheSim(Editor);
+                var e = Editor;
+                var sim = TheSim(e);
                 if (sim == null) return null;
+                Team team = e.method_24();
                 foreach (var entity in sim.list_1)
                 {
                     var exa = entity as SimExa;
-                    if (exa != null && exa.maybe_2.method_0() && exa.maybe_2.method_2().method_0() == number)
+                    // Team-filtered: in battle the opponent's solution numbers its programs
+                    // like ours — an unfiltered match could resolve to an ENEMY EXA.
+                    if (exa != null && exa.team_0 == team && exa.maybe_2.method_0()
+                        && exa.maybe_2.method_2().method_0() == number)
                         return exa;
                 }
             }
@@ -511,15 +516,31 @@ namespace ExaAccess.Screens
                 // The host is the stop's context now; a HELD file reads with its holder and
                 // cursor (the zine's file window attached beneath the EXA).
                 var holder = HolderOf(file);
-                string readout = holder != null
-                    ? Loc.T("editor.file.held", new
-                    {
-                        count,
-                        exa = ExaDisplayName(holder),
-                        cursor = CursorValue(holder),
-                        values,
-                    })
-                    : Loc.T("editor.file.readout", new { count, values });
+                // An ENEMY holder has no window, so its F cursor is never drawn — speak the
+                // held state without it (your own holder's window shows the cursor).
+                bool enemyHolder = false;
+                try
+                {
+                    var he = Editor;
+                    enemyHolder = holder != null && he != null && holder.team_0 != he.method_24();
+                }
+                catch { }
+                string readout = holder == null
+                    ? Loc.T("editor.file.readout", new { count, values })
+                    : enemyHolder
+                        ? Loc.T("editor.file.held.enemy", new
+                        {
+                            count,
+                            exa = ExaDisplayName(holder),
+                            values,
+                        })
+                        : Loc.T("editor.file.held", new
+                        {
+                            count,
+                            exa = ExaDisplayName(holder),
+                            cursor = CursorValue(holder),
+                            values,
+                        });
                 // The widened plate + icon the map draws on files LINK refuses to carry.
                 bool immovable = false;
                 try { immovable = (file.genum142_0 & (GEnum142)2) != (GEnum142)2; } catch { }

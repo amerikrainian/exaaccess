@@ -66,6 +66,7 @@
   "editor.file.more": "and {n} more",
   "editor.f.held": "{id}, cursor at {cursor}",
   "editor.file.held": "{count}, held by {exa}, cursor at {cursor}: {values}",
+  "editor.file.held.enemy": "{count}, held by {exa}: {values}",
   "editor.cursor.end": "end",
   "editor.code": "{exa}",
   "editor.hosts": "Hosts",

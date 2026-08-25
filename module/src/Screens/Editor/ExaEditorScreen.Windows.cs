@@ -25,7 +25,12 @@ namespace ExaAccess.Screens
             foreach (var entity in sim.list_1)
             {
                 var exa = entity as SimExa;
-                if (exa == null || !exa.maybe_2.method_0()) continue; // player-authored programs only
+                if (exa == null || !exa.maybe_2.method_0()) continue;
+                // BATTLE: the OPPONENT's EXAs carry SolutionExas too (their solution's) — but
+                // the game windows only YOUR team's EXAs (method_39's team gate). No window
+                // for sighted players = no row here; their solution numbers also collide with
+                // ours, so an enemy row's Enter/Backspace/M-bus would act on OUR program.
+                try { if (exa.team_0 != e.method_24()) continue; } catch { continue; }
                 int solution = 0;
                 try { solution = exa.maybe_2.method_2().method_0(); } catch { }
                 int n = solution;
