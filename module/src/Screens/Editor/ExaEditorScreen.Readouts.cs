@@ -129,7 +129,7 @@ namespace ExaAccess.Screens
             return null;
         }
 
-        private static string FileId(SimFile file)
+        internal static string FileId(SimFile file)
         {
             // Battle maps carry PER-TEAM file ids (GStruct16: one id per side) — always read
             // the VIEWING player's view, the ids the map letters; the file's own team would
@@ -145,7 +145,7 @@ namespace ExaAccess.Screens
         /// <summary>host.method_10(goal) — true = drawn as a covered black box (contents,
         /// registers and files all suppressed on screen). The goal flag matters: some puzzles
         /// reveal hidden hosts under the F1 view only (SimHost.maybe_0).</summary>
-        private static bool HostHidden(SimHost host, bool goal)
+        internal static bool HostHidden(SimHost host, bool goal)
         {
             try { return host.method_10(goal); }
             catch { return false; }
@@ -169,7 +169,7 @@ namespace ExaAccess.Screens
         // internal one must never leak; then the uppercased internal name, overridable by the
         // game mode (the tutorial's home host is internally "player" but displays "RHIZOME"),
         // then the map's #-suffix truncation.
-        private static string HostName(SimHost host) => HostName(host, false);
+        internal static string HostName(SimHost host) => HostName(host, false);
 
         private static string HostName(SimHost host, bool goal)
         {
@@ -376,8 +376,9 @@ namespace ExaAccess.Screens
 
         /// <summary>An EXA's name as the map shows it: the game draws name tags ONLY for the
         /// player's team (EditorScreen's explicit team gate) — an opponent's EXA is an anonymous
-        /// sprite, so its internal name must never leak into speech.</summary>
-        private static string ExaDisplayName(SimExa exa)
+        /// sprite, so its internal name must never leak into speech. (Internal: the execution
+        /// log's enemy-effect rows name actors through the same gate.)</summary>
+        internal static string ExaDisplayName(SimExa exa)
         {
             try
             {

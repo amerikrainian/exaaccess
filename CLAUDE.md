@@ -625,7 +625,30 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     re-records next cycle = the drawn stay-highlighted line; link
     travel/dying (method_57) execute nothing, record nothing).
     Enemy/NPC EXAs filtered like windows (maybe_2 + team vs
-    method_24). Store = UI/ExecutionLog over the shared UI/GroupedLog
+    method_24) — but their VISIBLE EFFECTS log (2026-08-25,
+    live-verified on the PB014 sweep): the map animates another
+    team's travel, replication (a new sprite), grab/drop (pose +
+    the file icon with its lettered id vanishing/appearing; MAKE =
+    pose only, no icon, so it logs "made a file" id-less), kills
+    (pose + explosion) and deaths (explosion + method_61 force-
+    dropping the held file where the corpse stood — the KGOG NPC's
+    actual delivery move). A prefix/postfix pair on method_54
+    snapshots every non-player EXA (host/held/dead) + the file set
+    before the cycle and diffs after, appending "enemy EXA: A to B"
+    rows after the cycle's player rows (names via ExaDisplayName —
+    never internal names; hosts/ids via HostName/FileId, so home
+    plates substitute and per-team ids read the viewing side;
+    hidden hosts mute their rows). Self-contained per call: a fresh
+    round/test sim's starting lineup is in the snapshot, never
+    "appeared". NOT logged because NOT drawn: enemy instructions/
+    registers (window-less), enemy M bubbles (team-gated at draw),
+    held-file WIPEs, victimless kill poses (mode-2 NPC terminals
+    idle-fire one every cycle). SAME AUDIT plugged a test-log leak:
+    SimNarration filtered only on maybe_2, but a battle OPPONENT's
+    EXAs carry a SolutionExa — their out-of-instructions/kill
+    deaths logged internal names + line numbers every round; now
+    team-filtered (editor.method_24), deaths surface as exec-log
+    effect rows instead. Store = UI/ExecutionLog over the shared UI/GroupedLog
     core (BCL-pure, unit-tested), keyed (test, cycle) — CYCLES
     RESTART AT 0 on every test run and battle round (uncapped-store
     data: T0 ends C534, T1 starts C0; the Cycles score is one test's

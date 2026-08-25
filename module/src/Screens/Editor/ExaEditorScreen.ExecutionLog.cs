@@ -22,7 +22,9 @@ namespace ExaAccess.Screens
         // battle round, so when the log spans several tests each region names its test. Fed by
         // the ExecutionCapture patch; cleared on each arming, so the last run stays browsable
         // after it stops. Absent while empty, like the test log. Battle mode included — enemy
-        // EXAs are filtered at capture (their code draws no window for anyone). ----
+        // CODE is filtered at capture (it draws no window for anyone), but enemy VISIBLE
+        // EFFECTS (travel, replication, grab/drop, kills, deaths — everything the map animates)
+        // land as rows after the cycle's player instructions (2026-08-25). ----
 
         private const int WindowRegions = 51; // materialized regions around a window's anchor
         private const int WindowRows = 1200;  // row budget guarding extreme fan-out runs

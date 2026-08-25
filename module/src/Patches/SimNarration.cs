@@ -99,6 +99,10 @@ namespace ExaAccess.Patches
                 // re-error on every rebuild — only a genuinely RUNNING sim's errors are events.
                 var editor = GameState.TopScreen() as EditorScreen;
                 if (editor == null || !editor.method_0()) return;
+                // A battle OPPONENT's EXAs carry a SolutionExa too — but their names, lines and
+                // error text are drawn for no one (no window, no name tag). Their deaths reach
+                // the execution log as visible effects instead (ExecutionCapture).
+                try { if (__0.team_0 != editor.method_24()) return; } catch { return; }
                 lock (Gate)
                 {
                     if (Events.Count >= QueueCap) return;
