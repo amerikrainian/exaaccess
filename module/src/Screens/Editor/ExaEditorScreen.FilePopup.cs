@@ -11,11 +11,16 @@ namespace ExaAccess.Screens
     {
         // ---- the file-values popup: Enter on a file row lists EVERY value, one row each (the
         // 60-value cap is the ROW's compromise; here you arrow at your own pace). Enter or
-        // Backspace closes, focus back on the file row. ----
+        // Backspace closes, focus back on the file row. Two sources: a LIVE SimFile, or a
+        // GOAL-REQUIRED file from the goal popup (a SimRequiredFile — no SimFile exists for
+        // it; addressed by indexes and re-resolved per read, the sim rebuilds every frame). ----
 
         private string _popupFile;
         private int _popupFileHost = -1; // ids repeat across hosts — the popup stays host-qualified
-        private ControlId _popupOrigin; // the row that opened it (files stop OR a file window)
+        private int _popupGoalHost = -1, _popupGoalRequired = -1; // >= 0: the goal-file source
+        private ControlId _popupOrigin; // the row that opened it (files stop, file window, goal popup)
+
+        private bool FilePopupOpen => _popupFile != null || _popupGoalRequired >= 0;
 
         private void OpenFilePopup(string id, int hostIndex)
             => OpenFilePopup(id, hostIndex, ControlId.Structural("ed.file." + hostIndex + "." + id));
@@ -28,11 +33,20 @@ namespace ExaAccess.Screens
             Navigation.FocusStop("filepop");
         }
 
+        private void OpenGoalFilePopup(int hostIndex, int requiredIndex, ControlId origin)
+        {
+            _popupGoalHost = hostIndex;
+            _popupGoalRequired = requiredIndex;
+            _popupOrigin = origin;
+            Navigation.FocusStop("filepop");
+        }
+
         private void CloseFilePopup()
         {
             var origin = _popupOrigin;
             _popupFile = null;
             _popupFileHost = -1;
+            _popupGoalHost = _popupGoalRequired = -1;
             _popupOrigin = null;
             if (origin != null) Navigation.FocusNode(origin);
         }
@@ -40,12 +54,34 @@ namespace ExaAccess.Screens
         private SimFile PopupFile()
             => _popupFile == null ? null : (FindFileAt(_popupFile, _popupFileHost) ?? FindFile(_popupFile));
 
+        private ExaValue[] PopupGoalValues()
+        {
+            try
+            {
+                var sim = TheSim(Editor);
+                if (sim == null || _popupGoalHost < 0 || _popupGoalHost >= sim.list_0.Count) return null;
+                var required = sim.list_0[_popupGoalHost].list_0;
+                return _popupGoalRequired < required.Count ? required[_popupGoalRequired].exaValue_0 : null;
+            }
+            catch { return null; }
+        }
+
         private bool BuildFilePopup(GraphBuilder b)
         {
-            var file = PopupFile();
-            if (file == null) return false;
-            int count = 0;
-            try { count = file.list_0.Count; } catch { }
+            int count;
+            if (_popupGoalRequired >= 0)
+            {
+                var goal = PopupGoalValues();
+                if (goal == null) return false;
+                count = goal.Length;
+            }
+            else
+            {
+                var file = PopupFile();
+                if (file == null) return false;
+                count = 0;
+                try { count = file.list_0.Count; } catch { }
+            }
             string fid = _popupFile;
             // No context, no position counts (user rule): entering announces the VALUE alone,
             // arrowing speaks each next value bare.
@@ -71,10 +107,17 @@ namespace ExaAccess.Screens
 
         private string PopupValueAt(string id, int i)
         {
-            var file = PopupFile();
-            if (file == null) return null;
             try
             {
+                if (_popupGoalRequired >= 0)
+                {
+                    var goal = PopupGoalValues();
+                    if (goal == null) return null;
+                    if (goal.Length == 0) return Loc.T("text.blank"); // an empty file's one row
+                    return i < goal.Length ? goal[i].method_2(true) : null;
+                }
+                var file = PopupFile();
+                if (file == null) return null;
                 if (file.list_0.Count == 0) return Loc.T("text.blank"); // an empty file's one row
                 return i < file.list_0.Count ? file.list_0[i].method_2(true) : null;
             }
@@ -99,13 +142,14 @@ namespace ExaAccess.Screens
                 yield return new ElementAction("ui.followPrev", () => FollowInstance(-1));
             }
             // Escape closes the popups (their game-side Escape is suppressed while
-            // ModalCapturesEscape holds — see GameKeySuppression).
-            if (_popupFile != null) yield return new ElementAction(ActionIds.Back, CloseFilePopup);
+            // ModalCapturesEscape holds — see GameKeySuppression). First match wins, so a
+            // file popup stacked over the goal popup closes first, back onto its goal row.
+            if (FilePopupOpen) yield return new ElementAction(ActionIds.Back, CloseFilePopup);
             if (_goalPopup) yield return new ElementAction(ActionIds.Back, CloseGoalPopup);
         }
 
         /// <summary>The popups are mod-side only — Escape must close THEM, not act in the game
         /// (reset-or-leave would close the whole task under the popup).</summary>
-        public override bool ModalCapturesEscape => _popupFile != null || _goalPopup;
+        public override bool ModalCapturesEscape => FilePopupOpen || _goalPopup;
     }
 }

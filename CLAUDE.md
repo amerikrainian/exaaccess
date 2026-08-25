@@ -614,7 +614,12 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     incl. focus-jump to the new code; solution name is a TextEntry field over
     the game's bool_7 inline field, commit on Enter/leave; Show Goal
     (button Enter OR a native F1 press) opens a MODAL GOAL POPUP — the F1
-    view as terse rows for EVERY puzzle type: required files, hardware
+    view as terse rows for EVERY puzzle type: required files (rows cap at
+    60 values + "and N more" — the silent cut bit PB010B's 102-value goal
+    file, 2026-08-24; Enter on a file row stacks the regular values popup
+    over the goal popup — the goal spec is a SimRequiredFile with NO
+    SimFile, so the popup's second source re-resolves by (host, required)
+    indexes per read; Escape unwinds one popup at a time), hardware
     registers with their badge labels ("CNS #NERV at host: value";
     write-only plates plain; registers also speak on host-stop rows, and a
     Registers stop grouped by SELECTED host like links/files — after files,

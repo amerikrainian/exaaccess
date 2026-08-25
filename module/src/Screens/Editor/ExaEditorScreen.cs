@@ -122,10 +122,11 @@ namespace ExaAccess.Screens
             if (e == null) return;
             // The file-values popup is MODAL while open: it is the whole graph (Enter or
             // Backspace closes it, back to the file row).
-            if (_popupFile != null)
+            if (FilePopupOpen)
             {
                 if (BuildFilePopup(b)) return;
                 _popupFile = null; // the file vanished — fall through to the normal graph
+                _popupGoalHost = _popupGoalRequired = -1;
             }
             if (_goalPopup)
             {

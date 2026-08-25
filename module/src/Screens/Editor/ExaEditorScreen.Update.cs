@@ -25,6 +25,7 @@ namespace ExaAccess.Screens
                 _lastCycle = -1;
                 _lastCodeExa = int.MinValue;
                 _popupFile = null;
+                _popupGoalHost = _popupGoalRequired = -1;
                 _goalPopup = false;
                 _goalPopupPending = 0;
                 _runToLine = 0;

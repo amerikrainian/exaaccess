@@ -133,50 +133,79 @@ namespace ExaAccess.Screens
             b.BeginStop("goalpop");
             for (int i = 0; i < rows.Count; i++)
             {
-                string text = rows[i];
-                b.AddItem(ControlId.Structural("ed.gpop." + i), new NodeVtable
+                var row = rows[i];
+                var id = ControlId.Structural("ed.gpop." + i);
+                b.AddItem(id, new NodeVtable
                 {
                     ControlType = ControlTypes.Text,
                     SpeaksOwnPosition = true,
                     Announcements = new[]
                     {
-                        new NodeAnnouncement(() => text, kind: AnnouncementKinds.Label),
+                        new NodeAnnouncement(() => row.Text, kind: AnnouncementKinds.Label),
                     },
-                    OnActivate = CloseGoalPopup,
+                    // A goal-FILE row opens the same values popup a live file row does —
+                    // every value past the row's 60-value cap browsable one per row.
+                    OnActivate = row.Required >= 0
+                        ? () => OpenGoalFilePopup(row.Host, row.Required, id)
+                        : (Action)CloseGoalPopup,
                     OnSecondary = CloseGoalPopup,
                 });
             }
             return true;
         }
 
+        /// <summary>One popup row: the text, and for goal-FILE rows the (host, required-file)
+        /// indexes the values popup re-resolves by — the sim rebuilds every frame while
+        /// editing, so nothing from it is cached.</summary>
+        private struct GoalRow
+        {
+            public string Text;
+            public int Host;
+            public int Required; // -1 on every non-file row
+
+            public static GoalRow Plain(string text)
+                => new GoalRow { Text = text, Host = -1, Required = -1 };
+        }
+
         /// <summary>The popup's rows: required files (the model, structured), the register goal
         /// readouts and host statuses (the GClass298 virtual API — vmethod_9's consume arg stays
         /// false, a pure read; per-puzzle logics throw for registers they don't own), then the
         /// captured panel lines. All game text.</summary>
-        private System.Collections.Generic.List<string> GoalRowTexts(EditorScreen e)
+        private System.Collections.Generic.List<GoalRow> GoalRowTexts(EditorScreen e)
         {
-            var rows = new System.Collections.Generic.List<string>();
+            var rows = new System.Collections.Generic.List<GoalRow>();
             try
             {
                 var sim = TheSim(e);
                 if (sim == null) return rows;
-                foreach (var host in sim.list_0)
+                for (int h = 0; h < sim.list_0.Count; h++)
                 {
+                    var host = sim.list_0[h];
                     // Hosts still hidden UNDER the goal view keep their secrets there too.
                     if (HostHidden(host, true)) continue;
-                    foreach (var required in host.list_0)
+                    for (int r = 0; r < host.list_0.Count; r++)
                     {
+                        var required = host.list_0[r];
                         string id = required.maybe_0.method_0()
                             ? required.maybe_0.method_2().ToString() : GameText.T("NEW");
                         var values = new System.Collections.Generic.List<string>();
-                        for (int i = 0; i < required.exaValue_0.Length && i < FileValuesSpoken; i++)
+                        int total = required.exaValue_0.Length;
+                        for (int i = 0; i < total && i < FileValuesSpoken; i++)
                             values.Add(required.exaValue_0[i].method_2(true));
-                        rows.Add(Loc.T("editor.goal.file", new
+                        string joined = string.Join(", ", values);
+                        if (total > FileValuesSpoken)
+                            joined += " " + Loc.T("editor.file.more", new { n = total - FileValuesSpoken });
+                        rows.Add(new GoalRow
                         {
-                            id,
-                            host = HostName(host, true),
-                            values = string.Join(", ", values),
-                        }));
+                            Text = Loc.T("editor.goal.file", new
+                            {
+                                id,
+                                host = HostName(host, true),
+                                values = joined,
+                            }),
+                            Host = h,
+                            Required = r,
+                        });
                     }
                 }
                 var logic = sim.method_43();
@@ -193,9 +222,9 @@ namespace ExaAccess.Screens
                                 catch { } // per-puzzle logics throw for registers they don't own
                             else if (reg.genum160_0 == (GEnum160)1)
                                 value = Loc.T("editor.reg.writeonly");
-                            rows.Add(string.IsNullOrEmpty(value)
+                            rows.Add(GoalRow.Plain(string.IsNullOrEmpty(value)
                                 ? Loc.T("editor.goal.register.plain", new { id, host = HostName(host, true) })
-                                : Loc.T("editor.goal.register", new { id, host = HostName(host, true), value }));
+                                : Loc.T("editor.goal.register", new { id, host = HostName(host, true), value })));
                         }
                         try
                         {
@@ -203,13 +232,13 @@ namespace ExaAccess.Screens
                             // this same override, reading "X: X".
                             var status = logic.vmethod_10(host, true);
                             if (status.method_0())
-                                rows.Add(HostName(host) + ": " + GameText.Speech(status.method_2()));
+                                rows.Add(GoalRow.Plain(HostName(host) + ": " + GameText.Speech(status.method_2())));
                         }
                         catch { }
                     }
                 AddHighwaySignRows(logic, rows);
                 foreach (var line in Patches.PanelCapture.Lines)
-                    rows.Add(GameText.Speech(line));
+                    rows.Add(GoalRow.Plain(GameText.Speech(line)));
             }
             catch { }
             return rows;
@@ -230,7 +259,7 @@ namespace ExaAccess.Screens
         private static readonly FieldInfo SignRowsField =
             Deobf.Field(typeof(SpecialPuzzleLogics.HighwaySign), "int_1");
 
-        private static void AddHighwaySignRows(GClass298 logic, System.Collections.Generic.List<string> rows)
+        private static void AddHighwaySignRows(GClass298 logic, System.Collections.Generic.List<GoalRow> rows)
         {
             try
             {
@@ -241,7 +270,7 @@ namespace ExaAccess.Screens
                 int cols = 9, signRows = 3;
                 try { if (SignColsField != null) cols = (int)SignColsField.GetValue(null); } catch { }
                 try { if (SignRowsField != null) signRows = (int)SignRowsField.GetValue(null); } catch { }
-                rows.Add(Loc.T("editor.goal.sign.size", new { rows = signRows, cols }));
+                rows.Add(GoalRow.Plain(Loc.T("editor.goal.sign.size", new { rows = signRows, cols })));
                 for (int row = 0; row * cols < text.Length; row++)
                 {
                     int len = Math.Min(cols, text.Length - row * cols);
@@ -252,13 +281,13 @@ namespace ExaAccess.Screens
                     for (int i = 0; i < line.Length; i++)
                         if (line[i] != ' ') { if (first < 0) first = i; last = i; }
                     if (first < 0)
-                        rows.Add(Loc.T("editor.goal.sign", new { row, text = Loc.T("text.blank") }));
+                        rows.Add(GoalRow.Plain(Loc.T("editor.goal.sign", new { row, text = Loc.T("text.blank") })));
                     else if (first == last)
-                        rows.Add(Loc.T("editor.goal.sign.col1", new
-                        { row, col = first, text = CharSpeech(line[first].ToString()) }));
+                        rows.Add(GoalRow.Plain(Loc.T("editor.goal.sign.col1", new
+                        { row, col = first, text = CharSpeech(line[first].ToString()) })));
                     else
-                        rows.Add(Loc.T("editor.goal.sign.cols", new
-                        { row, lo = first, hi = last, text = line.Substring(first, last - first + 1) }));
+                        rows.Add(GoalRow.Plain(Loc.T("editor.goal.sign.cols", new
+                        { row, lo = first, hi = last, text = line.Substring(first, last - first + 1) })));
                 }
             }
             catch { }
