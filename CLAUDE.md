@@ -871,10 +871,44 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     The solution stop's ed.exacount row ("EXA programs, 1 / 9")
     counts AUTHORED programs against the create gate min(home free
     cells, battle cap) — relabeled from "EXAs" 2026-08-23 after it
-    read as a global live-EXA limit. REVISIT ON THE FIRST BATTLE
-    PUZZLE: there the game draws a LIVE counter (method_76(team) /
-    int_6, EditorScreen line ~2477) — mirror that as a second row
-    or switch this one to match the drawn column.
+    read as a global live-EXA limit. BATTLE MODE (built + live-verified
+    on PB014, 2026-08-24; meta.genum18_0: 0 normal, 1 battle, 2 sandbox
+    — GameMode/BattleMode helpers): the scores stop mirrors the swapped
+    drawn panel — Win Count ("wins / rounds": EditorScreen privates
+    int_1/int_0 + sim.method_47()), Cycles vs sim.int_5 (per-round cap),
+    Size, Points (logic dictionary_0[team]) and Storage Limit
+    (sim.method_76(team) / int_6 — the once-deferred live counter) as
+    "You n, Opponent m" rows, no Activity; each with the game's battle
+    tooltip. SIZE TOOLTIP IS MODE-AWARE now — battle = the hard-cap
+    string, normal = the ELIGIBILITY string (we spoke the hard-cap
+    wording everywhere before, which misread PB012's soft 50). Battles
+    have NO goal rows and NO Show Goal (game draws it only in mode 0 —
+    ed.goalbtn gated). A battle = all 100 test runs auto-advancing;
+    Win Count changes announce while armed (the sighted counter tick,
+    one line per round, verified through a full 100-round sweep).
+    PER-TEAM DATA: file ids are per-side (GStruct16) — FileId reads the
+    VIEWING team now (the drawn ids; the file's own team read the
+    opponent's ids); the opponent home link's ids are Nothing for my
+    team, so its links rows skip = the blank drawn plates; ENEMY EXAs
+    draw NO name tag (EditorScreen's team gate ~line 2076) — occupants
+    and held-file readouts speak "enemy EXA" (editor.exa.enemy), never
+    the internal names (ALPHA/BETA leaked before). SELECT OPPONENT (the
+    mouse-only hotspot on the opponent host) is a battle-only solution-
+    stop button pushing OpponentBrowserScreen via the editor's private
+    method_44 callback; OpponentBrowserGameScreen (BattleScreens.cs)
+    models the browser — rows "name, Beaten/Not beaten, Changed date",
+    Steam rows unavailable until the NPC falls, Enter = the game's
+    click (action_0 + pop), Escape native. BattleCompleteScreen models
+    BattleCompletionScreen (battles end there, NOT at
+    PuzzleCompletionScreen): result heading as the screen name,
+    title line, "{you} versus {opponent}", Wins/Draws/Losses, Your
+    Rating (the badge is LETTERED SPRITE art tiered by wins — loss =
+    "N/A" transcribed; the five win tiers speak NOTHING until a live
+    win shows their lettering — transcribe then), the win-gated upload
+    notice, and Continue Editing / Record GIF / Return to Desktop
+    (win-gated) replicating the click paths; Escape native. NetworkLogos
+    grew PB014 ("KGOG News Network" — the subline the spoken KGOG-TV
+    title lacks).
 11. Map the remaining obfuscated transition/overlay screens to friendly names.
 12. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
     code editor for program text — this game is text-centric, a strong a11y target.

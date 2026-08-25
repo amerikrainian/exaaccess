@@ -57,15 +57,18 @@ namespace ExaAccess.Screens
                 }
             // The accessible Show Goal: opens the goal popup — the F1 view as text (required
             // files, register goal readouts, and the special-puzzle panels via PanelCapture).
-            b.AddItem(ControlId.Structural("ed.goalbtn"), new NodeVtable
-            {
-                ControlType = ControlTypes.Button,
-                Announcements = new[]
+            // NORMAL MODE ONLY: battles and the sandbox draw no Show Goal button and their F1
+            // is inert (the game's own gate — EditorScreen draws it only for mode 0).
+            if (GameMode(e) == 0)
+                b.AddItem(ControlId.Structural("ed.goalbtn"), new NodeVtable
                 {
-                    new NodeAnnouncement(() => GameText.T("Show Goal"), kind: AnnouncementKinds.Label),
-                },
-                OnActivate = RequestGoalPopup,
-            });
+                    ControlType = ControlTypes.Button,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => GameText.T("Show Goal"), kind: AnnouncementKinds.Label),
+                    },
+                    OnActivate = RequestGoalPopup,
+                });
             b.PopContext();
         }
 
@@ -85,6 +88,10 @@ namespace ExaAccess.Screens
                 // PB012: the bank's numeral mark + full brand name (the spoken title drops
                 // "National"), screenshot-verified 2026-08-23.
                 { "PB012", "1, Equity First National Bank" },
+                // PB014: the battle map's backdrop brand — the "News Network" subline is
+                // lettering the spoken "KGOG-TV (Programming Hub)" lacks,
+                // screenshot-verified 2026-08-24.
+                { "PB014", "KGOG News Network" },
             };
 
         private static string NetworkLogoText()

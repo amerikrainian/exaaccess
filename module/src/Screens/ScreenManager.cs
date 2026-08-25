@@ -141,6 +141,8 @@ namespace ExaAccess.Screens
             Register(new SolitaireGameScreen());
             Register(new ExaEditorScreen());
             Register(new PuzzleCompleteScreen());
+            Register(new OpponentBrowserGameScreen());
+            Register(new BattleCompleteScreen());
             Register(new ControlPanelHomeScreen());
             Register(new ControlPanelOptionsScreen());
             Register(new ControlPanelControlsScreen());

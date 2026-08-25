@@ -126,7 +126,14 @@ namespace ExaAccess.Screens
 
         private static string FileId(SimFile file)
         {
-            try { return file.vmethod_2(file.team_0); }
+            // Battle maps carry PER-TEAM file ids (GStruct16: one id per side) — always read
+            // the VIEWING player's view, the ids the map letters; the file's own team would
+            // read the OPPONENT's ids on their movie files.
+            try
+            {
+                var e = Editor;
+                return file.vmethod_2(e != null ? e.method_24() : file.team_0);
+            }
             catch { return null; }
         }
 
@@ -362,6 +369,21 @@ namespace ExaAccess.Screens
             catch { return null; }
         }
 
+        /// <summary>An EXA's name as the map shows it: the game draws name tags ONLY for the
+        /// player's team (EditorScreen's explicit team gate) — an opponent's EXA is an anonymous
+        /// sprite, so its internal name must never leak into speech.</summary>
+        private static string ExaDisplayName(SimExa exa)
+        {
+            try
+            {
+                var e = Editor;
+                if (e != null && exa.team_0 != e.method_24()) return Loc.T("editor.exa.enemy");
+            }
+            catch { }
+            try { return exa.string_0; }
+            catch { return null; }
+        }
+
         /// <summary>The player EXA currently holding this file, else null.</summary>
         private static SimExa HolderOf(SimFile file)
         {
@@ -493,7 +515,7 @@ namespace ExaAccess.Screens
                     ? Loc.T("editor.file.held", new
                     {
                         count,
-                        exa = holder.string_0,
+                        exa = ExaDisplayName(holder),
                         cursor = CursorValue(holder),
                         values,
                     })

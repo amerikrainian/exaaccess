@@ -119,7 +119,7 @@ namespace ExaAccess.Screens
                 foreach (var entity in host.method_8())
                 {
                     var exa = entity as SimExa;
-                    if (exa != null) { parts.Add(exa.string_0); continue; }
+                    if (exa != null) { parts.Add(ExaDisplayName(exa)); continue; }
                     var file = entity as SimFile;
                     if (file != null) parts.Add(Loc.T("editor.file", new { id = FileId(file) }));
                 }

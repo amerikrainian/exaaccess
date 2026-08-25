@@ -116,6 +116,21 @@ namespace ExaAccess.Screens
             catch { return true; }
         }
 
+        /// <summary>meta.genum18_0: 0 = normal task, 1 = BATTLE, 2 = sandbox. Battles swap the
+        /// whole scores panel (Win Count / Points / Storage Limit), drop the goal checklist and
+        /// the Show Goal button, and add the SELECT OPPONENT map hotspot.</summary>
+        private static int GameMode(EditorScreen e)
+        {
+            try
+            {
+                var m = Meta(e);
+                return m == null ? 0 : (int)m.genum18_0;
+            }
+            catch { return 0; }
+        }
+
+        private static bool BattleMode(EditorScreen e) => GameMode(e) == 1;
+
         public override void Build(GraphBuilder b)
         {
             var e = Editor;

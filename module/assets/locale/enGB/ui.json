@@ -141,6 +141,11 @@
   "editor.run.type": "Type a run number.",
   "editor.line.current": "current",
   "text.newline": "new line",
+  "editor.exa.enemy": "enemy EXA",
+  "battle.notbeaten": "Not beaten",
+  "battle.opponent.state": "{beaten}, {changed} {date}",
+  "battle.versus": "{you} versus {opponent}",
+  "screen.BattleCompletionScreen": "Battle results",
 
   "desktop.details": "Task details",
   "desktop.detail.location": "Location",

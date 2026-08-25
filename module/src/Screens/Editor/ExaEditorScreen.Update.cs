@@ -13,6 +13,7 @@ namespace ExaAccess.Screens
 
         private object _instance;
         private bool _wasRunning, _wasSolved, _wasCodeFocused, _wasShowGoal;
+        private string _lastWinCount; // battle: the drawn Win Count, watched while armed
 
         public override void OnUpdate()
         {
@@ -26,6 +27,7 @@ namespace ExaAccess.Screens
                 _lastCodeExa = int.MinValue;
                 _popupFile = null;
                 _popupGoalHost = _popupGoalRequired = -1;
+                _lastWinCount = null;
                 _goalPopup = false;
                 _goalPopupPending = 0;
                 _runToLine = 0;
@@ -51,6 +53,18 @@ namespace ExaAccess.Screens
                     Navigation.FocusStop("goalpop");
                 }
             }
+
+            // BATTLE: each round's outcome shows to sighted players as the Win Count ticking —
+            // speak the counter whenever it changes while the sim is armed (primed on arming,
+            // so re-entering the editor never replays a stale count).
+            if (BattleMode(e) && !Editing(e))
+            {
+                string wc = WinCountText();
+                if (wc != null && _lastWinCount != null && wc != _lastWinCount)
+                    Speech.Tts.Speak(GameText.T("Win Count") + " " + wc);
+                _lastWinCount = wc;
+            }
+            else _lastWinCount = null;
 
             // Leaving the code stop releases the game's real code focus (falling edge only, so a
             // mouse user's own click-focus is never fought over).

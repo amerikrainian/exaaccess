@@ -58,12 +58,26 @@ namespace ExaAccess.Screens
                     OnActivate = () => CloseRunField(announce: true),
                 });
 
+            // BATTLE (mode 1) swaps the drawn panel: Win Count / Cycles-with-cap / Size /
+            // Points / Storage Limit (You + Opponent rows) — no Activity. Each row mirrors the
+            // drawn string exactly, with the game's own battle tooltips.
+            bool battle = BattleMode(e);
+
+            if (battle)
+                StatRow(b, "ed.wins", () => GameText.T("Win Count"), WinCountText,
+                    () => GameText.TSpeech("To win this battle you must win more than half of the test runs."));
+
             StatRow(b, "ed.cycles", () => ScoreManager.locString_0.ToString(), () =>
             {
                 var ed = Editor;
                 var sim = TheSim(ed);
-                return Editing(ed) || sim == null ? "0" : sim.method_52().ToString();
-            }, () => GameText.TSpeech("Your cycles score is the number of turns it takes your EXAs to complete the task."));
+                if (sim == null) return "0";
+                // The battle panel draws cycles against the round's fixed duration.
+                if (BattleMode(ed)) return sim.method_52() + " / " + sim.int_5;
+                return Editing(ed) ? "0" : sim.method_52().ToString();
+            }, () => BattleMode(Editor)
+                ? GameText.TSpeech("Each test run has a fixed duration, in cycles.")
+                : GameText.TSpeech("Your cycles score is the number of turns it takes your EXAs to complete the task."));
 
             StatRow(b, "ed.size", () => ScoreManager.locString_1.ToString(), () =>
             {
@@ -78,18 +92,83 @@ namespace ExaAccess.Screens
                 catch { return null; }
             }, () =>
             {
+                // The game's two size tooltips: battle = a HARD cap; normal = leaderboard
+                // eligibility only (speaking the hard-cap wording on normal tasks misled).
                 int limit = Meta(Editor)?.int_2 ?? 0;
-                return string.Format(GameText.TSpeech("Your size score is the total number of instructions in all of your EXAs, including MARK pseudo-instructions.\n\nIn this task your size may not exceed {0}."), limit);
+                return string.Format(GameText.TSpeech(BattleMode(Editor)
+                    ? "Your size score is the total number of instructions in all of your EXAs, including MARK pseudo-instructions.\n\nIn this task your size may not exceed {0}."
+                    : "Your size score is the total number of instructions in all of your EXAs, including MARK pseudo-instructions.\n\nIn this task your scores will not be eligible for the histograms or leaderboards if your size exceeds {0}."), limit);
             });
 
-            StatRow(b, "ed.activity", () => ScoreManager.locString_2.ToString(), () =>
+            if (battle)
             {
-                var ed = Editor;
-                var sim = TheSim(ed);
-                return Editing(ed) || sim == null ? "0" : sim.method_53().ToString();
-            }, () => GameText.TSpeech("Your activity score is the number of times EXAs you control execute LINK or KILL instructions."));
+                StatRow(b, "ed.points", () => GameText.T("Points"),
+                    () => TeamPair(t => BattlePoints(t)),
+                    () => GameText.TSpeech("To win this test run you must score more points than your opponent."));
+                StatRow(b, "ed.storage", () => GameText.T("Storage Limit"),
+                    () => TeamPair(t =>
+                    {
+                        var sim = TheSim(Editor);
+                        return sim == null ? null : sim.method_76(t) + " / " + sim.int_6;
+                    }),
+                    () => GameText.TSpeech("There is a limit to the number of EXAs and dropped files that each player can have in the network at a given time."));
+            }
+            else
+                StatRow(b, "ed.activity", () => ScoreManager.locString_2.ToString(), () =>
+                {
+                    var ed = Editor;
+                    var sim = TheSim(ed);
+                    return Editing(ed) || sim == null ? "0" : sim.method_53().ToString();
+                }, () => GameText.TSpeech("Your activity score is the number of times EXAs you control execute LINK or KILL instructions."));
 
             b.PopContext();
+        }
+
+        // The battle scores' private halves: int_1 = rounds WON, int_0 = rounds completed;
+        // the drawn counter adds the round in progress (method_47) and clamps.
+        private static readonly FieldInfo RoundsField = Deobf.Field(typeof(EditorScreen), "int_0");
+        private static readonly FieldInfo WinsField = Deobf.Field(typeof(EditorScreen), "int_1");
+
+        /// <summary>The drawn Win Count string, exactly: "wins / rounds".</summary>
+        private static string WinCountText()
+        {
+            var ed = Editor;
+            var sim = TheSim(ed);
+            if (ed == null || sim == null || RoundsField == null || WinsField == null) return null;
+            try
+            {
+                int rounds = (int)RoundsField.GetValue(ed) + (sim.method_47() ? 1 : 0);
+                int wins = Math.Min((int)WinsField.GetValue(ed), rounds);
+                return wins + " / " + rounds;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>"You X, Opponent Y" — the drawn two-row block as one spoken value.</summary>
+        private static string TeamPair(Func<Team, string> value)
+        {
+            try
+            {
+                var ed = Editor;
+                if (ed == null) return null;
+                Team mine = ed.method_24();
+                return GameText.T("You") + " " + (value(mine) ?? "0") + ", "
+                    + GameText.T("Opponent") + " " + (value(mine.smethod_0()) ?? "0");
+            }
+            catch { return null; }
+        }
+
+        private static string BattlePoints(Team team)
+        {
+            try
+            {
+                var sim = TheSim(Editor);
+                var logic = sim?.method_43();
+                int points;
+                return logic != null && logic.dictionary_0.TryGetValue(team, out points)
+                    ? points.ToString() : "0";
+            }
+            catch { return "0"; }
         }
 
         // The game's typed test-run field: bool_8 = the open flag, string_0 = its text buffer,
@@ -226,7 +305,37 @@ namespace ExaAccess.Screens
                     new NodeAnnouncement(ExaCountText, kind: AnnouncementKinds.Value),
                 },
             });
+            // The battle map's SELECT OPPONENT hotspot (drawn on the opponent's home host,
+            // mouse-only): the same push the game's click makes — OpponentBrowserScreen with
+            // the editor's own selection callback.
+            if (BattleMode(e))
+                b.AddItem(ControlId.Structural("ed.opponent"), new NodeVtable
+                {
+                    ControlType = ControlTypes.Button,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => GameText.T("SELECT OPPONENT"), kind: AnnouncementKinds.Label),
+                    },
+                    OnActivate = OpenOpponentBrowser,
+                });
             b.PopContext();
+        }
+
+        // The game's selection callback (EditorScreen.method_44 — sets the opponent info the
+        // home-plate draw and the battle sim read) is private; the browser takes it as a delegate.
+        private static readonly MethodInfo SelectOpponentCallback = Deobf.Method(typeof(EditorScreen), "method_44");
+
+        private static void OpenOpponentBrowser()
+        {
+            var e = Editor;
+            if (e == null || SelectOpponentCallback == null) return;
+            try
+            {
+                var cb = (Action<MultiplayerOpponentInfo>)Delegate.CreateDelegate(
+                    typeof(Action<MultiplayerOpponentInfo>), e, SelectOpponentCallback);
+                GameApi.PushScreen(new OpponentBrowserScreen(e.solution_0.method_0(), cb));
+            }
+            catch (Exception ex) { Log.Error("[editor] opponent browser open failed", ex); }
         }
     }
 }
