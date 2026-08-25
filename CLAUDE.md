@@ -811,7 +811,20 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     stale host object from a PREVIOUS /eval makes HostName's
     identity-based home substitution miss and return the internal
     name — a FALSE parity gap; always fetch sim+host and call the
-    helper in the SAME eval. Findings that generalize:
+    helper in the SAME eval. PB015 (redshift dev kit) audited
+    2026-08-25 read-only: parity CONFIRMED, zero changes — backdrop
+    banner + logo ovals are method_34 overlay art restating the
+    spoken title (no NetworkLogos row); the covered host's drawn
+    lettering IS its cover caption LocString (spoken verbatim, both
+    hidden flags set so the goal view keeps it covered too); the
+    home link's far-side -1 id is a real drawn plate (spoken as-is);
+    the locked blank-id link speaks destination + "locked"; the
+    logic's (SpecialPuzzleLogics.GClass311) drawn digit-entry status
+    cells are GClass230.smethod_34 TEXT, so the goal popup captures
+    them via generic PanelCapture (live-confirmed in /speech) — the
+    highway-sign precedent: panel state is popup-hearable, no live
+    node owed; unlock flips link ids/lock/cover in model state every
+    row already re-resolves live. Findings that generalize:
     every brand decal in range matches its spoken title (no new
     NetworkLogos entries); plate enums 2/3 draw the internal name
     (spoken identically), plate 4 on a NON-home host (zebros
