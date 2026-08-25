@@ -598,11 +598,91 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     (Ctrl+Up/Down hop tests, arrows read within), rows = errors and
     goal flips in arrival order, cleared on each arming (so the last
     run stays browsable after it stops), absent while empty like
-    Problems; capped to the newest 24 tests / 40 rows per test with an
-    "and N more" row. SimNarration events are STRUCTURED (test index +
+    Problems; UNCAPPED since 2026-08-25 (the old newest-24-tests ring
+    WALLED a 100-test sweep's browse at "Test 77" — user report;
+    store = the shared UI/GroupedLog core, graph windowed exactly
+    like the execution log below). SimNarration events are STRUCTURED (test index +
     message; Prefix() applies the run-start rule at speech time) and
     its queue cap is 512 — fast-forward raises hundreds per frame and
-    they all belong in the log; task 6 network topology
+    they all belong in the log. EXECUTION LOG STOP (2026-08-25,
+    live-verified on PB013C; after the test log, battle included): one
+    REGION PER CYCLE (arrows read within; Ctrl+Up/Down hop CYCLES on
+    a single-test run but TESTS when the run spans several — landing
+    on the target test's first row, via NodeVtable.OnRegionJump, the
+    per-node region-jump override added for exactly this: a test is
+    the unit the user thinks in, a cycle is too fine to hop 500 at a
+    time, AND the adjacent test is usually outside the materialized
+    window where the graph's own region move can't see it — user
+    report "still on T33 instead of going to t32", 2026-08-25),
+    rows = every instruction the player's EXAs executed that cycle
+    ("XB: LINK 800" — name + macro-expanded listing line) in the sim's
+    own dispatch order. Fed by Patches/ExecutionCapture — prefix on
+    Sim.method_55, the single per-EXA dispatch the cycle step
+    (method_54) routes every NORMAL-mode EXA through once per cycle
+    (method_10() = the executing instruction; method_52() = the cycle,
+    incremented after the whole cycle, so regions match the step
+    echo's numbering; a BLOCKED instruction re-dispatches and
+    re-records next cycle = the drawn stay-highlighted line; link
+    travel/dying (method_57) execute nothing, record nothing).
+    Enemy/NPC EXAs filtered like windows (maybe_2 + team vs
+    method_24). Store = UI/ExecutionLog over the shared UI/GroupedLog
+    core (BCL-pure, unit-tested), keyed (test, cycle) — CYCLES
+    RESTART AT 0 on every test run and battle round (uncapped-store
+    data: T0 ends C534, T1 starts C0; the Cycles score is one test's
+    count), so a cycle number alone never identifies a region; labels
+    name their test when the log spans several. The store is UNCAPPED
+    (user rule 2026-08-25 — a full 100-test sweep ≈ 56k entries held
+    whole, verified live; the only limit is a SILENT insurance cap in
+    GroupedLog — 10M exec / 2M test entries, ~25 min of NONSTOP
+    fast-forward — purely so an unattended endless loop can't OOM the
+    game: it sheds oldest whole, no UI, one dev-log line on the next
+    clear); the GRAPH materializes only a WINDOW (≤51 regions / ≤1200
+    rows, ExpandWindow — shared with the test log) around the focus
+    anchor — KeyGraph rebuilds per operation AND per frame, and the
+    builder recenters the window on the focused cycle DURING each
+    rebuild, so a move at the window edge finds the next chunk
+    already materialized (45 straight Ctrl+Up hops through the edges
+    verified live, frame time unharmed). HOME/END on a log row jump
+    to the whole LOG's first/last row, both logs — via
+    NodeVtable.OnJumpEdge (an override hook the navigator consults
+    before the default walk, which only reaches the WINDOW's rim);
+    the jump recenters the anchor + deferred FocusNode, and a
+    2-rebuild JUMP HOLD pins the anchor while that focus applies —
+    without it anchor-follow reads the STILL-OLD focused row on the
+    next rebuild and yanks the window back before the target ever
+    materializes (bit Home/End on first live test; the goto field
+    never hit it only because field focus parses as no row). THE
+    RE-ARM WIPE TRAP (user report, dead ctrl+arrows — root-caused via
+    the /speech history + temp logging, 2026-08-25): a fresh arming
+    CLEARS the logs, so both log stops VANISH for the frames their
+    stores sit empty — reconcile then re-seats focus silently OUT of
+    the log (landed on the Solution field/Simulation stop), where
+    region keys bubble to nothing; the user believes they are still
+    "in the log". THREE fixes, all behavioral: (1) the windowing
+    anchor-follow reads the navigator's PERSISTED focus cursor
+    (GraphNavigator.FocusCursorId = GraphState.CurKey), never the
+    render-dependent FocusedNodeId, which goes null the moment the
+    focused row vanishes — exactly when pinning matters; (2) the
+    ui.regionPrev/Next gate Rerenders BEFORE gating (the stale
+    last-frame CurrentNode read killed presses during the one-frame
+    churn the rebuild was about to heal); (3) arming with focus in
+    execlog/execgoto/testlog remembers the stop and FocusStop()s back
+    into it once its store refills (TTL ~3s — a free run refills
+    within a frame; a paused F2 arm may never), so a mid-browse
+    F4/F5 lands you on the NEW run's first row instead of a random
+    node. "GO TO CYCLE" is its OWN Tab
+    stop right before the log (user rule 2026-08-25): a SYNTHETIC
+    TextEntry field (no game widget backs it: digits/period/Backspace
+    polled off SdlKeyboard scancodes while focused, echo free via the
+    TextValue diff; game inert to stray digits) — Enter jumps to the
+    nearest matching cycle, newest-test-first on ties, "test.cycle"
+    (1-based test, matching the spoken labels) pins an earlier test;
+    the jump sets the anchor then FocusNode (already deferred to
+    post-rebuild, so the target always exists). The listing split is
+    cached by string identity (fast-forward = thousands of records
+    per second). Cleared on each arming (screen calls
+    ExecutionCapture.Clear + anchors reset to tail-follow), browsable
+    after the stop, absent while empty; task 6 network topology
     (Hosts stop: name + terse occupants, selection follows focus; Links stop:
     the selected host's links as id, destination — One way prefixed when the
     far side has no return id, ids per team); task 7 polish (Test Run row is

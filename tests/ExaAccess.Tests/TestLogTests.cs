@@ -3,8 +3,9 @@ using Xunit;
 
 namespace ExaAccess.Tests
 {
-    /// <summary>The editor's per-run test log: events grouped by test in arrival order, capped
-    /// by newest tests and by entries per test (overflow counted, not kept).</summary>
+    /// <summary>The editor's per-run test log: events grouped by test in arrival order,
+    /// uncapped (the graph windows what it shows; the store keeps the run) with a runaway
+    /// backstop that sheds the oldest tests whole and counts them.</summary>
     public class TestLogTests
     {
         [Fact]
@@ -17,11 +18,12 @@ namespace ExaAccess.Tests
             log.Add(2, "c2");
             log.Add(0, "a2");
             Assert.False(log.IsEmpty);
+            Assert.Equal(4, log.EntryCount);
             Assert.Equal(new[] { 2, 0 }, log.Tests);
             Assert.Equal(new[] { "c1", "c2" }, log.Entries(2));
             Assert.Equal(new[] { "a1", "a2" }, log.Entries(0));
             Assert.Empty(log.Entries(5));
-            Assert.Equal(0, log.Overflow(2));
+            Assert.Equal(0, log.DroppedTests);
         }
 
         [Fact]
@@ -36,25 +38,46 @@ namespace ExaAccess.Tests
         }
 
         [Fact]
-        public void CapsEntriesPerTestAndCountsOverflow()
+        public void KeepsEverythingWithinTheBackstop()
         {
             var log = new TestLog();
-            for (int i = 0; i < TestLog.MaxPerTest + 7; i++) log.Add(3, "e" + i);
-            Assert.Equal(TestLog.MaxPerTest, log.Entries(3).Count);
-            Assert.Equal("e0", log.Entries(3)[0]);
-            Assert.Equal(7, log.Overflow(3));
+            for (int t = 0; t < 100; t++)
+                for (int i = 0; i < 12; i++) log.Add(t, "t" + t + "e" + i);
+            Assert.Equal(100, log.Tests.Count);
+            Assert.Equal(1200, log.EntryCount);
+            Assert.Equal(0, log.DroppedTests);
+            Assert.Equal(12, log.Entries(0).Count);
+            Assert.Equal(12, log.Entries(99).Count);
         }
 
         [Fact]
-        public void DropsOldestTestsWhole()
+        public void IndexOfTracksPositions()
         {
             var log = new TestLog();
-            for (int t = 0; t < TestLog.MaxTests + 2; t++) log.Add(t, "t" + t);
-            Assert.Equal(TestLog.MaxTests, log.Tests.Count);
-            Assert.Equal(2, log.Tests[0]);
+            log.Add(3, "a");
+            log.Add(7, "b");
+            Assert.Equal(0, log.IndexOf(3));
+            Assert.Equal(1, log.IndexOf(7));
+            Assert.Equal(-1, log.IndexOf(5));
+            log.Clear();
+            Assert.Equal(-1, log.IndexOf(3));
+        }
+
+        [Fact]
+        public void BackstopShedsOldestTestsWholeAndCounts()
+        {
+            var log = new TestLog(maxEntries: 50);
+            for (int t = 0; t < 30; t++)
+                for (int i = 0; i < 2; i++) log.Add(t, "x");
+            Assert.True(log.EntryCount <= 50);
+            Assert.True(log.DroppedTests > 0);
+            Assert.Equal(-1, log.IndexOf(0));
             Assert.Empty(log.Entries(0));
-            Assert.Equal(0, log.Overflow(0));
-            Assert.Equal(new[] { "t2" }, log.Entries(2));
+            // Survivors are the contiguous newest tests with a consistent index.
+            Assert.Equal(30 - log.Tests.Count, log.Tests[0]);
+            for (int i = 0; i < log.Tests.Count; i++)
+                Assert.Equal(i, log.IndexOf(log.Tests[i]));
+            Assert.Equal(29, log.Tests[log.Tests.Count - 1]);
         }
 
         [Fact]
@@ -64,6 +87,7 @@ namespace ExaAccess.Tests
             log.Add(1, "x");
             log.Clear();
             Assert.True(log.IsEmpty);
+            Assert.Equal(0, log.EntryCount);
             Assert.Empty(log.Tests);
             Assert.Empty(log.Entries(1));
         }

@@ -33,6 +33,11 @@ namespace ExaAccess.Screens
                 _runToLine = 0;
                 _suppressRunAnnounce = false;
                 _testLog.Clear();
+                Patches.ExecutionCapture.Clear();
+                _execAnchor = null;
+                _testAnchor = null;
+                _gotoBuffer = "";
+                _refocusLog = null;
                 Patches.PanelCapture.SetArmed(false, false);
             }
 
@@ -65,6 +70,10 @@ namespace ExaAccess.Screens
                 _lastWinCount = wc;
             }
             else _lastWinCount = null;
+
+            // The exec log's synthetic "Go to cycle" field types through our own keyboard
+            // snapshot (no game widget backs it).
+            PollGotoTyping();
 
             // Leaving the code stop releases the game's real code focus (falling edge only, so a
             // mouse user's own click-focus is never fought over).
@@ -135,7 +144,32 @@ namespace ExaAccess.Screens
             if (running && !_wasRunning)
             {
                 Patches.SimNarration.MarkRunStart(e);
+                // Re-arming under the user's feet: the log stops vanish for the frames their
+                // stores sit empty, and reconcile re-seats focus wherever it lands — silently
+                // OUT of the log, where ctrl+arrows then do nothing (user report, 2026-08-25).
+                // Follow the NEW run instead: remember which log stop held focus and return
+                // there once it refills.
+                object focusStop = Navigation.FocusedStopKey;
+                _refocusLog = "execlog".Equals(focusStop) || "execgoto".Equals(focusStop)
+                    || "testlog".Equals(focusStop) ? (string)focusStop : null;
+                _refocusTtl = 180; // a free run refills within a frame; a paused F2 arm may never
                 _testLog.Clear();
+                Patches.ExecutionCapture.Clear();
+                _execAnchor = null; // a fresh run's logs follow the tail again
+                _testAnchor = null;
+                _gotoBuffer = "";
+            }
+            if (_refocusLog != null)
+            {
+                bool refilled = _refocusLog == "testlog"
+                    ? !_testLog.IsEmpty
+                    : !Patches.ExecutionCapture.Store.IsEmpty;
+                if (refilled)
+                {
+                    Navigation.FocusStop(_refocusLog);
+                    _refocusLog = null;
+                }
+                else if (--_refocusTtl <= 0) _refocusLog = null;
             }
             _wasRunning = running;
 
@@ -203,6 +237,8 @@ namespace ExaAccess.Screens
 
         private int _runCycles;
         private int[] _goalStates;
+        private string _refocusLog; // log stop to re-enter once its store refills (see arming)
+        private int _refocusTtl;
 
         // "Cycle 3. XA: LINK 800" — the next instruction of the code-focused EXA (or the first
         // live player EXA), read from the macro-expanded source that actually executes.

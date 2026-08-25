@@ -162,6 +162,7 @@ namespace ExaAccess.Screens
             BuildStats(b, e);
             BuildControls(b);
             BuildTestLog(b, e);
+            BuildExecutionLog(b, e);
             BuildSolution(b, e);
         }
     }

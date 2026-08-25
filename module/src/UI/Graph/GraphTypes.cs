@@ -110,6 +110,21 @@ namespace ExaAccess.UI.Graph
         /// stays a separate gesture -- a list row can select on scroll and open on Enter.</summary>
         public Action OnSelect;
 
+        /// <summary>Optional. Overrides the Home/End jump while this node is focused (the arg is
+        /// true for Home/first). Return true when handled; false falls through to the default
+        /// walk to the graph's vertical edge. For content WINDOWED by its screen (the editor's
+        /// run logs), where the graph's edge is only the window's edge, not the data's — the
+        /// handler jumps straight to the data's true edge instead.</summary>
+        public Func<bool, bool> OnJumpEdge;
+
+        /// <summary>Optional. Overrides the Ctrl+arrow region jump while this node is focused
+        /// (+1 = next, -1 = previous). Return true when handled; false falls through to the
+        /// graph's own region move. For content whose natural hop unit is COARSER than its
+        /// declared regions (the execution log hops tests, its regions are cycles) — or whose
+        /// target lies outside the screen's materialized window, where the graph's region move
+        /// cannot see it.</summary>
+        public Func<int, bool> OnRegionJump;
+
         /// <summary>Optional (with <see cref="TextValue"/>). Marks a LIVE TYPE-TARGET: while this
         /// node is focused, printable keys belong to a text field (the host game's or ours) — the
         /// input pipeline stands its Space/Backspace bindings down so characters flow, and speaks

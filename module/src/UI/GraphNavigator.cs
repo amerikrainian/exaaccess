@@ -94,6 +94,13 @@ namespace ExaAccess.UI
         internal GraphRender CurrentRender => _graph?.Current;
         internal ControlId FocusedNodeId => _graph?.CurrentNode?.Id;
 
+        /// <summary>The PERSISTED focus cursor — where focus is by identity, even when the
+        /// current render doesn't contain that node (windowed content whose focused row was
+        /// cleared or slid out). Screens that window content by the focus anchor read THIS, not
+        /// <see cref="FocusedNodeId"/>: the render-dependent id goes null the moment the row
+        /// vanishes, which would un-pin the window right when pinning matters most.</summary>
+        internal ControlId FocusCursorId => _state.CurKey;
+
         // Screens declare fresh from live game state on every render (immediate mode).
         private GraphRender BuildRender(Screens.Screen screen)
         {
@@ -252,8 +259,29 @@ namespace ExaAccess.UI
                 case "ui.pageUp": return VtableAdjust(1, large: true);
                 case "ui.pageDown": return VtableAdjust(-1, large: true);
                 // Region jumps consume only when the focused node is IN a region — elsewhere they bubble.
-                case "ui.regionPrev": return _graph?.CurrentNode?.RegionKey != null && RegionJump(-1);
-                case "ui.regionNext": return _graph?.CurrentNode?.RegionKey != null && RegionJump(1);
+                case "ui.regionPrev":
+                case "ui.regionNext":
+                {
+                    // Gate on the FRESH graph, not the last frame's: with screen-windowed
+                    // content the focused row can vanish between frames (a log cleared by a
+                    // re-arm, a tail-following window sliding under a live run) and the stale
+                    // node reads null — the press would die silently right when the rebuild
+                    // (which re-seats focus and re-pins the window) was about to fix it.
+                    if (_graph == null || !_graph.Rerender()) return false;
+                    var cn = _graph.CurrentNode;
+                    int dir = action.Key == "ui.regionNext" ? 1 : -1;
+                    // A node fronting content with a coarser hop unit than its regions jumps
+                    // through its own handler — see NodeVtable.OnRegionJump.
+                    var over = cn?.Vtable?.OnRegionJump;
+                    if (over != null)
+                    {
+                        bool handled = false;
+                        try { handled = over(dir); }
+                        catch (System.Exception ex) { Log.Error("[nav] OnRegionJump threw", ex); }
+                        if (handled) return true;
+                    }
+                    return cn?.RegionKey != null && RegionJump(dir);
+                }
                 case "ui.activate":
                 {
                     if (_graph?.CurrentNode == null) return false;
@@ -415,6 +443,17 @@ namespace ExaAccess.UI
         {
             var focusNode = _graph?.CurrentNode;
             if (focusNode == null) return false;
+
+            // A node fronting screen-windowed content jumps to the DATA's edge, not the graph's
+            // (which is only the window's) — see NodeVtable.OnJumpEdge.
+            var over = focusNode.Vtable?.OnJumpEdge;
+            if (over != null)
+            {
+                bool handled = false;
+                try { handled = over(first); }
+                catch (System.Exception ex) { Log.Error("[nav] OnJumpEdge threw", ex); }
+                if (handled) return true;
+            }
 
             // In a tree: first/last sibling at the current depth.
             if (KeyGraph.InTree(focusNode))

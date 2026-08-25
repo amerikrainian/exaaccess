@@ -4,68 +4,49 @@ namespace ExaAccess.UI
 {
     /// <summary>
     /// The per-run TEST LOG behind the editor's "Test log" stop: sim events (EXA errors, goal
-    /// flips) grouped by the 0-based test run they landed on, in arrival order. BCL-pure so it
-    /// is unit-tested. A free run sweeps up to 100 auto-advancing tests and a fan-out solution
-    /// can die eight ways per test, so the store is capped: the newest <see cref="MaxTests"/>
-    /// tests are kept (older ones drop WHOLE — a failing run's last test is the one that
-    /// matters) and each test keeps its first <see cref="MaxPerTest"/> entries plus a count of
-    /// what overflowed.
+    /// flips) grouped by the 0-based test run they landed on, in arrival order — a
+    /// <see cref="GroupedLog{TKey}"/>: UNCAPPED (user rule 2026-08-25 — the old newest-24-tests
+    /// ring made a 100-test sweep unreadable past its window; the graph side now materializes
+    /// only a window of tests around the focused one, so the store keeps the whole run), with
+    /// the core's silent insurance cap far past any real run's size.
     /// </summary>
     internal sealed class TestLog
     {
-        public const int MaxTests = 24;
-        public const int MaxPerTest = 40;
+        // Longer strings than the execution log (full error messages); ~2M entries ≈ 300 MB —
+        // silent insurance only (see GroupedLog), reachable only by an unattended
+        // spawn-and-die loop left fast-forwarding for hours.
+        public const int DefaultMaxEntries = 2000000;
 
-        private readonly List<int> _order = new List<int>();
-        private readonly Dictionary<int, List<string>> _entries = new Dictionary<int, List<string>>();
-        private readonly Dictionary<int, int> _overflow = new Dictionary<int, int>();
+        private readonly GroupedLog<int> _log;
+
+        public TestLog(int maxEntries = DefaultMaxEntries)
+        {
+            _log = new GroupedLog<int>(maxEntries);
+        }
 
         /// <summary>Test indexes holding entries, oldest first.</summary>
-        public IReadOnlyList<int> Tests => _order;
+        public IReadOnlyList<int> Tests => _log.Groups;
 
-        public bool IsEmpty => _order.Count == 0;
+        public bool IsEmpty => _log.IsEmpty;
 
-        public void Clear()
-        {
-            _order.Clear();
-            _entries.Clear();
-            _overflow.Clear();
-        }
+        /// <summary>Total entries across all tests.</summary>
+        public int EntryCount => _log.EntryCount;
+
+        /// <summary>Tests the insurance cap shed, oldest-first (realistically always 0).</summary>
+        public int DroppedTests => _log.DroppedGroups;
+
+        public void Clear() => _log.Clear();
 
         public void Add(int test, string text)
         {
-            if (string.IsNullOrEmpty(text)) return;
             if (test < 0) test = 0;
-            List<string> list;
-            if (!_entries.TryGetValue(test, out list))
-            {
-                list = new List<string>();
-                _entries[test] = list;
-                _overflow[test] = 0;
-                _order.Add(test);
-                while (_order.Count > MaxTests)
-                {
-                    int oldest = _order[0];
-                    _order.RemoveAt(0);
-                    _entries.Remove(oldest);
-                    _overflow.Remove(oldest);
-                }
-            }
-            if (list.Count < MaxPerTest) list.Add(text);
-            else _overflow[test]++;
+            _log.Add(test, text);
         }
 
-        public IReadOnlyList<string> Entries(int test)
-        {
-            List<string> list;
-            return _entries.TryGetValue(test, out list) ? list : (IReadOnlyList<string>)new string[0];
-        }
+        public IReadOnlyList<string> Entries(int test) => _log.Entries(test);
 
-        /// <summary>Entries beyond <see cref="MaxPerTest"/> that were counted, not kept.</summary>
-        public int Overflow(int test)
-        {
-            int n;
-            return _overflow.TryGetValue(test, out n) ? n : 0;
-        }
+        /// <summary>The test's index in <see cref="Tests"/>, or -1 when absent (never added,
+        /// cleared, or shed by the backstop).</summary>
+        public int IndexOf(int test) => _log.IndexOf(test);
     }
 }
