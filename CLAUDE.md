@@ -686,7 +686,29 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     pre-ghost-network puzzles opened + audited pixels/model/speech):
     PB000/PB001/PB037/PB002 (tutorials), PB003B (pizza), PB004
     (nerve), PB005 (snaxnet), PB006B (zebros), PB007 (sign) — ALL
-    parity-confirmed, zero code changes. Findings that generalize:
+    parity-confirmed, zero code changes. PB011B (heart) audited
+    2026-08-24, read-only mid-play (user's rule: probes + /screenshot
+    only, no input): parity CONFIRMED, zero changes — its plate-0 host
+    is unlettered in the art too (the register badge carries the drawn
+    identity; "Unnamed host" correct), the brand decal is method_34
+    OVERLAY art (this meta has no texture_0) restating the spoken
+    title so no NetworkLogos row is owed, and the goal-view I/O table
+    (30 rows; TableColumn.smethod_0/1 keep the full arrays only under
+    the goal flag) captures whole via the PB004 mechanism. TRAP: a
+    /speech tail ending mid-table means the user CLOSED the popup
+    there, not that capture truncated (bit this audit — judge loss by
+    the mechanism, never by the log tail). PB013C (TWN find-replace
+    tutorial) audited 2026-08-24 the same read-only way: parity
+    CONFIRMED, zero changes — backdrop lettering restates the title,
+    the plate-0 host is unlettered in art ("Unnamed host" correct),
+    goal specs (method_29/30/31 fill SimHost.list_0; method_30 sets
+    contents on an EXISTING spec) put the F1 ghost-file contents in
+    the goal popup, and SimFile.method_11 = window STARTS COLLAPSED
+    (cosmetic), not immovable. AUDIT-PROBE TRAP (bit this audit): a
+    stale host object from a PREVIOUS /eval makes HostName's
+    identity-based home substitution miss and return the internal
+    name — a FALSE parity gap; always fetch sim+host and call the
+    helper in the SAME eval. Findings that generalize:
     every brand decal in range matches its spoken title (no new
     NetworkLogos entries); plate enums 2/3 draw the internal name
     (spoken identically), plate 4 on a NON-home host (zebros
