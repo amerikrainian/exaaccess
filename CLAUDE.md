@@ -838,7 +838,26 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     (EditorScreen ~2076: tags draw ONLY for the viewing team — the
     model gate is byte-exact; the earlier "??? speaks raw" NPCs were
     VIEWING-TEAM terminals with drawn tags; this audit's follow-up
-    made the label mode-aware — "other EXA" outside battles), an NPC-HELD file draws
+    made the label mode-aware — "other EXA" outside battles),
+    PB040 (modem) audited 2026-08-29 read-only: parity CONFIRMED,
+    zero changes — logic = SpecialPuzzleLogics.Modem (name-preserved):
+    #DIAL (write-only) takes digits 0-9 (11 = a full number, matched
+    against the phone list; -1 hangs up), a match sets THAT station
+    link's ids to 800/-1 and unlocks it — pure model-state flips our
+    live-re-resolving link rows already speak (the PB015 unlock
+    precedent); pre-dial the station links are id-less BOTH sides +
+    LOCKED ("locked" spoken, red lines drawn); the backbone is
+    plate-0 and unlettered in art ("Unnamed host" correct); the
+    MODEM STATUS panel is GClass230 TEXT (vmethod_2, smethod_33/36
+    — states WAITING FOR COMMAND / DIALING + number / CONNECTED /
+    REFUSED / CLOSED), live-verified reaching PanelCapture by
+    passively arming the tap for a frame (no goal force, no input —
+    a new read-only audit trick), so the goal popup hears it; the
+    protocol status stays popup-only per the sign/PB015 rule; the
+    panel header + TEC decal restate the spoken title (no
+    NetworkLogos row); one file id repeats across ALL EIGHT station
+    hosts — the host-qualification mechanism's biggest case, spoken
+    correctly per /speech, an NPC-HELD file draws
     no plate/window and the window dictionary mirrors that, and the
     game PRE-OPENS windows for files the player will MAKE (EntityID
     numbers from Sim.method_79 — entities that don't exist yet;
