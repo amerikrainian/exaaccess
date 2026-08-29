@@ -1005,8 +1005,11 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     wording everywhere before, which misread PB012's soft 50). Battles
     have NO goal rows and NO Show Goal (game draws it only in mode 0 —
     ed.goalbtn gated). A battle = all 100 test runs auto-advancing;
-    Win Count changes announce while armed (the sighted counter tick,
-    one line per round, verified through a full 100-round sweep).
+    the Win Count row is LIVE — the counter ticks once per round ONLY
+    while that row is focused (the register-plate pattern; it announced
+    globally through 2026-08-29, one line per round wherever focus was,
+    until the user ruled it row-scoped — the global OnUpdate watch is
+    gone).
     PER-TEAM DATA: file ids are per-side (GStruct16) — FileId reads the
     VIEWING team now (the drawn ids; the file's own team read the
     opponent's ids); the opponent home link's ids are Nothing for my

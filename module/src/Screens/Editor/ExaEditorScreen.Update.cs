@@ -13,7 +13,6 @@ namespace ExaAccess.Screens
 
         private object _instance;
         private bool _wasRunning, _wasSolved, _wasCodeFocused, _wasShowGoal, _wasPlayMode;
-        private string _lastWinCount; // battle: the drawn Win Count, watched while armed
 
         public override void OnUpdate()
         {
@@ -27,7 +26,6 @@ namespace ExaAccess.Screens
                 _lastCodeExa = int.MinValue;
                 _popupFile = null;
                 _popupGoalHost = _popupGoalRequired = -1;
-                _lastWinCount = null;
                 _goalPopup = false;
                 _goalPopupPending = 0;
                 _runToLine = 0;
@@ -59,17 +57,8 @@ namespace ExaAccess.Screens
                 }
             }
 
-            // BATTLE: each round's outcome shows to sighted players as the Win Count ticking —
-            // speak the counter whenever it changes while the sim is armed (primed on arming,
-            // so re-entering the editor never replays a stale count).
-            if (BattleMode(e) && !Editing(e))
-            {
-                string wc = WinCountText();
-                if (wc != null && _lastWinCount != null && wc != _lastWinCount)
-                    Speech.Tts.Speak(GameText.T("Win Count") + " " + wc);
-                _lastWinCount = wc;
-            }
-            else _lastWinCount = null;
+            // (Battle Win Count no longer announces globally — the ed.wins row is LIVE, so
+            // the counter ticks only while that row is focused; user rule 2026-08-29.)
 
             // The exec log's synthetic "Go to cycle" field types through our own keyboard
             // snapshot (no game widget backs it).

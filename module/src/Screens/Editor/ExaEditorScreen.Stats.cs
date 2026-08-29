@@ -69,8 +69,13 @@ namespace ExaAccess.Screens
             bool battle = BattleMode(e);
 
             if (battle)
+                // LIVE: the counter ticks once per round during a battle sweep — it speaks
+                // only while THIS row is focused (the register-plate pattern; the old global
+                // OnUpdate announce narrated all 100 rounds wherever focus was — user rule,
+                // 2026-08-29).
                 StatRow(b, "ed.wins", () => GameText.T("Win Count"), WinCountText,
-                    () => GameText.TSpeech("To win this battle you must win more than half of the test runs."));
+                    () => GameText.TSpeech("To win this battle you must win more than half of the test runs."),
+                    live: true);
 
             StatRow(b, "ed.cycles", () => ScoreManager.locString_0.ToString(), () =>
             {
@@ -244,7 +249,7 @@ namespace ExaAccess.Screens
             return (run + 1) + " / 100";
         }
 
-        private static void StatRow(GraphBuilder b, string id, Func<string> label, Func<string> value, Func<string> tooltip)
+        private static void StatRow(GraphBuilder b, string id, Func<string> label, Func<string> value, Func<string> tooltip, bool live = false)
         {
             b.AddItem(ControlId.Structural(id), new NodeVtable
             {
@@ -252,7 +257,7 @@ namespace ExaAccess.Screens
                 Announcements = new[]
                 {
                     new NodeAnnouncement(label, kind: AnnouncementKinds.Label),
-                    new NodeAnnouncement(value, kind: AnnouncementKinds.Value),
+                    new NodeAnnouncement(value, live: live, kind: AnnouncementKinds.Value),
                 },
                 OnTooltip = () =>
                 {
