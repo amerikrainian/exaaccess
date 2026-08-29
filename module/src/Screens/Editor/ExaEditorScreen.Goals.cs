@@ -53,6 +53,20 @@ namespace ExaAccess.Screens
                             kind: AnnouncementKinds.Label),
                     },
                 });
+            if (CompassRose() != null)
+                b.AddItem(ControlId.Structural("ed.compass"), new NodeVtable
+                {
+                    ControlType = ControlTypes.Text,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() =>
+                        {
+                            var ids = CompassRose();
+                            return ids == null ? null : Loc.T("editor.compass",
+                                new { n = ids[0], e = ids[1], s = ids[2], w = ids[3] });
+                        }, kind: AnnouncementKinds.Label),
+                    },
+                });
 
             var sim = TheSim(e);
             if (sim != null)
@@ -110,7 +124,33 @@ namespace ExaAccess.Screens
                 // (title = "Digital Library Project" alone; grep-verified absent from
                 // descriptions and strings.csv), screenshot-verified 2026-08-29.
                 { "PB016", "Palo Alto Digital Library Project" },
+                // PB018: the decal's full "Emerson's Restaurant Guide" carries a word the
+                // spoken title ("Emerson's Guide") drops — the fuller-brand rule; the
+                // "Street Smarts GIS" half is carried by the spoken subtitle.
+                { "PB018", "Street Smarts GIS, Emerson's Restaurant Guide" },
             };
+
+        // The GIS maps' COMPASS ROSE decal: four link-id plates around a star with a
+        // drawn north arrow — the id→cardinal mapping the task text depends on ("move
+        // east"), lettered only in the art. Ids in N,E,S,W order per puzzle;
+        // screenshot-transcribed like NetworkLogos. No entry = no row.
+        private static readonly System.Collections.Generic.Dictionary<string, int[]> CompassRoses =
+            new System.Collections.Generic.Dictionary<string, int[]>
+            {
+                // PB018: N=800 (the drawn arrow sits on the 800 point), E=801, S=802, W=803.
+                { "PB018", new[] { 800, 801, 802, 803 } },
+            };
+
+        private static int[] CompassRose()
+        {
+            try
+            {
+                var meta = Meta(Editor);
+                int[] ids;
+                return meta != null && CompassRoses.TryGetValue(meta.string_0, out ids) ? ids : null;
+            }
+            catch { return null; }
+        }
 
         private static string NetworkLogoText()
         {
@@ -215,10 +255,14 @@ namespace ExaAccess.Screens
                             ? required.maybe_0.method_2().ToString() : GameText.T("NEW");
                         var values = new System.Collections.Generic.List<string>();
                         int total = required.exaValue_0.Length;
+                        bool prose = IsProse(required.exaValue_0);
                         for (int i = 0; i < total && i < FileValuesSpoken; i++)
-                            values.Add(required.exaValue_0[i].method_2(true));
+                        {
+                            string t = required.exaValue_0[i].method_2(true);
+                            values.Add(prose ? t : ValueSpeech(t));
+                        }
                         string joined = JoinValueRows(values, total,
-                            RequiredFileColumns(sim, required), IsProse(required.exaValue_0));
+                            RequiredFileColumns(sim, required), prose);
                         rows.Add(new GoalRow
                         {
                             Text = Loc.T("editor.goal.file", new

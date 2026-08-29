@@ -407,6 +407,14 @@ namespace ExaAccess.Screens
             return 0;
         }
 
+        /// <summary>A single value as spoken in comma joins: an EMPTY string value (the
+        /// game draws its underline styling with no glyphs — the rating files' empty star
+        /// slots) speaks "blank" so consecutive empties stay countable by ear — the
+        /// sign-cell precedent for drawn-but-empty slots. Everything else passes through
+        /// raw (user rule). Not applied to prose flow.</summary>
+        private static string ValueSpeech(string t)
+            => string.IsNullOrWhiteSpace(t) ? Loc.T("text.blank") : t;
+
         /// <summary>True when a value list is tokenized PROSE — it contains the game's "¶"
         /// paragraph-mark value (the books and articles ship as word/punctuation tokens).
         /// The drawn window shows the same comma-separated token stream, so flow-joining is
@@ -660,9 +668,13 @@ namespace ExaAccess.Screens
             {
                 var parts = new System.Collections.Generic.List<string>();
                 int count = file.list_0.Count;
+                bool prose = IsProse(file.list_0);
                 for (int i = 0; i < count && i < FileValuesSpoken; i++)
-                    parts.Add(file.list_0[i].method_2(true));
-                string values = JoinValueRows(parts, count, FileColumns(file), IsProse(file.list_0));
+                {
+                    string t = file.list_0[i].method_2(true);
+                    parts.Add(prose ? t : ValueSpeech(t));
+                }
+                string values = JoinValueRows(parts, count, FileColumns(file), prose);
                 // The host is the stop's context now; a HELD file reads with its holder and
                 // cursor (the zine's file window attached beneath the EXA).
                 var holder = HolderOf(file);

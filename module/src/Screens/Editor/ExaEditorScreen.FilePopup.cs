@@ -157,7 +157,7 @@ namespace ExaAccess.Screens
                 if (start >= vals.Count) return null;
                 var parts = new System.Collections.Generic.List<string>();
                 for (int i = start; i < vals.Count && i < start + cols; i++)
-                    parts.Add(vals[i].method_2(true));
+                    parts.Add(ValueSpeech(vals[i].method_2(true)));
                 return string.Join(", ", parts);
             }
             catch { return null; }

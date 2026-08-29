@@ -130,6 +130,7 @@
   "editor.goal.sign.size": "Sign: {rows} rows by {cols} columns.",
   "editor.sign": "{host} sign",
   "editor.logo": "Network logo: {text}",
+  "editor.compass": "Compass: {n} north, {e} east, {s} south, {w} west.",
   "editor.sprite": "{exa} sprite",
   "editor.pixel.on": "on",
   "editor.pixel.off": "off",

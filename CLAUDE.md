@@ -847,7 +847,7 @@ may leak. The rulebook accumulated so far:
   and opponent plates substitute by IDENTITY (sim.dictionary_0[team].simHost_0;
   sandbox excepted; opponent = Steam persona else the battle character); the logic's
   vmethod_10 override applies last; then the map's #-suffix truncation. Plate enums
-  2/3 (and 4 on a non-home host) draw the internal name — speak it.
+  1/2/3 (and 4 on a non-home host) draw the internal name — speak it.
 - LINKS: rows read "id, destination", "One way" prefixed when the far side has no
   return id; locked links (bool_0, drawn red, ids usually cleared) speak "locked" even
   id-less; a link with NO id on a side and NOT locked is silent from that side — that
@@ -858,7 +858,14 @@ may leak. The rulebook accumulated so far:
   is baked brand art. If its lettering appears in NO spoken string, the task stop owes
   a "Network logo:" row via the NetworkLogos transcription table (Goals.cs — 
   language-invariant, keyed by puzzle id; no entry = no row). Sublines and taglines
-  count; title restatements do not. Grep descriptions/ + strings.csv to check.
+  count; a FULLER brand name counts; title restatements do not. Grep descriptions/ +
+  strings.csv to check. The GIS maps' COMPASS ROSE decal (four link-id plates + a
+  drawn north arrow — the id→cardinal mapping the task text depends on) gets its own
+  task-stop row via the CompassRoses table (ids in N,E,S,W order, editor.compass
+  template); a mere link LEGEND that restates per-host-spoken ids owes nothing.
+- EMPTY STRING VALUES in comma joins speak "blank" (ValueSpeech — the game draws
+  their underline styling with no glyphs, e.g. empty rating slots; consecutive
+  empties must stay countable by ear — the sign-cell precedent). Prose flow exempt.
 - PANELS: special-puzzle panel content drawn as TEXT is captured whole by PanelCapture
   into the goal popup (markup stripped by GameText.Speech). Zine-documented protocol
   status stays popup-only, never a live node (user decision). Panel content drawn as
