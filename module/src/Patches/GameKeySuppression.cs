@@ -56,6 +56,16 @@ namespace ExaAccess.Patches
                 var prefix = new HarmonyMethod(typeof(GameKeySuppression), nameof(KeyPrefix));
                 harmony.Patch(Expr.MethodOf(() => GClass64.smethod_17(default(SDL.GEnum195))), prefix: prefix);
                 harmony.Patch(Expr.MethodOf(() => GClass64.smethod_22(default(SDL.GEnum195))), prefix: prefix);
+                // smethod_10 = the RAW held-key read — the third seam, added for the Redshift
+                // pad (GClass313 reads its bindings through it, default START = Enter, so
+                // activating a node while the sandbox sim was armed also pressed START; the
+                // arcade board reads the same way). Caller-audited 2026-08-29: besides the two
+                // pad readers only smethod_11 (modifier keycodes, not in Keys) and the editor's
+                // labeled-button helper (F1/Show Goal, not in Keys) ride it — suppressing our
+                // key list here touches nothing else. Same gate as the other seams, so the
+                // sandbox's free-run PLAY MODE (CapturesRawInput) lifts it and the pad gets
+                // every key back.
+                harmony.Patch(Expr.MethodOf(() => GClass64.smethod_10(default(SDL.GEnum195))), prefix: prefix);
                 Log.Info("[patch] game key suppression armed");
             }
             catch (Exception ex) { Log.Error("[patch] key suppression failed to apply", ex); }

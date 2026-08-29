@@ -201,7 +201,13 @@ namespace ExaAccess.UI
                 if (!string.Equals(_liveValues[i], v))
                 {
                     _liveValues[i] = v;
-                    if (!string.IsNullOrEmpty(v) && FocusMode.Active) Speak(v, interrupt: false);
+                    // A screen capturing raw input is in "the game is playing" state (a
+                    // cutscene, the sandbox's play mode) — the values keep baselining
+                    // silently so returning doesn't replay a stale diff, but a focused live
+                    // row must not chatter over the game (a register ticking 30×/sec).
+                    if (!string.IsNullOrEmpty(v) && FocusMode.Active
+                        && Screen?.CapturesRawInput != true)
+                        Speak(v, interrupt: false);
                 }
             }
         }

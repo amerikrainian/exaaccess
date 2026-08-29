@@ -12,7 +12,7 @@ namespace ExaAccess.Screens
         // ---- per-frame: step-cycle echo, run-stop and test-run-complete announcements ----
 
         private object _instance;
-        private bool _wasRunning, _wasSolved, _wasCodeFocused, _wasShowGoal;
+        private bool _wasRunning, _wasSolved, _wasCodeFocused, _wasShowGoal, _wasPlayMode;
         private string _lastWinCount; // battle: the drawn Win Count, watched while armed
 
         public override void OnUpdate()
@@ -22,7 +22,7 @@ namespace ExaAccess.Screens
             if (!ReferenceEquals(_instance, e))
             {
                 _instance = e;
-                _wasRunning = _wasSolved = _stepEcho = _wasCodeFocused = false;
+                _wasRunning = _wasSolved = _stepEcho = _wasCodeFocused = _wasPlayMode = false;
                 _lastCycle = -1;
                 _lastCodeExa = int.MinValue;
                 _popupFile = null;
@@ -172,6 +172,21 @@ namespace ExaAccess.Screens
                 else if (--_refocusTtl <= 0) _refocusLog = null;
             }
             _wasRunning = running;
+
+            // PLAY MODE transitions (sandbox): entering a free run hands the keyboard to the
+            // Redshift pad — say so, right after the "Running." it rides in on. Leaving it
+            // while still armed = a NATIVE pause (F3/Tab — our Pause button can't fire in play
+            // mode: Enter belongs to the pad), which otherwise says nothing: announce it and
+            // arm the step echo the way our Pause button does. A run-to arrival pause speaks
+            // its own landing below; a full stop already said "Stopped.".
+            bool play = PlayMode;
+            if (play && !_wasPlayMode) Speech.Tts.Speak(Loc.T("editor.playmode"));
+            if (_wasPlayMode && !play && running && _runToLine == 0)
+            {
+                _stepEcho = true;
+                Speech.Tts.Speak(Loc.T("editor.paused"));
+            }
+            _wasPlayMode = play;
 
             int cycles = 0;
             try { cycles = sim != null ? sim.method_52() : 0; } catch { }

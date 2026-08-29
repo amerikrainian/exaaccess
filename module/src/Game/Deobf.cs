@@ -45,10 +45,20 @@ namespace ExaAccess.Game
         // NESTING separators differ: the map is Cecil-style ('/'), runtime FullName uses '+' —
         // T-row keys are normalized to '+' at load, and a preserved nested type (no T row, e.g.
         // SpecialPuzzleLogics.HighwaySign) converts here so it matches the map's '/' form.
+        // A RENAMED nested type (first hit: SpecialPuzzleLogics.GClass313, 2026-08-29) never
+        // matches on its full path — NameMap's T rows carry the BARE inner shipping name
+        // (Cecil rename pairs are per-name) — so the last segment translates alone; its deob
+        // column already carries the whole nesting path. The parent check keeps an
+        // Eazfuscator name reused in another scope from mistranslating: a wrong stored
+        // candidate fails closed to the loud not-found path instead.
         private static string DeobTypeName(Type type)
         {
             string n = type.FullName;
             if (_typeToDeob != null && _typeToDeob.TryGetValue(n, out var deob)) return deob;
+            if (_typeToDeob != null && type.DeclaringType != null
+                && _typeToDeob.TryGetValue(type.Name, out var nested)
+                && nested.StartsWith(DeobTypeName(type.DeclaringType) + "/", StringComparison.Ordinal))
+                return nested;
             return n.Replace('+', '/');
         }
 

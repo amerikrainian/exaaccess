@@ -135,6 +135,30 @@ namespace ExaAccess.Screens
         /// the right half is the drawn handheld console, EXAs are sprites.</summary>
         private static bool SandboxMode(EditorScreen e) => GameMode(e) == 2;
 
+        /// <summary>PLAY MODE (sandbox only, no key of its own — user design 2026-08-29):
+        /// while the homebrew game FREE-RUNS, every key belongs to the player — the Redshift
+        /// pad reads raw held keys (GClass64.smethod_10, default W/S/A/D + J/K/L + Enter for
+        /// START), so the navigator and both suppression seams stand down via
+        /// CapturesRawInput, exactly like a cutscene. Free-running = armed with NO step
+        /// budget (F4/F5, run-to's hunt); any pause — native F3, Tab-step, Escape-reset —
+        /// brings the navigator straight back. The game's own text-input gate already kills
+        /// pad reads while one of its fields is armed, and its run pre-action closes them,
+        /// so entering a run never types into a field.</summary>
+        public override bool CapturesRawInput => PlayMode;
+
+        private bool PlayMode
+        {
+            get
+            {
+                try
+                {
+                    var e = Editor;
+                    return e != null && SandboxMode(e) && e.method_0() && !StepBudget(e).method_0();
+                }
+                catch { return false; }
+            }
+        }
+
         public override void Build(GraphBuilder b)
         {
             var e = Editor;
@@ -164,6 +188,7 @@ namespace ExaAccess.Screens
             BuildProblems(b, e);
             BuildCode(b, e);
             BuildSprite(b, e);
+            BuildScreenStop(b, e);
             BuildStats(b, e);
             BuildControls(b, e);
             BuildTestLog(b, e);

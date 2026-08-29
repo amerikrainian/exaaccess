@@ -93,7 +93,10 @@ shipping game at runtime once names are fixed up:
   translate the runtime shipping type name back to the deob name the M/F rows key by —
   and on NESTED types: the map nests Cecil-style `Outer/Inner`, runtime FullName uses
   `+`; Deobf normalizes both directions — fixed 2026-08-22, first hit by
-  SpecialPuzzleLogics.HighwaySign);
+  SpecialPuzzleLogics.HighwaySign; RENAMED nested types never match on the full path —
+  the T rows carry only the BARE inner shipping name — so the last segment translates
+  alone, verified against the DeclaringType chain so a reused obfuscated name fails
+  closed — fixed 2026-08-29, first hit by SpecialPuzzleLogics.GClass313);
   Harmony targets for PUBLIC methods via `Game/Expr.MethodOf(() => …)` so the ldtoken
   remaps (STRING-based reflection with deob names does NOT remap — never use it).
 - **Title screen decoded** (deob `GClass368`, live type index 1055): the room scene.
@@ -1024,7 +1027,60 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     notice, and Continue Editing / Record GIF / Return to Desktop
     (win-gated) replicating the click paths; Escape native. NetworkLogos
     grew PB014 ("KGOG News Network" — the subline the spoken KGOG-TV
-    title lacks).
+    title lacks). REDSHIFT SANDBOX (PB039, mode 2 — built + live-verified
+    2026-08-29; SandboxMode helper): the homebrew dev kit is this editor
+    with the drawn handheld console at right; the brain is
+    SpecialPuzzleLogics.GClass313 — pad registers #PADX/#PADY (-1/0/+1),
+    #PADB (X=1 Y=10 Z=100 START=1000), #EN3D; sound #SQR0/#SQR1/#TRI0/
+    #NSE0 (read-write 0-99 → the gclass215_0 synth every frame, audible
+    natively; game music MUTES while armed). The 120x100 screen is
+    composited per frame from EVERY live EXA: bool_4[100] = the 10x10
+    sprite pattern at int_4/5/6 = GX/GY/GZ (GY 0 = TOP,
+    screenshot-verified), GP write = op digit (0 clear/1 set/2 toggle
+    pixel, 3 load glyph)+2 digits, CO = int_7 free tag, CI = int_8 =
+    highest pixel-overlapping CO else -9999 (Sim.method_81, mode-2 only;
+    both DEFAULT -9999 = the drawn edit-time placeholders); the sim
+    paces ~30 cycles/sec wall-clock while running, and there are no
+    tests, goals, scores or completion. Pad KEYBOARD reads are RAW held
+    keys — GClass64.smethod_10, bindings gclass17_0.gclass52_19..26
+    (the control panel's Redshift keys; defaults WASD/JKL/Enter=START),
+    live whenever ARMED — so suppression got a THIRD seam on smethod_10
+    (caller-audited: only the two pad readers — GClass313, ArcadeBoard —
+    smethod_11's modifier keycodes and the F1 button helper ride it):
+    Enter on a node no longer presses START (live-verified via the
+    drawn #PADB plate). PLAY MODE (no key of its own — user design
+    2026-08-29): sandbox + armed + FREE-RUNNING flips CapturesRawInput,
+    standing the navigator and all three seams down ("Play mode."
+    announced after "Running."); any native pause (F3, Tab-step)
+    returns browse mode and speaks "Paused." + arms the step echo; the
+    game's own text-input gate (input filter bool_0) already kills pad
+    reads while a game field is armed. GraphNavigator's live-watch now
+    MUTES (baselining silently) whenever the focused screen captures
+    raw input — a focused register row must not chatter over play.
+    Mod surfaces: task + scores stops ABSENT in sandbox (the game draws
+    neither — descriptions/en/sandbox.txt ships 0 bytes, both stat
+    blocks are gated to modes 0/1; task-stop rows now build only when
+    they carry content, all modes); window readouts grow "G gx,gy,gz.
+    C co, ci." (drawn literals while editing, live armed); "{exa}
+    sprite" Tab stop after code, following the code stop's program =
+    the EXA window's mouse-only 10x10 paint grid (index r*10+c, row 0
+    top — the same index GP addresses; Enter toggles SolutionExa.bool_0
+    via the game's snapshot+dirty path, Ctrl+Z restores; armed = the
+    FOLLOWED instance's live bool_4, read-only like the drawn grid);
+    the 2D/3D switch (mouse-only hotspot → EditorScreen.bool_10 +
+    sound_29) as a toggle ending the Simulation stop; "Screen" stop
+    (armed only) = the sprite TABLE in reading order — "XA, at 10, 5:
+    A" — pattern-matched against the game's glyph cache
+    (GClass313.dictionary_1, force-loaded via public smethod_0; the
+    font transcribes to " A-Z 0-9 . ? !" by index, glyph 1='A'
+    live-verified) else "custom shape, N pixels", ", depth z" appended
+    only in 3D — nothing Live (positions move 30x/sec; pause to
+    orient). Real gamepads feed the pad natively (GameController) —
+    zero key conflicts, worth documenting for users. DEFERRED: the
+    Ctrl+O solution browser (GClass253, unmodeled — in sandbox it adds
+    the export/import-cartridge panels; import = drag-and-drop onto the
+    window), live play narration (the sound registers are the game's
+    own real-time feedback channel — by design, play by ear).
 11. Map the remaining obfuscated transition/overlay screens to friendly names.
 12. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
     code editor for program text — this game is text-centric, a strong a11y target.
