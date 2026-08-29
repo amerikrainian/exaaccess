@@ -140,6 +140,7 @@ namespace ExaAccess.Screens
             Register(new WorkhouseScreen());
             Register(new SolitaireGameScreen());
             Register(new ExaEditorScreen());
+            Register(new SolutionBrowserGameScreen());
             Register(new PuzzleCompleteScreen());
             Register(new OpponentBrowserGameScreen());
             Register(new BattleCompleteScreen());

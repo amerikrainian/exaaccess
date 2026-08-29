@@ -1076,10 +1076,37 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     live-verified) else "custom shape, N pixels", ", depth z" appended
     only in 3D — nothing Live (positions move 30x/sec; pause to
     orient). Real gamepads feed the pad natively (GameController) —
-    zero key conflicts, worth documenting for users. DEFERRED: the
-    Ctrl+O solution browser (GClass253, unmodeled — in sandbox it adds
-    the export/import-cartridge panels; import = drag-and-drop onto the
-    window), live play narration (the sound registers are the game's
+    zero key conflicts, worth documenting for users. SOLUTION BROWSER
+    (deob GClass253, obfuscated live; the editor's Ctrl+O/folder
+    button; SolutionBrowserScreen.cs, all modes, live-verified
+    2026-08-29 incl. a real export→import round trip): rows =
+    SolutionManager.smethod_3(puzzle) with the drawn per-mode stats
+    (sandbox Size=solution.int_1 + "{0} EXAS"/"1 EXA"; battle WINS=
+    int_0; normal Cycles/Size/Activity from solution.dictionary_0 else
+    "Unsolved"), selection-follows-focus via the PUBLIC method_0 +
+    sound_43 on change (engine-only Selected drives landings), Enter =
+    open (method_2 — the double-click path), Backspace = delete
+    (method_5 — faithful: NO confirm, announced); actions stop under
+    the game's own GClass26 menu labels — Create New Solution
+    (method_1), Copy (method_4), Export (sandbox, method_3 — GClass32
+    renders the solution into a disc PNG on the DESKTOP with zero
+    visual feedback: the derived filename is announced) — each
+    focus-follows onto the resulting row; Back row voices the game's
+    gate (back/Escape DEAD while the editor's open solution was
+    deleted — flag4); sandbox help stop reads the drawn
+    export/import instruction LocStrings; normal-unsolved notice row
+    mirrors the drawn leaderboard replacement (the solved-mode
+    histogram panels are deferred — the completion screen covers
+    them). IMPORT is native OS drag-and-drop (armed by
+    gclass32_0.method_1 while the browser is open; GClass32.method_2
+    decodes, duplicates, saves and SELECTS game-side) — an OnUpdate
+    watch follows selection changes the mod didn't drive into focus,
+    so an import lands audibly on its new row (verified by invoking
+    the drop handler on a real exported PNG); the watch is gated to
+    the solutions stop so a mouse click never yanks focus out of the
+    action rows. The per-row context menu (GClass26) stays mouse-only
+    and unmodeled — every verb it carries is a first-class key here.
+    DEFERRED: live play narration (the sound registers are the game's
     own real-time feedback channel — by design, play by ear).
 11. Map the remaining obfuscated transition/overlay screens to friendly names.
 12. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
