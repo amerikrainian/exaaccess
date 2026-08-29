@@ -373,6 +373,65 @@ namespace ExaAccess.Screens
 
         private const int FileValuesSpoken = 60;
 
+        /// <summary>A file's AUTHORED row width — SimFile.int_0, set by the puzzles' fluent
+        /// method_10 chain and drawn by the window as a FORCED line break after every Nth
+        /// value (method_43's i % int_7): phone numbers, table rows, song pairs. Sighted
+        /// players read that structure off the wrap; it is real model data, so every spoken
+        /// surface mirrors it (user rule 2026-08-29). 0 = no structure — the window's
+        /// char-width wrap is then purely presentational and stays unspoken.</summary>
+        internal static int FileColumns(SimFile file)
+        {
+            try { return Math.Max(0, file.int_0); } catch { return 0; }
+        }
+
+        /// <summary>A required spec's row width: the SimFile that BACKS it carries the
+        /// columns (specs have none of their own) — the live file it shadows when ids
+        /// collide, else the goal ghost in sim.list_6 — the same precedence the F1 view
+        /// draws with (method_42 reads the drawn window's own int_0).</summary>
+        private static int RequiredFileColumns(Sim sim, SimRequiredFile spec)
+        {
+            try
+            {
+                foreach (var entity in sim.list_1)
+                {
+                    var f = entity as SimFile;
+                    if (f != null && f.vmethod_1() == spec.entityID_0) return FileColumns(f);
+                }
+                foreach (var entity in sim.list_6)
+                {
+                    var f = entity as SimFile;
+                    if (f != null && f.vmethod_1() == spec.entityID_0) return FileColumns(f);
+                }
+            }
+            catch { }
+            return 0;
+        }
+
+        /// <summary>The spoken form of a (possibly capped) value list: flat comma join, or —
+        /// when the file carries an authored row width — rows of that many values separated
+        /// by "; ", the audible form of the drawn line break. Appends "and N more" when the
+        /// list was capped.</summary>
+        private static string JoinValueRows(System.Collections.Generic.List<string> parts, int total, int cols)
+        {
+            // A capped list trims to WHOLE rows ("five numbers... and 33 more" beats a cut
+            // mid-number); an uncapped list is never trimmed, and a row wider than the cap
+            // keeps its partial row rather than vanishing.
+            if (cols > 0 && total > parts.Count && parts.Count > cols)
+                parts = parts.GetRange(0, parts.Count - parts.Count % cols);
+            string joined;
+            if (cols > 0 && cols < parts.Count)
+            {
+                var rows = new System.Collections.Generic.List<string>();
+                for (int i = 0; i < parts.Count; i += cols)
+                    rows.Add(string.Join(", ", parts.GetRange(i, Math.Min(cols, parts.Count - i))));
+                joined = string.Join("; ", rows);
+            }
+            else joined = string.Join(", ", parts);
+            if (total > parts.Count)
+                joined += " " + Loc.T("editor.file.more", new { n = total - parts.Count });
+            return joined;
+        }
+
         /// <summary>The value at an EXA's file cursor — what F reads/writes next; "end" when the
         /// cursor sits past the last value (a write appends, per the zine).</summary>
         private static string CursorValue(SimExa exa)
@@ -529,9 +588,7 @@ namespace ExaAccess.Screens
                 int count = file.list_0.Count;
                 for (int i = 0; i < count && i < FileValuesSpoken; i++)
                     parts.Add(file.list_0[i].method_2(true));
-                string values = string.Join(", ", parts);
-                if (count > FileValuesSpoken)
-                    values += " " + Loc.T("editor.file.more", new { n = count - FileValuesSpoken });
+                string values = JoinValueRows(parts, count, FileColumns(file));
                 // The host is the stop's context now; a HELD file reads with its holder and
                 // cursor (the zine's file window attached beneath the EXA).
                 var holder = HolderOf(file);

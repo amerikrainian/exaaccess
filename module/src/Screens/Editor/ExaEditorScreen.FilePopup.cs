@@ -9,11 +9,15 @@ namespace ExaAccess.Screens
 {
     public sealed partial class ExaEditorScreen
     {
-        // ---- the file-values popup: Enter on a file row lists EVERY value, one row each (the
-        // 60-value cap is the ROW's compromise; here you arrow at your own pace). Enter or
-        // Backspace closes, focus back on the file row. Two sources: a LIVE SimFile, or a
-        // GOAL-REQUIRED file from the goal popup (a SimRequiredFile — no SimFile exists for
-        // it; addressed by indexes and re-resolved per read, the sim rebuilds every frame). ----
+        // ---- the file-values popup: Enter on a file row lists EVERY value — one item per
+        // value, or one item per AUTHORED ROW when the file declares a row width
+        // (FileColumns: a phone number, a table record, a song pair reads as ONE utterance,
+        // exactly the line the drawn window force-breaks). The 60-value cap is the summary
+        // ROW's compromise; here you arrow at your own pace. Enter or Backspace closes,
+        // focus back on the file row. Two sources: a LIVE SimFile, or a GOAL-REQUIRED file
+        // from the goal popup (a SimRequiredFile — no SimFile exists for it; addressed by
+        // indexes and re-resolved per read, the sim rebuilds every frame; its columns come
+        // from the file that BACKS the spec). ----
 
         private string _popupFile;
         private int _popupFileHost = -1; // ids repeat across hosts — the popup stays host-qualified
@@ -84,9 +88,10 @@ namespace ExaAccess.Screens
             }
             string fid = _popupFile;
             // No context, no position counts (user rule): entering announces the VALUE alone,
-            // arrowing speaks each next value bare.
+            // arrowing speaks each next value (or authored row) bare.
             b.BeginStop("filepop");
-            int rows = Math.Max(1, count); // an empty file still gets its one "blank" row
+            int cols = Math.Max(1, PopupColumns());
+            int rows = Math.Max(1, (count + cols - 1) / cols); // an empty file keeps its one "blank" row
             for (int i = 0; i < rows; i++)
             {
                 int vi = i;
@@ -96,7 +101,7 @@ namespace ExaAccess.Screens
                     SpeaksOwnPosition = true, // bare values — no "n of m" (user rule)
                     Announcements = new[]
                     {
-                        new NodeAnnouncement(() => PopupValueAt(fid, vi), kind: AnnouncementKinds.Label),
+                        new NodeAnnouncement(() => PopupRowAt(fid, vi), kind: AnnouncementKinds.Label),
                     },
                     OnActivate = CloseFilePopup,
                     OnSecondary = CloseFilePopup,
@@ -105,21 +110,51 @@ namespace ExaAccess.Screens
             return true;
         }
 
-        private string PopupValueAt(string id, int i)
+        /// <summary>The active source's authored row width (0 = flat), re-resolved per call
+        /// like the values themselves.</summary>
+        private int PopupColumns()
         {
             try
             {
                 if (_popupGoalRequired >= 0)
                 {
-                    var goal = PopupGoalValues();
-                    if (goal == null) return null;
-                    if (goal.Length == 0) return Loc.T("text.blank"); // an empty file's one row
-                    return i < goal.Length ? goal[i].method_2(true) : null;
+                    var sim = TheSim(Editor);
+                    if (sim == null || _popupGoalHost < 0 || _popupGoalHost >= sim.list_0.Count) return 0;
+                    var required = sim.list_0[_popupGoalHost].list_0;
+                    return _popupGoalRequired < required.Count
+                        ? RequiredFileColumns(sim, required[_popupGoalRequired]) : 0;
                 }
                 var file = PopupFile();
-                if (file == null) return null;
-                if (file.list_0.Count == 0) return Loc.T("text.blank"); // an empty file's one row
-                return i < file.list_0.Count ? file.list_0[i].method_2(true) : null;
+                return file != null ? FileColumns(file) : 0;
+            }
+            catch { return 0; }
+        }
+
+        private string PopupRowAt(string id, int row)
+        {
+            try
+            {
+                System.Collections.Generic.IList<ExaValue> vals;
+                if (_popupGoalRequired >= 0)
+                {
+                    var goal = PopupGoalValues();
+                    if (goal == null) return null;
+                    vals = goal;
+                }
+                else
+                {
+                    var file = PopupFile();
+                    if (file == null) return null;
+                    vals = file.list_0;
+                }
+                if (vals.Count == 0) return row == 0 ? Loc.T("text.blank") : null; // the empty file's one row
+                int cols = Math.Max(1, PopupColumns());
+                int start = row * cols;
+                if (start >= vals.Count) return null;
+                var parts = new System.Collections.Generic.List<string>();
+                for (int i = start; i < vals.Count && i < start + cols; i++)
+                    parts.Add(vals[i].method_2(true));
+                return string.Join(", ", parts);
             }
             catch { return null; }
         }

@@ -867,7 +867,22 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     DeclaredOnly, so /eval probes need a base-type fallback; module
     TYPED access never hits this. Findings that generalize:
     every brand decal in range matches its spoken title (no new
-    NetworkLogos entries); plate enums 2/3 draw the internal name
+    NetworkLogos entries); FILE ROW STRUCTURE (user request
+    2026-08-29, found auditing PB040): SimFile.int_0 (the puzzles'
+    fluent method_10) is an AUTHORED values-per-row width — the drawn
+    window FORCE-BREAKS its line after every Nth value (method_43's
+    i % int_7; the char-width wrap at ~35 is separate and purely
+    presentational, never spoken) — sighted players read phone
+    numbers (11), table records (2/3/4) and song pairs (2) off that
+    wrap, so every spoken surface mirrors it via Readouts'
+    FileColumns/JoinValueRows: summary readouts join rows with ";"
+    (an audible pause; the 60-value cap trims to WHOLE rows), the
+    values popup makes each authored row ONE item, and goal-required
+    rows take columns from the SimFile BACKING the spec (the live
+    file it shadows, else the goal ghost in sim.list_6 — the F1
+    view's own precedence; specs carry no width of their own).
+    Live-verified on PB040 (phone list rows of 11, playlist song
+    pairs); plate enums 2/3 draw the internal name
     (spoken identically), plate 4 on a NON-home host (zebros
     terminal) draws the internal name too; the tutorial one-way
     link (799) speaks "One way" from the id side while its id-less

@@ -217,9 +217,7 @@ namespace ExaAccess.Screens
                         int total = required.exaValue_0.Length;
                         for (int i = 0; i < total && i < FileValuesSpoken; i++)
                             values.Add(required.exaValue_0[i].method_2(true));
-                        string joined = string.Join(", ", values);
-                        if (total > FileValuesSpoken)
-                            joined += " " + Loc.T("editor.file.more", new { n = total - FileValuesSpoken });
+                        string joined = JoinValueRows(values, total, RequiredFileColumns(sim, required));
                         rows.Add(new GoalRow
                         {
                             Text = Loc.T("editor.goal.file", new
