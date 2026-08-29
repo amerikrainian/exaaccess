@@ -145,21 +145,42 @@ namespace ExaAccess.Screens
                 HelpRow(b, "sb.help.import", "Importing Redshift Solutions", ImportHelpField);
                 b.PopContext();
             }
-            else if (!battle && !Flag(LegacyField, s) && !PuzzleSolved(s))
+            else if (!battle && !Flag(LegacyField, s) && SelectedSolution(s) != null)
             {
-                // The leaderboard panel's replacement notice (the panels themselves are
-                // deferred — the completion screen's leaderboards cover solved play).
-                b.BeginStop("notice");
-                b.AddItem(ControlId.Structural("sb.notice"), new NodeVtable
+                // The right-half panel block — the game draws it only on normal puzzles
+                // with a solution SELECTED (the ctor selects the editor's solution, so it
+                // is empty only right after a delete).
+                if (!PuzzleSolved(s))
                 {
-                    ControlType = ControlTypes.Text,
-                    Announcements = new[]
+                    // The drawn replacement notice.
+                    b.BeginStop("notice");
+                    b.AddItem(ControlId.Structural("sb.notice"), new NodeVtable
                     {
-                        new NodeAnnouncement(
-                            () => GameText.TSpeech("Solve this puzzle to view histograms and leaderboards."),
-                            kind: AnnouncementKinds.Label),
-                    },
-                });
+                        ControlType = ControlTypes.Text,
+                        Announcements = new[]
+                        {
+                            new NodeAnnouncement(
+                                () => GameText.TSpeech("Solve this puzzle to view histograms and leaderboards."),
+                                kind: AnnouncementKinds.Label),
+                        },
+                    });
+                }
+                else
+                {
+                    // The three histogram panels for the SELECTED solution — the browser
+                    // recomputes dictionary_0 (scoreManager method_14) on every selection
+                    // change, so arrowing the rows re-reads the panels for that solution.
+                    // Browser layout: no caption (the row already spoke the scores); the
+                    // marker = the SELECTED solution's own score (maybe_2 — the GEnum216 1
+                    // its Theme call selects), suppressed when the solution is over the
+                    // size limit exactly like the drawn arrow (the panel itself still
+                    // shows).
+                    bool eligible = SelectionEligible(s);
+                    int si = 0;
+                    foreach (var kv in s.dictionary_0)
+                        LeaderboardRows.BuildStat(b, kv.Value, si++, caption: false,
+                            eligible ? kv.Value.maybe_2 : (Maybe<int>)GStruct10.gstruct10_0);
+                }
             }
         }
 
@@ -235,6 +256,26 @@ namespace ExaAccess.Screens
                     .method_6((Puzzle)PuzzleField.GetValue(s), bool_0: false);
             }
             catch { return false; }
+        }
+
+        private static readonly MethodInfo PuzzleMetaMethod =
+            Deobf.Method(typeof(Puzzle).Assembly.GetType("Puzzles"), "smethod_2");
+
+        /// <summary>The game's marker gate (its flag7): the selected solution's Size score —
+        /// int.MaxValue when unscored — within the puzzle's size limit.</summary>
+        private static bool SelectionEligible(GClass253 s)
+        {
+            try
+            {
+                var sel = SelectedSolution(s);
+                if (sel == null) return false;
+                int size;
+                if (!sel.dictionary_0.TryGetValue(GEnum178.Size, out size)) size = int.MaxValue;
+                var meta = PuzzleMetaMethod?.Invoke(null,
+                    new object[] { (Puzzle)PuzzleField.GetValue(s) }) as GClass361;
+                return meta == null || size <= meta.int_2;
+            }
+            catch { return true; }
         }
 
         private static bool BackEnabled(GClass253 s)

@@ -957,7 +957,9 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     activates the FOCUSED node — the old Enter pass-through to the game's
     leave shortcut made the flip/GIF nodes unactivatable (removed
     2026-08-22); Escape (Continue Editing) stays native. The Leaderboards
-    VIEW is ONE TAB STOP PER STAT (PuzzleCompleteScreen.Leaderboards.cs;
+    VIEW is ONE TAB STOP PER STAT (PuzzleCompleteScreen.Leaderboards.cs —
+    since 2026-08-29 the per-stat row builder lives in the SHARED
+    LeaderboardRows.cs, also feeding the solution browser's panels;
     user rule 2026-08-22 — Tab jumps Cycles/Size/Activity like the three
     drawn panels, arrows stay within a stat),
     present only while that view is SHOWN and scores are size-eligible
@@ -1094,10 +1096,22 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     focus-follows onto the resulting row; Back row voices the game's
     gate (back/Escape DEAD while the editor's open solution was
     deleted — flag4); sandbox help stop reads the drawn
-    export/import instruction LocStrings; normal-unsolved notice row
-    mirrors the drawn leaderboard replacement (the solved-mode
-    histogram panels are deferred — the completion screen covers
-    them). IMPORT is native OS drag-and-drop (armed by
+    export/import instruction LocStrings; normal mode mirrors the
+    right-half panel block (selected-solution gated): unsolved = the
+    drawn replacement notice, solved = the THREE HISTOGRAM PANELS as
+    per-stat Tab stops via the shared UI builder LeaderboardRows.cs
+    (extracted 2026-08-29 from PuzzleCompleteScreen.Leaderboards,
+    which now delegates; live-verified in the browser). THE PANEL IS
+    LAYOUT-PARAMETERIZED because Theme.smethod_5's two call sites
+    genuinely differ: completion = caption spoken + marker from the
+    RUN's score (GClass296.maybe_3, GEnum216 0); browser = NO caption
+    drawn + marker from the SELECTED SOLUTION's score (maybe_2 — the
+    scoreManager method_14 data refreshed by the browser's own select,
+    so arrowing rows re-reads the panels per solution), marker
+    suppressed when that solution is over the size limit (the game's
+    flag7 — the panel still draws, only the arrow hides; NOT the
+    completion screen's whole-notice treatment). IMPORT is native OS
+    drag-and-drop (armed by
     gclass32_0.method_1 while the browser is open; GClass32.method_2
     decodes, duplicates, saves and SELECTS game-side) — an OnUpdate
     watch follows selection changes the mod didn't drive into focus,
