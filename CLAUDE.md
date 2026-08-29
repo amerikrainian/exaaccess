@@ -827,7 +827,25 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     them via generic PanelCapture (live-confirmed in /speech) — the
     highway-sign precedent: panel state is popup-hearable, no live
     node owed; unlock flips link ids/lock/cover in model state every
-    row already re-resolves live. Findings that generalize:
+    row already re-resolves live. PB016 (library) audited 2026-08-29
+    read-only mid-play: ONE gap — the backdrop decal's brand line
+    appears in NO spoken string (grep-verified absent from
+    descriptions + strings.csv) → NetworkLogos grew PB016; otherwise
+    parity CONFIRMED — the special logic (GClass299) is an EMPTY
+    GClass298 (no panels, no name overrides), plate enums 2/3/4 all
+    speak as drawn, the id-less NPC wire is silent per the PB015
+    precedent, the anonymous NPC EXA speaks editor.exa.enemy
+    (EditorScreen ~2076: tags draw ONLY for the viewing team — the
+    model gate is byte-exact; the earlier "??? speaks raw" NPCs were
+    VIEWING-TEAM terminals with drawn tags), an NPC-HELD file draws
+    no plate/window and the window dictionary mirrors that, and the
+    game PRE-OPENS windows for files the player will MAKE (EntityID
+    numbers from Sim.method_79 — entities that don't exist yet;
+    FindFileForWindow's null gate already skips them). AUDIT-PROBE
+    NOTE: several SimExa/SimFile members (method_0 = current host,
+    team_0) are declared on the SimEntity BASE — Deobf is
+    DeclaredOnly, so /eval probes need a base-type fallback; module
+    TYPED access never hits this. Findings that generalize:
     every brand decal in range matches its spoken title (no new
     NetworkLogos entries); plate enums 2/3 draw the internal name
     (spoken identically), plate 4 on a NON-home host (zebros

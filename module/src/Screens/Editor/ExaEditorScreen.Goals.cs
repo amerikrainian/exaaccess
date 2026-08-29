@@ -106,6 +106,10 @@ namespace ExaAccess.Screens
                 // lettering the spoken "KGOG-TV (Programming Hub)" lacks,
                 // screenshot-verified 2026-08-24.
                 { "PB014", "KGOG News Network" },
+                // PB016: the decal's "PALO ALTO" brand line appears in NO spoken string
+                // (title = "Digital Library Project" alone; grep-verified absent from
+                // descriptions and strings.csv), screenshot-verified 2026-08-29.
+                { "PB016", "Palo Alto Digital Library Project" },
             };
 
         private static string NetworkLogoText()
