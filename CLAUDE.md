@@ -1,4 +1,4 @@
-# ExaAccess — Accessibility Mod for EXAPUNKS
+﻿# ExaAccess — Accessibility Mod for EXAPUNKS
 
 Screen-reader accessibility mod for blind players. Speaks screens today; grows into a
 model-driven reader of the desktop, EXA code editor, and simulation via Prism. Sibling
@@ -477,12 +477,24 @@ Ask the host which module actually runs:
 `typeof(ExaAccess.Bootstrap).GetField("_moduleLoader", NonPublic|Static).GetValue(null)`,
 then `.GetType().GetProperty("Module").GetValue(...)` → `.GetType().Assembly` is the
 live generation.
-Two more `/eval` traps (PB008 audit, 2026-08-23): while EDITING a puzzle the sim is
-rebuilt EVERY FRAME, so game objects captured by an earlier `/eval` are stale by the
-next call — identity-based reads (the home-plate substitution, HolderOf) silently miss
-on them; fetch via TheSim in the SAME eval as the read. And a failed compile of a block
-containing an anonymous type can wedge Mono.CSharp ("builder already exists" on every
-subsequent input, even `1+1`) — `/reload` resets the evaluator.
+More `/eval` traps, all hit live:
+- While EDITING a puzzle the sim is rebuilt EVERY FRAME — game objects captured by an
+  earlier `/eval` are stale by the next call; identity-based reads (home-plate
+  substitution, HolderOf) silently miss on them. Fetch sim + object + read in ONE eval.
+- A failed compile of a block containing an anonymous type can wedge Mono.CSharp
+  ("builder already exists" on every subsequent input) — `/reload` resets the evaluator.
+- Several SimExa/SimFile members (method_0 = current host, team_0) are declared on the
+  SimEntity BASE — Deobf is DeclaredOnly; probes need a base-type fallback (typed
+  module code never hits this).
+- Comparing non-ASCII literals ("¶") needs a UTF-8 request body
+  (WebClient.UploadData + charset=utf-8) — a default-encoded POST mangles them and the
+  compare silently misses.
+- READ-ONLY audit tricks: PanelCapture can be armed PASSIVELY for a frame (no goal
+  force, no input) to verify a panel's text reaches the tap; any sprite needing
+  transcription can be read back off the GPU via Renderer.smethod_9 + a VERTICAL FLIP
+  (readbacks come out upside down) — that's how the battle rating badges were done.
+- Judge information loss by the MECHANISM, never by the /speech tail — a tail ending
+  mid-popup usually means the user closed it there.
 
 ## Hard rules
 - **Never commit or ship game code.** `game/` (deob exe, decompiled source, copied game
@@ -536,673 +548,323 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
   dev loop CANNOT catch this class of bug.
 
 ## Roadmap
-1. **(done)** In-process injection, Harmony on obfuscated members, Prism speech,
-   dev server, screen-change announcements.
-2. **(done)** Zero-loader: stock `EXAPUNKS.exe` boots the mod via AppDomainManager
-   config; mod ships as a DLL.
-3. **(done)** Host/module split with hot reload (build + /reload, no restart).
-4. **(done)** WrathAccess localization layer + handler-chain speech stack
-   (Prism → SAPI → clipboard); every module string localized.
-5. **(done)** Boot click-gate: localized "Press any key to continue" + any-key advance.
+1. **(done)** In-process injection, Harmony on obfuscated members, Prism speech, dev
+   server, screen-change announcements.
+2. **(done)** Zero-loader: stock exe boots the mod via AppDomainManager config.
+3. **(done)** Host/module split with hot reload.
+4. **(done)** Localization layer + speech handler chain (Prism → SAPI → clipboard).
+5. **(done)** Boot click-gate: localized prompt + any-key advance.
 6. **(done)** UI graph core + input substrate ported (with the WotR test suites).
-7. **(done)** Navigator glue: GraphNavigator + Screen/ScreenManager over the game's
-   screen stack, input wired, TitleScreen modeled (keyboard-only from launch into the
-   game, verified live).
-8. **(done)** Control panel accessified end to end: home / Options (Display, Sound,
-   Interface, Network) / Controls (Redshift bindings with the game's own key-capture
-   flow, keyboard reference), all labels read live from the game's localization.
-   Deferred there: hostname EDITING (needs the WotR TextEntry port; the value reads) —
-   and note Exit Game quits instantly, faithful to the game's own button.
-9. **(done)** Desktop hub modeled (`DesktopScreens.cs` — task list with
-   selection-follows-focus, details + action button, CHATSUBO log/roster with live
-   new-message and task-event announcements, launchers, close; verified live) AND the
-   focus-mode key-suppression seam (`GameKeySuppression.cs` over the `GClass64` input
-   facade — the game's own desktop keys no longer double-act; Escape stays native).
-   Deferred on the desktop: leaderboards/histograms + the multiplayer opponent table
-   (post-solve detail-pane content), the side-jobs tab live-verify (needs an ember-7
-   save), the custom-win press-and-hold button.
-10. **(done)** Desktop destinations: BOTH cutscene players fully accessible
-    (`CutsceneScreens.cs` — lines spoken as they appear; the EMBER player's dialogue
-    choices are an arrow-navigable menu with Enter/digit selection), the Workhouse
-    fully playable (`WorkhouseScreen.cs`), TRASH WORLD NEWS launcher fully modeled
-    (`TrashWorldNewsScreen.cs` — tabs/PDF buttons/close; the zines ship as
-    text-layer PDFs read in the user's own viewer).
-11. **(in progress)** The EXA editor (`module/src/Screens/Editor/` — one partial
-    `ExaEditorScreen` split per section, plus `PuzzleCompleteScreen.cs` — over the name-preserved
-    EditorScreen). DONE (tasks 1-4): browse stops task/windows/CODE/scores/
-    simulation/solution; goal checklist + stats with game tooltips; window rows
-    (registers, files, host names mirroring the map incl. the hostname-as-home-host
-    rule); F2 = step (screen-scoped ui.step action; game Tab-step suppressed so Tab
-    stays navigation), Run/Fast/Pause/Reset via the game handler seams with
-    compile errors SPOKEN; cycle echo while stepping; the CODE stop — typing-first
-    caret editor (TextEntryCaret: navigator bubbles all directional/edit input,
-    suppression swallows ONLY Tab; arming = the game's focus QUEUE maybe_4 +
-    method_58 scroll, released on falling edge), typing echo via prefix/suffix
-    diff, caret narration (line on vertical moves, char on horizontal, end of
-    line, EXA-switch announce on the game's native Ctrl+Up/Down); task 5 run
-    narration (Patches/SimNarration.cs — Harmony on the error seam Sim.smethod_16
-    buffers player-EXA errors with typed-line recovery; GATED on method_0()
-    because the edit-time per-frame rebuild re-errors empty EXAs every frame;
-    an error landing on a DIFFERENT test run than the one the run started
-    on prefixes "Test {n}:" — a passing run auto-advances through the
-    validation tests, so an unprefixed failure is the visible layout and a
-    prefixed one a later random layout (user rule 2026-08-23; baseline =
-    EditorScreen.method_23 at any arming, cleared on stop);
-    F2 narrates Cycle n + the pending instruction incl. cycle 0; goal flips
-    announce while running; Stopped at cycle n). TEST LOG STOP (user rule 2026-08-23): a
-    FREE run (F4/F5, run-to) no longer voices routine EXA errors —
-    a fan-out solution's probes dying by design, times 100
-    auto-advancing tests, was hundreds of lines — it voices GOAL
-    FAILURES only (a failure on a later test than the run started on
-    is prefixed "Test n:", same rule as errors); stepping still voices
-    every error and both goal directions. EVERY event lands in the
-    "Test log" Tab stop (ExaEditorScreen.TestLog.cs over the BCL-pure
-    UI/TestLog store, unit-tested): one REGION per test run
-    (Ctrl+Up/Down hop tests, arrows read within), rows = errors and
-    goal flips in arrival order, cleared on each arming (so the last
-    run stays browsable after it stops), absent while empty like
-    Problems; UNCAPPED since 2026-08-25 (the old newest-24-tests ring
-    WALLED a 100-test sweep's browse at "Test 77" — user report;
-    store = the shared UI/GroupedLog core, graph windowed exactly
-    like the execution log below). SimNarration events are STRUCTURED (test index +
-    message; Prefix() applies the run-start rule at speech time) and
-    its queue cap is 512 — fast-forward raises hundreds per frame and
-    they all belong in the log. EXECUTION LOG STOP (2026-08-25,
-    live-verified on PB013C; after the test log, battle included): one
-    REGION PER CYCLE (arrows read within; Ctrl+Up/Down hop CYCLES on
-    a single-test run but TESTS when the run spans several — landing
-    on the target test's first row, via NodeVtable.OnRegionJump, the
-    per-node region-jump override added for exactly this: a test is
-    the unit the user thinks in, a cycle is too fine to hop 500 at a
-    time, AND the adjacent test is usually outside the materialized
-    window where the graph's own region move can't see it — user
-    report "still on T33 instead of going to t32", 2026-08-25),
-    rows = every instruction the player's EXAs executed that cycle
-    ("XB: LINK 800" — name + macro-expanded listing line) in the sim's
-    own dispatch order. Fed by Patches/ExecutionCapture — prefix on
-    Sim.method_55, the single per-EXA dispatch the cycle step
-    (method_54) routes every NORMAL-mode EXA through once per cycle
-    (method_10() = the executing instruction; method_52() = the cycle,
-    incremented after the whole cycle, so regions match the step
-    echo's numbering; a BLOCKED instruction re-dispatches and
-    re-records next cycle = the drawn stay-highlighted line; link
-    travel/dying (method_57) execute nothing, record nothing).
-    Enemy/NPC EXAs filtered like windows (maybe_2 + team vs
-    method_24) — but their VISIBLE EFFECTS log (2026-08-25,
-    live-verified on the PB014 sweep): the map animates another
-    team's travel, replication (a new sprite), grab/drop (pose +
-    the file icon with its lettered id vanishing/appearing; MAKE =
-    pose only, no icon, so it logs "made a file" id-less), kills
-    (pose + explosion) and deaths (explosion + method_61 force-
-    dropping the held file where the corpse stood — the KGOG NPC's
-    actual delivery move). A prefix/postfix pair on method_54
-    snapshots every non-player EXA (host/held/dead) + the file set
-    before the cycle and diffs after, appending "enemy EXA: A to B"
-    rows after the cycle's player rows (names via ExaDisplayName —
-    never internal names; hosts/ids via HostName/FileId, so home
-    plates substitute and per-team ids read the viewing side;
-    hidden hosts mute their rows). Self-contained per call: a fresh
-    round/test sim's starting lineup is in the snapshot, never
-    "appeared". NOT logged because NOT drawn: enemy instructions/
-    registers (window-less), enemy M bubbles (team-gated at draw),
-    held-file WIPEs, victimless kill poses (mode-2 NPC terminals
-    idle-fire one every cycle). SAME AUDIT plugged a test-log leak:
-    SimNarration filtered only on maybe_2, but a battle OPPONENT's
-    EXAs carry a SolutionExa — their out-of-instructions/kill
-    deaths logged internal names + line numbers every round; now
-    team-filtered (editor.method_24), deaths surface as exec-log
-    effect rows instead. Store = UI/ExecutionLog over the shared UI/GroupedLog
-    core (BCL-pure, unit-tested), keyed (test, cycle) — CYCLES
-    RESTART AT 0 on every test run and battle round (uncapped-store
-    data: T0 ends C534, T1 starts C0; the Cycles score is one test's
-    count), so a cycle number alone never identifies a region; labels
-    name their test when the log spans several. The store is UNCAPPED
-    (user rule 2026-08-25 — a full 100-test sweep ≈ 56k entries held
-    whole, verified live; the only limit is a SILENT insurance cap in
-    GroupedLog — 10M exec / 2M test entries, ~25 min of NONSTOP
-    fast-forward — purely so an unattended endless loop can't OOM the
-    game: it sheds oldest whole, no UI, one dev-log line on the next
-    clear); the GRAPH materializes only a WINDOW (≤51 regions / ≤1200
-    rows, ExpandWindow — shared with the test log) around the focus
-    anchor — KeyGraph rebuilds per operation AND per frame, and the
-    builder recenters the window on the focused cycle DURING each
-    rebuild, so a move at the window edge finds the next chunk
-    already materialized (45 straight Ctrl+Up hops through the edges
-    verified live, frame time unharmed). HOME/END on a log row jump
-    to the whole LOG's first/last row, both logs — via
-    NodeVtable.OnJumpEdge (an override hook the navigator consults
-    before the default walk, which only reaches the WINDOW's rim);
-    the jump recenters the anchor + deferred FocusNode, and a
-    2-rebuild JUMP HOLD pins the anchor while that focus applies —
-    without it anchor-follow reads the STILL-OLD focused row on the
-    next rebuild and yanks the window back before the target ever
-    materializes (bit Home/End on first live test; the goto field
-    never hit it only because field focus parses as no row). THE
-    RE-ARM WIPE TRAP (user report, dead ctrl+arrows — root-caused via
-    the /speech history + temp logging, 2026-08-25): a fresh arming
-    CLEARS the logs, so both log stops VANISH for the frames their
-    stores sit empty — reconcile then re-seats focus silently OUT of
-    the log (landed on the Solution field/Simulation stop), where
-    region keys bubble to nothing; the user believes they are still
-    "in the log". THREE fixes, all behavioral: (1) the windowing
-    anchor-follow reads the navigator's PERSISTED focus cursor
-    (GraphNavigator.FocusCursorId = GraphState.CurKey), never the
-    render-dependent FocusedNodeId, which goes null the moment the
-    focused row vanishes — exactly when pinning matters; (2) the
-    ui.regionPrev/Next gate Rerenders BEFORE gating (the stale
-    last-frame CurrentNode read killed presses during the one-frame
-    churn the rebuild was about to heal); (3) arming with focus in
-    execlog/execgoto/testlog remembers the stop and FocusStop()s back
-    into it once its store refills (TTL ~3s — a free run refills
-    within a frame; a paused F2 arm may never), so a mid-browse
-    F4/F5 lands you on the NEW run's first row instead of a random
-    node. "GO TO CYCLE" is its OWN Tab
-    stop right before the log (user rule 2026-08-25): a SYNTHETIC
-    TextEntry field (no game widget backs it: digits/period/Backspace
-    polled off SdlKeyboard scancodes while focused, echo free via the
-    TextValue diff; game inert to stray digits) — Enter jumps to the
-    nearest matching cycle, newest-test-first on ties, "test.cycle"
-    (1-based test, matching the spoken labels) pins an earlier test;
-    the jump sets the anchor then FocusNode (already deferred to
-    post-rebuild, so the target always exists). The listing split is
-    cached by string identity (fast-forward = thousands of records
-    per second). Cleared on each arming (screen calls
-    ExecutionCapture.Clear + anchors reset to tail-follow), browsable
-    after the stop, absent while empty; task 6 network topology
-    (Hosts stop: name + terse occupants, selection follows focus; Links stop:
-    the selected host's links as id, destination — One way prefixed when the
-    far side has no return id, ids per team); task 7 polish (Test Run row is
-    an adjustable slider mirroring the mouse arrows — PgUp/PgDn = the
-    coarse step, every slider (ui.pageUp/Down -> OnAdjust large, volume
-    sliders included); per-EXA M-bus TOGGLE
-    rows; EXA row Enter = jump to its code, Backspace = delete via the public
-    method_36, undoable; Create New EXA button mirroring the full handler
-    incl. focus-jump to the new code; solution name is a TextEntry field over
-    the game's bool_7 inline field, commit on Enter/leave; Show Goal
-    (button Enter OR a native F1 press) opens a MODAL GOAL POPUP — the F1
-    view as terse rows for EVERY puzzle type: required files (rows cap at
-    60 values + "and N more" — the silent cut bit PB010B's 102-value goal
-    file, 2026-08-24; Enter on a file row stacks the regular values popup
-    over the goal popup — the goal spec is a SimRequiredFile with NO
-    SimFile, so the popup's second source re-resolves by (host, required)
-    indexes per read; Escape unwinds one popup at a time), hardware
-    registers with their badge labels ("CNS #NERV at host: value";
-    write-only plates plain; registers also speak on host-stop rows, and a
-    Registers stop grouped by SELECTED host like links/files — after files,
-    absent when that host has none — reads the LIVE plate value while
-    stepping; the value part is Live, so a register changing on its own
-    (the Zebros copiers draining their print queue in real time — wall-clock,
-    ~0.9s/copy, sim-persisting while armed) re-announces each new value
-    while the row stays focused, the sighted player's ticking plate —
-    verified live on PB006B, 2026-08-22). MAP PARITY (per-host audit, 2026-08-22): HIDDEN hosts
-    (SimHost.method_10(showGoal); the goal flag can reveal) speak only
-    their cover caption — occupants/files/registers gated on the map AND
-    in the goal popup; plateless hosts (genum154_0==0) read "Unnamed
-    host", never their internal name; home/opponent plates substitute by
-    IDENTITY (sim.dictionary_0[team].simHost_0 — the game's flag2/flag3;
-    sandbox excepted; opponent = Steam persona via the game's own
-    Steamworks.NET, referenced Private=false, else the battle character);
-    locked links (SimHostLink.bool_0, drawn red, ids usually cleared)
-    speak "locked"; immovable files ((genum142_0 & 2)==0) and write-only
-    registers (genum160_0==1) speak their state. RESOLVED 2026-08-23
-    (UC Berkeley parity audit, screenshot-verified): single-cell hosts DO
-    draw their link ids (on the connector plates) — no gating; speak them.
-    THREE MORE NAME MECHANISMS the plate enum misses, all in HostName:
-    (1) NAME-DISPLAY MODE (GClass361.genum145_0 != 0): the game letters
-    every non-home host's INTERNAL name along a free 3-cell edge strip —
-    mirrored incl. the free-strip scan (NameLabelDrawn: strips occupied by
-    host cells/link endpoints draw nothing — single-cell relays and
-    edge-crowded hosts stay unnamed for everyone; UC Berkeley's EECS host
-    would be edge-crowded, but that puzzle uses baked art, not this mode);
-    (2) UC BERKELEY BAKED ART (mode is SpecialPuzzleLogics.GClass304): the
-    whole map's labels are ONE overlay texture (Puzzles: sim.method_34) —
-    banners transcribe the internal names (TAPE-1/2/3, EECS — file 300
-    addresses hosts by exactly these), 1x1 relays unlettered → speak
-    string_0.ToUpper for multi-cell plate-0 hosts, second sprite-content
-    case after the highway sign; (3) plate-0 via SimHost.method_5 means
-    "the ART carries the name", not always "secret". NETWORK LOGO
-    DECAL (PB008 parity audit, 2026-08-23): every puzzle meta's
-    texture_0 is the network's lettered BRAND drawn on the map
-    backdrop — pure baked art, and on the mystery networks (title
-    "UNKNOWN NETWORK n") that art is the ONLY place the network
-    names itself. The task stop grew a "Network logo: …" row fed by
-    the NetworkLogos per-puzzle transcription table (Goals.cs;
-    language-invariant so NOT ui.json, keyed by meta.string_0 =
-    puzzle id; no entry = no row) — PB008 seeded from the
-    screenshot; PB010B added the same day (the Workhouse brand plus
-    its "Easy work. Easy money." slogan — lettering the spoken title
-    lacks, so sublines and taglines count, title restatements do not);
-    PB012 too (the bank decal's full brand name carries a word the title
-    drops — a fuller brand name counts; the same brand restated on the
-    ATM sprites does not). PB012's Atm DIGICAM feed is a sprite
-    animation mirroring the goal counter + live #CASH plates — hearable
-    already, no per-puzzle read. ENTITY NAMES PASS THROUGH RAW (user rule,
-    2026-08-23): PB008's defender EXA is named "???" — speak it
-    as-is and let the user's TTS render it; the sign cells'
-    glyph-naming rule stays confined to sign cells. No
-    window-stop change needed: the game windows only YOUR team's
-    EXAs plus unheld files (EditorScreen.method_39; a held file's
-    window merges into its holder via Sim.method_77/78), so an
-    enemy EXA and the file it holds draw no window for anyone —
-    the player-only gate already mirrors that. Otherwise PB008
-    parity CONFIRMED: plate-0 relays are letterless in the art
-    (Unnamed host correct), home plate = the player's hostname by
-    identity, all links two-way and unlocked, goal rows mirror the
-    drawn checklist. CAMPAIGN SWEEP (2026-08-23, all unlocked
-    pre-ghost-network puzzles opened + audited pixels/model/speech):
-    PB000/PB001/PB037/PB002 (tutorials), PB003B (pizza), PB004
-    (nerve), PB005 (snaxnet), PB006B (zebros), PB007 (sign) — ALL
-    parity-confirmed, zero code changes. PB011B (heart) audited
-    2026-08-24, read-only mid-play (user's rule: probes + /screenshot
-    only, no input): parity CONFIRMED, zero changes — its plate-0 host
-    is unlettered in the art too (the register badge carries the drawn
-    identity; "Unnamed host" correct), the brand decal is method_34
-    OVERLAY art (this meta has no texture_0) restating the spoken
-    title so no NetworkLogos row is owed, and the goal-view I/O table
-    (30 rows; TableColumn.smethod_0/1 keep the full arrays only under
-    the goal flag) captures whole via the PB004 mechanism. TRAP: a
-    /speech tail ending mid-table means the user CLOSED the popup
-    there, not that capture truncated (bit this audit — judge loss by
-    the mechanism, never by the log tail). PB013C (TWN find-replace
-    tutorial) audited 2026-08-24 the same read-only way: parity
-    CONFIRMED, zero changes — backdrop lettering restates the title,
-    the plate-0 host is unlettered in art ("Unnamed host" correct),
-    goal specs (method_29/30/31 fill SimHost.list_0; method_30 sets
-    contents on an EXISTING spec) put the F1 ghost-file contents in
-    the goal popup, and SimFile.method_11 = window STARTS COLLAPSED
-    (cosmetic), not immovable. AUDIT-PROBE TRAP (bit this audit): a
-    stale host object from a PREVIOUS /eval makes HostName's
-    identity-based home substitution miss and return the internal
-    name — a FALSE parity gap; always fetch sim+host and call the
-    helper in the SAME eval. PB015 (redshift dev kit) audited
-    2026-08-25 read-only: parity CONFIRMED, zero changes — backdrop
-    banner + logo ovals are method_34 overlay art restating the
-    spoken title (no NetworkLogos row); the covered host's drawn
-    lettering IS its cover caption LocString (spoken verbatim, both
-    hidden flags set so the goal view keeps it covered too); the
-    home link's far-side -1 id is a real drawn plate (spoken as-is);
-    the locked blank-id link speaks destination + "locked"; the
-    logic's (SpecialPuzzleLogics.GClass311) drawn digit-entry status
-    cells are GClass230.smethod_34 TEXT, so the goal popup captures
-    them via generic PanelCapture (live-confirmed in /speech) — the
-    highway-sign precedent: panel state is popup-hearable, no live
-    node owed; unlock flips link ids/lock/cover in model state every
-    row already re-resolves live. PB016 (library) audited 2026-08-29
-    read-only mid-play: ONE gap — the backdrop decal's brand line
-    appears in NO spoken string (grep-verified absent from
-    descriptions + strings.csv) → NetworkLogos grew PB016; otherwise
-    parity CONFIRMED — the special logic (GClass299) is an EMPTY
-    GClass298 (no panels, no name overrides), plate enums 2/3/4 all
-    speak as drawn, the id-less NPC wire is silent per the PB015
-    precedent, the anonymous NPC EXA speaks the anonymous label
-    (EditorScreen ~2076: tags draw ONLY for the viewing team — the
-    model gate is byte-exact; the earlier "??? speaks raw" NPCs were
-    VIEWING-TEAM terminals with drawn tags; this audit's follow-up
-    made the label mode-aware — "other EXA" outside battles),
-    PB040 (modem) audited 2026-08-29 read-only: parity CONFIRMED,
-    zero changes — logic = SpecialPuzzleLogics.Modem (name-preserved):
-    #DIAL (write-only) takes digits 0-9 (11 = a full number, matched
-    against the phone list; -1 hangs up), a match sets THAT station
-    link's ids to 800/-1 and unlocks it — pure model-state flips our
-    live-re-resolving link rows already speak (the PB015 unlock
-    precedent); pre-dial the station links are id-less BOTH sides +
-    LOCKED ("locked" spoken, red lines drawn); the backbone is
-    plate-0 and unlettered in art ("Unnamed host" correct); the
-    MODEM STATUS panel is GClass230 TEXT (vmethod_2, smethod_33/36
-    — states WAITING FOR COMMAND / DIALING + number / CONNECTED /
-    REFUSED / CLOSED), live-verified reaching PanelCapture by
-    passively arming the tap for a frame (no goal force, no input —
-    a new read-only audit trick), so the goal popup hears it; the
-    protocol status stays popup-only per the sign/PB015 rule; the
-    panel header + TEC decal restate the spoken title (no
-    NetworkLogos row); one file id repeats across ALL EIGHT station
-    hosts — the host-qualification mechanism's biggest case, spoken
-    correctly per /speech, an NPC-HELD file draws
-    no plate/window and the window dictionary mirrors that, and the
-    game PRE-OPENS windows for files the player will MAKE (EntityID
-    numbers from Sim.method_79 — entities that don't exist yet;
-    FindFileForWindow's null gate already skips them). AUDIT-PROBE
-    NOTE: several SimExa/SimFile members (method_0 = current host,
-    team_0) are declared on the SimEntity BASE — Deobf is
-    DeclaredOnly, so /eval probes need a base-type fallback; module
-    TYPED access never hits this. Findings that generalize:
-    every brand decal in range matches its spoken title (no new
-    NetworkLogos entries); FILE ROW STRUCTURE (user request
-    2026-08-29, found auditing PB040): SimFile.int_0 (the puzzles'
-    fluent method_10) is an AUTHORED values-per-row width — the drawn
-    window FORCE-BREAKS its line after every Nth value (method_43's
-    i % int_7; the char-width wrap at ~35 is separate and purely
-    presentational, never spoken) — sighted players read phone
-    numbers (11), table records (2/3/4) and song pairs (2) off that
-    wrap, so every spoken surface mirrors it via Readouts'
-    FileColumns/JoinValueRows: summary readouts join rows with ";"
-    (an audible pause; the 60-value cap trims to WHOLE rows), the
-    values popup makes each authored row ONE item, and goal-required
-    rows take columns from the SimFile BACKING the spec (the live
-    file it shadows, else the goal ghost in sim.list_6 — the F1
-    view's own precedence; specs carry no width of their own).
-    Live-verified on PB040 (phone list rows of 11, playlist song
-    pairs). PROSE FILES (same day, PB016's books): a file with NO
-    authored width whose values include the game's "¶" paragraph
-    token (books/articles ship as word+punctuation tokens; the drawn
-    window shows the SAME comma'd stream — no sighted structure
-    exists) speaks as FLOWING PROSE — the TSpeech massaging
-    precedent: words space-joined, punctuation tokens attached to
-    the word before, "¶" a "; " pause; the values popup makes each
-    PARAGRAPH one item (IsProse/JoinProse/ProseSegments in
-    Readouts). PROBE TRAP: comparing "¶" in /eval needs a UTF-8
-    request body (WebClient.UploadData with charset=utf-8) — a
-    default-encoded POST mangles non-ASCII literals and the compare
-    silently misses (bit this feature's first probe); plate enums 2/3 draw the internal name
-    (spoken identically), plate 4 on a NON-home host (zebros
-    terminal) draws the internal name too; the tutorial one-way
-    link (799) speaks "One way" from the id side while its id-less
-    far side draws only a BLANK connector plate — per-host silence
-    there matches the art (the id-less sales↔terminal wires
-    likewise); "???" NPC EXAs (pizza/zebros terminals) speak raw
-    per the user rule; text panels capture whole (nerve I/O LOG:
-    caption + 30-row table; snaxnet I/O STATUS: 5 status lines,
-    markup stripped by GameText.Speech which also strips ‗);
-    sprite panels (pizza/zebros DIGICAM feeds) mirror hearable
-    register values, so no per-puzzle read needed. FILE IDENTITY
-    (2026-08-23): file ids repeat across hosts (three 200s here) — files
-    stop rows, readouts, and the values popup are all HOST-QUALIFIED
-    (FindFileAt; ControlId ed.file.{host}.{id}), never resolved by id
-    alone. WINDOWS STOP now mirrors the game's whole window column: after
-    the EXA rows, one row per FILE window (private dictionary_1 via Deobf,
-    EntityID keys are Type/Hostname/Number — immovable files key
-    id@hostname), label = the drawn title (bare id), value = "at {host}" +
-    the usual readout, Enter = the values popup (origin-aware close). The
-    REPL COPIES (2026-08-23): a replicated SimExa carries its PARENT's
-    SolutionExa (same SOLUTION number) but a FRESH EntityID.Exa number
-    and the game's own ":1"/":​*n" name — and the game windows EVERY
-    visible live entity (EditorScreen method_11: all of sim.list_1 minus
-    hidden-host occupants), copies included. So the Windows stop keys
-    rows by ENTITY number (unique; keying by solution number made the
-    duplicate ControlId kill the whole graph rebuild — Tab died, arrows
-    limped on the stale graph), gives copies read-only rows (name +
-    readout; edit/delete/M-bus stay on the original, like the drawn
-    buttons), and gates rows the way the game does (entity gone or in a
-    hidden host = no window; file windows too). The
-    special-puzzle panels (I/O logs, uplink status, custom windows)
-    captured as TEXT stay open. Panel content drawn as SPRITES needs a
-    per-puzzle MODEL read instead — first case done (2026-08-22): the SFCTA highway
-    sign's goal view renders the target message as font-atlas glyphs, so
-    the goal popup reads HighwaySign.string_1 and speaks a "Sign: 3 rows
-    by 9 columns" geometry row (from the game statics) then "Sign row N,
-    columns L to H: text" per row (0-based — the same numbers a #DATA
-    write addresses; blank rows say blank; spans carry the drawn
-    alignment). The LIVE sign is an explorable GRID
-    (ExaEditorScreen.Sign.cs, user design 2026-08-22): a "sign" Tab stop
-    after registers, PER-HOST like links/files/registers (user rule —
-    host-scoped info always follows the SELECTED host, never a general
-    stop): present only when the selected host owns the sign's
-    registers, labeled "{host} sign" —
-    3x9 cell nodes, up/down rows with the column preserved (rows MUST
-    share one StartRow key: GraphBuilder.VerticalTarget column-navigates
-    only between same-key rows), left/right columns, cells speak BARE
-    (the character, "blank", or dot/question/exclamation for the lone
-    punctuation the sign font carries — a bare "." is TTS silence),
-    values re-resolved per announce (edit-time rebuild) and Live so the
-    focused cell re-announces on #DATA/#CLRS writes — verified live incl.
-    the reset revert. The game's drawn WAITING FOR ROW/COLUMN/CHARACTER
-    protocol status is deliberately NOT voiced as a live node
-    (zine-documented; user decision 2026-08-22) — the goal popup's
-    captured text lines still carry it, unfiltered generic capture.
-    Mechanics: Patches/PanelCapture patches every
-    GClass298 draw-hook override (vmethod_0..3, found by slot at load — 33
-    in this build) with a depth toggle + the three GClass230 text statics
-    (smethod_33/34/36) recording (string, pos) while armed; UI/PanelText
-    (BCL-pure, tested) rebuilds reading order (rows cluster by y, y-up,
-    cells join left-to-right); while the popup is open
-    EditorScreen.method_7() is prefixed TRUE so the game ITSELF renders its
-    F1 view — draw-only by construction (the sim's own register reads
-    hardcode the flag false, GClass218) and visible parity for sighted
-    co-players. Open defers 2 ticks (a goal-view frame must publish first);
-    zero rows = "No details", no popup; Escape/Enter/Backspace close with
-    focus restored to wherever F1 was pressed. F8 = RUN TO CARET LINE —
-    the game's Alt+Click "run to instruction"
-    through the public method_52; compile errors speak instead of arming
-    (the game cancels silently + flips its locked error view), non-opcode
-    lines refuse (blank/NOTE/MARK = EmptyLine), and an OnUpdate watch
-    narrates the arrival pause (armed + zero step budget — no native
-    narration fires) then arms the step echo. RUN-TO SEMANTICS
-    (2026-08-23, decompile-verified): the marker is ONE-SHOT — first
-    arrival pauses AND CLEARS it (re-arm after each pause, the native
-    workflow); F8 arms mode 1, matching ANY SimExa sharing the
-    SolutionExa (REPL copies included, first-arrival-wins). SHIFT+ENTER =
-    PIN ONE EXA (mode 0, EntityID-matched — the native Alt+Click in a
-    specific window; v2 after a redesign the same day: v1 required the
-    read cursor to have been touched SINCE ARMING — an invisible
-    precondition that got it removed, then rebuilt). Row-aware, no
-    preconditions: on an EXA WINDOW row it pins THAT row's EXA — the line
-    is the read cursor when the code stop is on its program, else the
-    program's FROZEN EDIT CARET (always defined; usually the line you
-    edited last), so it always resolves; in the code editor it pins the
-    program's ORIGINAL at the caret/read-cursor line. Every arm announces
-    "Running to line N: TEXT, NAME" — the resolved instruction's own text,
-    so a mistarget is instantly audible. TARGETS SNAP FORWARD to the first
-    real instruction at-or-after the chosen line (blank/NOTE/MARK compile
-    to EmptyLine and OCCUPY indices — browsing lands on them constantly
-    and a jump target IS its MARK line; refusing there was a keyboard
-    dead-end the mouse never hits). Enter on a COPY's window row opens its
-    program's code with the read cursor on THE COPY's current instruction
-    (the entry snap only re-snaps on program change/unset cursor). THE
-    CODE NODE'S LANDING LINE IS MODE-AWARE (fixed 2026-08-23, the "lines
-    don't follow" bug): while ARMED it speaks the VIRTUAL read cursor's
-    line (snapping like NarrateVirtual) — the line arrows will move from —
-    never the frozen edit caret, which lives in another region entirely.
-    FOLLOWED INSTANCE (armed only, user design 2026-08-23): the code view
-    tracks ONE live EXA of the focused program — the original by default,
-    a REPL copy after Enter on its window row or Alt+Up/Down cycling
-    (original then copies in spawn order, wrapping; same axis as the
-    game's Ctrl+Up/Down PROGRAM switch, one modifier over — Ctrl walks
-    programs, Alt walks instances; the actions exist only while armed so
-    editing chords stay the game's). The state is
-    always audible: the code node's label names the instance ("XA:1, text
-    field"), switching lands ON the instance's executing line and
-    announces it exactly like an arrow move (the current-marker carries
-    the name — no special wording; user spec), and Shift+Enter in the
-    code field pins WHOEVER THE LABEL SAYS. THE LISTING LINE of a pending
-    instruction is method_10().maybe_0 (the instruction's own line
-    annotation — what the game highlights); int_0 is the instruction
-    COUNTER and drifts off the listing when EmptyLines are consumed —
-    never use it as a line (bit the switch landing, 2026-08-23;
-    CurrentListingLine is the one accessor). Falls back to the
-    original when the instance dies, the program changes, or the run
-    stops. CURRENT MARKERS name their instance when the program has more
-    than one alive ("current, XA:1"; bare "current" with one — user spec
-    2026-08-23), and mark EVERY instance's line, not just the followed
-    one's. PuzzleCompleteScreen: scores
-    as rows, the Leaderboards/Test Run Data flip, Record Solution GIF, and
-    a leave BUTTON under the game's own label (Return to Desktop /
-    VirtualNetwork+ via the internal Puzzles registry through Deobf; click
-    path replicated — sound, editor method_19, double pop). Enter
-    activates the FOCUSED node — the old Enter pass-through to the game's
-    leave shortcut made the flip/GIF nodes unactivatable (removed
-    2026-08-22); Escape (Continue Editing) stays native. The Leaderboards
-    VIEW is ONE TAB STOP PER STAT (PuzzleCompleteScreen.Leaderboards.cs —
-    since 2026-08-29 the per-stat row builder lives in the SHARED
-    LeaderboardRows.cs, also feeding the solution browser's panels;
-    user rule 2026-08-22 — Tab jumps Cycles/Size/Activity like the three
-    drawn panels, arrows stay within a stat),
-    present only while that view is SHOWN and scores are size-eligible
-    (else the game's replacement notice, mirrored): per stat — the
-    "Currently N[, previously M|, unchanged]" caption (mirrored game
-    literals), percentile cutoffs + friends' scores merged best-first
-    (each behind the game's own Steam options: EnableHistograms/
-    EnableLeaderboards default ON, ShowTop/TenthPercentile default OFF —
-    absent rows are usually that gate), then ONE ROW PER NON-EMPTY
-    HISTOGRAM BIN "lo to hi: N%" (percent of the FULLEST bin — the server
-    sends peak-normalized shape, no counts; single-value bins read as the
-    bare number; empty bins skipped, the gap reads from the ranges) with
-    ", your score" on the game's marker bucket ((score-1)*len/max), which
-    speaks even at 0%. Bin ranges are the exact CEIL-based INVERSE of that
-    bucket map — the floor form drifted a value low whenever max doesn't
-    divide by len (activity 7, max 20, 16 bins read as "6" instead of
-    "6 to 7"; fixed 2026-08-23, verified live on the UC Berkeley scores).
-    Verified live on PB007, 2026-08-22. While the sim is ARMED the
-    code node runs a VIRTUAL read cursor (the real caret is frozen outside
-    edit mode): vertical keys walk SimExa.method_9() — the executing
-    listing, line-per-instruction — speaking lines, current instruction
-    (int_0) marked "current", snap-to-current on entry; the real caret
-    resumes on reset — and F8 targets the VIRTUAL line while armed (the
-    caret's line while editing). PROBLEMS stop (before code,
-    only while editing with compile errors): one row per error, "Line n:
-    message" (EXA-prefixed when several), Enter jumps the caret to the
-    line). DEFERRED: EXA rename
-    (cosmetic — names auto-assign XA..XZ). The code-node label reads the
-    QUEUED focus target (focus applies a frame late — TargetCodeExa).
-    The solution stop's ed.exacount row ("EXA programs, 1 / 9")
-    counts AUTHORED programs against the create gate min(home free
-    cells, battle cap) — relabeled from "EXAs" 2026-08-23 after it
-    read as a global live-EXA limit. BATTLE MODE (built + live-verified
-    on PB014, 2026-08-24; meta.genum18_0: 0 normal, 1 battle, 2 sandbox
-    — GameMode/BattleMode helpers): the scores stop mirrors the swapped
-    drawn panel — Win Count ("wins / rounds": EditorScreen privates
-    int_1/int_0 + sim.method_47()), Cycles vs sim.int_5 (per-round cap),
-    Size, Points (logic dictionary_0[team]) and Storage Limit
-    (sim.method_76(team) / int_6 — the once-deferred live counter) as
-    "You n, Opponent m" rows, no Activity; each with the game's battle
-    tooltip. SIZE TOOLTIP IS MODE-AWARE now — battle = the hard-cap
-    string, normal = the ELIGIBILITY string (we spoke the hard-cap
-    wording everywhere before, which misread PB012's soft 50). Battles
-    have NO goal rows and NO Show Goal (game draws it only in mode 0 —
-    ed.goalbtn gated). A battle = all 100 test runs auto-advancing;
-    the Win Count row is LIVE — the counter ticks once per round ONLY
-    while that row is focused (the register-plate pattern; it announced
-    globally through 2026-08-29, one line per round wherever focus was,
-    until the user ruled it row-scoped — the global OnUpdate watch is
-    gone).
-    PER-TEAM DATA: file ids are per-side (GStruct16) — FileId reads the
-    VIEWING team now (the drawn ids; the file's own team read the
-    opponent's ids); the opponent home link's ids are Nothing for my
-    team, so its links rows skip = the blank drawn plates; ENEMY EXAs
-    draw NO name tag (EditorScreen's team gate ~line 2076) — occupants
-    and held-file readouts speak "enemy EXA" (editor.exa.enemy), never
-    the internal names (ALPHA/BETA leaked before). The anonymous label
-    is MODE-AWARE since 2026-08-29 (user rule): battles say "enemy
-    EXA", a normal puzzle's off-team EXA (a scripted NPC) says "other
-    EXA" (editor.exa.other) — one gate in ExaDisplayName feeds every
-    surface (occupants, held-file readouts, exec-log effect rows). SELECT OPPONENT (the
-    mouse-only hotspot on the opponent host) is a battle-only solution-
-    stop button pushing OpponentBrowserScreen via the editor's private
-    method_44 callback; OpponentBrowserGameScreen (BattleScreens.cs)
-    models the browser — rows "name, Beaten/Not beaten, Changed date",
-    Steam rows unavailable until the NPC falls, Enter = the game's
-    click (action_0 + pop), Escape native. BattleCompleteScreen models
-    BattleCompletionScreen (battles end there, NOT at
-    PuzzleCompletionScreen): result heading as the screen name,
-    title line, "{you} versus {opponent}", Wins/Draws/Losses, Your
-    Rating ("Your Rating" IS the game's own loc string; the badge is
-    LETTERED SPRITE art tiered by wins — ALL SIX tiers transcribed
-    2026-08-29 by reading gclass175_0.texture_0..5 back off the GPU
-    via Renderer.smethod_9 + a vertical flip, the readback comes out
-    upside down: no-win = "N/A", then C (51-59) / B (60-79) /
-    A (80-94) / S (95-99) / S+ (100), mirroring the draw's ternary;
-    live-verified "Your Rating, S+" on a 100-win sweep — the
-    GPU-readback trick generalizes to any sprite that needs
-    transcribing), the win-gated upload
-    notice, and Continue Editing / Record GIF / Return to Desktop
-    (win-gated) replicating the click paths; Escape native. NetworkLogos
-    grew PB014 ("KGOG News Network" — the subline the spoken KGOG-TV
-    title lacks). REDSHIFT SANDBOX (PB039, mode 2 — built + live-verified
-    2026-08-29; SandboxMode helper): the homebrew dev kit is this editor
-    with the drawn handheld console at right; the brain is
-    SpecialPuzzleLogics.GClass313 — pad registers #PADX/#PADY (-1/0/+1),
-    #PADB (X=1 Y=10 Z=100 START=1000), #EN3D; sound #SQR0/#SQR1/#TRI0/
-    #NSE0 (read-write 0-99 → the gclass215_0 synth every frame, audible
-    natively; game music MUTES while armed). The 120x100 screen is
-    composited per frame from EVERY live EXA: bool_4[100] = the 10x10
-    sprite pattern at int_4/5/6 = GX/GY/GZ (GY 0 = TOP,
-    screenshot-verified), GP write = op digit (0 clear/1 set/2 toggle
-    pixel, 3 load glyph)+2 digits, CO = int_7 free tag, CI = int_8 =
-    highest pixel-overlapping CO else -9999 (Sim.method_81, mode-2 only;
-    both DEFAULT -9999 = the drawn edit-time placeholders); the sim
-    paces ~30 cycles/sec wall-clock while running, and there are no
-    tests, goals, scores or completion. Pad KEYBOARD reads are RAW held
-    keys — GClass64.smethod_10, bindings gclass17_0.gclass52_19..26
-    (the control panel's Redshift keys; defaults WASD/JKL/Enter=START),
-    live whenever ARMED — so suppression got a THIRD seam on smethod_10
-    (caller-audited: only the two pad readers — GClass313, ArcadeBoard —
-    smethod_11's modifier keycodes and the F1 button helper ride it):
-    Enter on a node no longer presses START (live-verified via the
-    drawn #PADB plate). PLAY MODE (no key of its own — user design
-    2026-08-29): sandbox + armed + FREE-RUNNING flips CapturesRawInput,
-    standing the navigator and all three seams down ("Play mode."
-    announced after "Running."); any native pause (F3, Tab-step)
-    returns browse mode and speaks "Paused." + arms the step echo; the
-    game's own text-input gate (input filter bool_0) already kills pad
-    reads while a game field is armed. GraphNavigator's live-watch now
-    MUTES (baselining silently) whenever the focused screen captures
-    raw input — a focused register row must not chatter over play.
-    Mod surfaces: task + scores stops ABSENT in sandbox (the game draws
-    neither — descriptions/en/sandbox.txt ships 0 bytes, both stat
-    blocks are gated to modes 0/1; task-stop rows now build only when
-    they carry content, all modes); window readouts grow "G gx,gy,gz.
-    C co, ci." (drawn literals while editing, live armed); "{exa}
-    sprite" Tab stop after code, following the code stop's program =
-    the EXA window's mouse-only 10x10 paint grid (index r*10+c, row 0
-    top — the same index GP addresses; Enter toggles SolutionExa.bool_0
-    via the game's snapshot+dirty path, Ctrl+Z restores; armed = the
-    FOLLOWED instance's live bool_4, read-only like the drawn grid);
-    the 2D/3D switch (mouse-only hotspot → EditorScreen.bool_10 +
-    sound_29) as a toggle ending the Simulation stop; "Screen" stop
-    (armed only) = the sprite TABLE in reading order — "XA, at 10, 5:
-    A" — pattern-matched against the game's glyph cache
-    (GClass313.dictionary_1, force-loaded via public smethod_0; the
-    font transcribes to " A-Z 0-9 . ? !" by index, glyph 1='A'
-    live-verified) else "custom shape, N pixels", ", depth z" appended
-    only in 3D — nothing Live (positions move 30x/sec; pause to
-    orient). Real gamepads feed the pad natively (GameController) —
-    zero key conflicts, worth documenting for users. SOLUTION BROWSER
-    (deob GClass253, obfuscated live; the editor's Ctrl+O/folder
-    button; SolutionBrowserScreen.cs, all modes, live-verified
-    2026-08-29 incl. a real export→import round trip): rows =
-    SolutionManager.smethod_3(puzzle) with the drawn per-mode stats
-    (sandbox Size=solution.int_1 + "{0} EXAS"/"1 EXA"; battle WINS=
-    int_0; normal Cycles/Size/Activity from solution.dictionary_0 else
-    "Unsolved"), selection-follows-focus via the PUBLIC method_0 +
-    sound_43 on change (engine-only Selected drives landings), Enter =
-    open (method_2 — the double-click path), Backspace = delete
-    (method_5 — faithful: NO confirm, announced); actions stop under
-    the game's own GClass26 menu labels — Create New Solution
-    (method_1), Copy (method_4), Export (sandbox, method_3 — GClass32
-    renders the solution into a disc PNG on the DESKTOP with zero
-    visual feedback: the derived filename is announced) — each
-    focus-follows onto the resulting row; Back row voices the game's
-    gate (back/Escape DEAD while the editor's open solution was
-    deleted — flag4); sandbox help stop reads the drawn
-    export/import instruction LocStrings; normal mode mirrors the
-    right-half panel block (selected-solution gated): unsolved = the
-    drawn replacement notice, solved = the THREE HISTOGRAM PANELS as
-    per-stat Tab stops via the shared UI builder LeaderboardRows.cs
-    (extracted 2026-08-29 from PuzzleCompleteScreen.Leaderboards,
-    which now delegates; live-verified in the browser). THE PANEL IS
-    LAYOUT-PARAMETERIZED because Theme.smethod_5's two call sites
-    genuinely differ: completion = caption spoken + marker from the
-    RUN's score (GClass296.maybe_3, GEnum216 0); browser = NO caption
-    drawn + marker from the SELECTED SOLUTION's score (maybe_2 — the
-    scoreManager method_14 data refreshed by the browser's own select,
-    so arrowing rows re-reads the panels per solution), marker
-    suppressed when that solution is over the size limit (the game's
-    flag7 — the panel still draws, only the arrow hides; NOT the
-    completion screen's whole-notice treatment). IMPORT is native OS
-    drag-and-drop (armed by
-    gclass32_0.method_1 while the browser is open; GClass32.method_2
-    decodes, duplicates, saves and SELECTS game-side) — an OnUpdate
-    watch follows selection changes the mod didn't drive into focus,
-    so an import lands audibly on its new row (verified by invoking
-    the drop handler on a real exported PNG); the watch is gated to
-    the solutions stop so a mouse click never yanks focus out of the
-    action rows. The per-row context menu (GClass26) stays mouse-only
-    and unmodeled — every verb it carries is a first-class key here.
-    DEFERRED: live play narration (the sound registers are the game's
-    own real-time feedback channel — by design, play by ear).
-11. Map the remaining obfuscated transition/overlay screens to friendly names.
-12. Read the model: `Sim`/`SimExa`/`SimHost`/`Register`/`SimFile` for gameplay, the EXA
-    code editor for program text — this game is text-centric, a strong a11y target.
+7. **(done)** Navigator glue + TitleScreen (keyboard-only from launch, verified live).
+8. **(done)** Control panel end to end (see ControlPanelScreens.cs notes above).
+   Deferred there: hostname EDITING; Exit Game quits instantly (faithful).
+9. **(done)** Desktop hub + the key-suppression seam. Deferred on the desktop:
+   leaderboards/histograms, the multiplayer opponent table, side-jobs live-verify,
+   the custom-win hold-button.
+10. **(done)** Desktop destinations: both cutscene players, the Workhouse, TRASH WORLD
+    NEWS launcher (zines ship as text-layer PDFs read in the user's own viewer — and
+    NOTE: the shipped PDFs are password-protected against text extraction).
+11. **(in progress)** The EXA editor — see "Editor reference" below. Deferred: EXA
+    rename (cosmetic), live Redshift play narration (the sound registers are the
+    game's own real-time channel — by design, play by ear), GClass26 row context menu
+    (mouse-only; every verb it carries is a first-class key in our browser).
+12. Map the remaining obfuscated transition/overlay screens to friendly names.
 13. Type-ahead search (WotR's TypeAheadSearch is pure — port with SDL TEXTINPUT), the
     settings tree, the mod menu, and the TextEntry port (unlocks hostname editing).
 14. **(done)** Installer + release pipeline — see "Build & deploy" (RELEASE PIPELINE).
 
+## Editor reference (`module/src/Screens/Editor/` — one partial ExaEditorScreen per section)
+Models the name-preserved `EditorScreen` for every mode (meta.genum18_0: 0 normal,
+1 battle, 2 sandbox — GameMode/BattleMode/SandboxMode helpers). Escape is native
+throughout (reset-or-leave), except while a mod-side popup holds ModalCapturesEscape.
+
+**Tab stops, in order** (each absent when empty/inapplicable): task → windows → hosts
+→ links → files → registers → sign → problems → code → sprite (sandbox) → screen
+(sandbox, armed) → stats → controls → go-to-cycle → test log → execution log →
+solution. Host-scoped info (links/files/registers/sign) always follows the SELECTED
+host, never a general stop (user rule).
+
+**Task stop**: description (rows build only when they carry content; the whole stop
+only when it has rows — the sandbox ships a 0-byte description), the "Network logo: …"
+row (see parity rules), the live goal checklist, Show Goal (mode 0 only — the game
+draws neither goals nor the button in battles/sandbox).
+
+**Sim control**: F2 = step (screen-scoped ui.step; the game's Tab-step is suppressed so
+Tab stays navigation), Run/Fast/Pause/Reset buttons via the game handler seams
+(method_18/19/20 + method_57 pre-action; native F3/F4/F5 equivalent). Compile errors
+are SPOKEN instead of entering the game's LOCKED error view (which would trap editing
+until reset). Step echo speaks "Cycle n" + the pending instruction (incl. cycle 0);
+run/stop transitions announce ("Running." / "Stopped at cycle n."). The Test Run row is
+an adjustable slider (arrows; PgUp/PgDn = the coarse step — every slider takes
+ui.pageUp/Down → OnAdjust large) whose Enter opens the game's inline typed field.
+
+**Run-to** (the game's Alt+Click, via public method_52; marker is ONE-SHOT — first
+arrival pauses AND clears it, re-arm each time): F8 = run to caret line, mode 1
+(matches ANY instance of the program, copies included); Shift+Enter = pin ONE EXA,
+mode 0, row-aware with no preconditions — on an EXA window row it pins THAT row's EXA
+(line = the read cursor when the code stop is on its program, else the frozen edit
+caret — always defined), in the code field it pins whoever the label says. Targets
+SNAP FORWARD to the first real instruction at-or-after the line (blank/NOTE/MARK
+compile to EmptyLine and OCCUPY indices — refusing was a keyboard dead-end). Every arm
+announces "Running to line N: TEXT[, NAME]" (name only when >1 live instance — with
+one it is noise, user rule); an OnUpdate watch narrates the arrival pause and arms the
+step echo. Compile errors speak instead of arming (the game cancels silently).
+
+**Code stop**: ONE caret-owning TextEntryCaret node — the navigator bubbles all
+directional/edit input, suppression swallows ONLY Tab; arming = the game's focus QUEUE
+(maybe_4) + method_58 scroll, released on falling edge. Typing echoes via
+prefix/suffix diff; caret narration = line on vertical moves, char on horizontal, end
+of line; the game's native Ctrl+Up/Down program switch announces. While ARMED the node
+runs a VIRTUAL read cursor over SimExa.method_9() (the executing macro-expanded
+listing; the real caret is frozen) — the node's landing line is MODE-AWARE (armed =
+the virtual line, never the frozen caret) and F8 targets the virtual line. THE LISTING
+LINE of a pending instruction is method_10().maybe_0 (what the game highlights);
+SimExa.int_0 is the instruction COUNTER and drifts off the listing when EmptyLines are
+consumed — never use it as a line (CurrentListingLine is the one accessor). FOLLOWED
+INSTANCE (armed only): the code view tracks one live EXA of the focused program —
+original by default, a REPL copy via Enter on its window row or Alt+Up/Down cycling
+(Ctrl walks programs, Alt walks instances; actions exist only while armed). Falls back
+to the original when the instance dies/program changes/run stops. Current markers mark
+EVERY instance's line and name theirs only when >1 is alive ("current, XA:1"; bare
+"current" with one — user spec).
+
+**Problems stop** (editing + compile errors only): "Line n: message" rows
+(EXA-prefixed when several), Enter jumps the caret there.
+
+**Windows stop**: one row per drawn window, EXAs then FILE windows (private
+dictionary_1; EntityID keys are Type/Hostname/Number — immovable files key
+id@hostname). Rows are keyed by ENTITY number — unique even for REPL copies (a
+replicated SimExa shares its parent's SOLUTION number but gets a fresh EntityID and
+the game's ":n" name; keying by solution number created duplicate ControlIds which
+KILL the whole graph rebuild). Copies get read-only rows; edit (Enter → code,
+following that instance), delete (Backspace, undoable method_36) and the M-bus toggle
+stay on the original, like the drawn buttons. Rows gate the way the game draws:
+entity gone or in a hidden host = no row; the game windows only YOUR team's EXAs plus
+unheld files (a held file's window merges into its holder; an enemy/NPC EXA and its
+held file draw no window for anyone); the game also PRE-OPENS windows for files the
+player will MAKE (EntityID numbers minted ahead via Sim.method_79) — entities that
+don't exist yet, skipped by the null gate. EXA readouts: "on {host}. X, T, F (held id
++ cursor), M + Local/Global", plus the pending instruction and the error text while
+armed (errors live ~one cycle before the sim deletes the EXA); sandbox adds "G
+gx,gy,gz. C co, ci." (drawn literals while editing, live while armed).
+
+**Run narration + logs** (Patches/SimNarration on the error seam Sim.smethod_16, gated
+on method_0() — the edit-time per-frame rebuild re-errors empty EXAs constantly;
+Patches/ExecutionCapture on Sim.method_55, the single per-EXA dispatch):
+- Speech rules (user rules): STEPPING voices every error and both goal directions; a
+  FREE run voices GOAL FAILURES only (routine probe deaths × 100 auto-advancing tests
+  were hundreds of lines). Any event landing on a LATER test than the run started on
+  is prefixed "Test n:" (baseline = method_23 at arming) — an unprefixed failure is
+  the visible layout. Battles announce no per-round spam; the Win Count row is LIVE
+  instead (ticks only while focused — the register-plate pattern; user rule).
+- TEST LOG stop: one region per test run, rows = errors + goal flips in arrival
+  order. EXECUTION LOG stop: one region per CYCLE; rows = every instruction the
+  player's EXAs executed ("XB: LINK 800", the macro-expanded listing line; a BLOCKED
+  instruction re-records next cycle = the drawn stay-highlighted line; link
+  travel/dying record nothing) followed by enemy/NPC VISIBLE-EFFECT rows (a
+  prefix/postfix diff around the cycle: travel, replication, grab/drop with the drawn
+  file id, MAKE id-less, kills, deaths incl. the forced file drop. NOT logged because
+  NOT drawn: enemy instructions/registers, enemy M, held-file WIPEs, victimless kill
+  poses). Names via ExaDisplayName, hosts/ids via HostName/FileId; hidden hosts mute.
+- Both logs: cleared on each ARMING (the last run stays browsable after it stops),
+  absent while empty, UNCAPPED stores (shared BCL-pure UI/GroupedLog; a silent
+  insurance cap — 10M exec / 2M test entries — only so an unattended loop can't OOM;
+  sheds oldest whole). CYCLES RESTART AT 0 every test/round, so labels name their
+  test when the log spans several; Ctrl+Up/Down hops cycles on a single-test run but
+  TESTS when it spans several (NodeVtable.OnRegionJump — the adjacent test is usually
+  outside the materialized window). The GRAPH materializes only a WINDOW (≤51
+  regions / ≤1200 rows) around the focus anchor, recentered DURING each rebuild so
+  edge moves find the next chunk materialized. Home/End jump to the whole log's
+  first/last row via NodeVtable.OnJumpEdge + a 2-rebuild JUMP HOLD pinning the anchor
+  while the deferred focus applies. RE-ARM WIPE guards (all three needed): windowing
+  anchor-follow reads the PERSISTED focus cursor (GraphNavigator.FocusCursorId), not
+  the render-dependent FocusedNodeId; ui.regionPrev/Next Rerender BEFORE gating; an
+  arming with focus in a log stop remembers it and FocusStop()s back once the store
+  refills (TTL ~3s). "GO TO CYCLE" is its own stop: a SYNTHETIC TextEntry field (no
+  game widget — digits/period/Backspace polled off SdlKeyboard while focused); Enter
+  jumps to the nearest cycle, newest-test-first on ties; "test.cycle" pins a test.
+- SimNarration events are STRUCTURED (test index + message; prefix applied at speech
+  time); its queue cap is 512 (fast-forward raises hundreds per frame — they all
+  belong in the log). ExecutionCapture's listing split is cached by string identity.
+
+**Popups** (mod-side modals; ModalCapturesEscape; Escape unwinds one at a time, focus
+restored to the opener):
+- GOAL POPUP (Show Goal button or a native F1 press): the F1 view as terse rows for
+  every puzzle type — required files (60-value cap trimmed to whole rows + "and N
+  more"; Enter on a file row stacks the values popup — a goal spec is a
+  SimRequiredFile with no SimFile, re-resolved by (host, required) indexes per read),
+  hardware registers with badge labels ("CNS #NERV at host: value"; write-only plates
+  plain), then the captured panel lines. Opening prefixes EditorScreen.method_7()
+  TRUE so the game ITSELF renders its F1 view (draw-only by construction — the sim's
+  register reads hardcode the flag false; visible parity for sighted co-players);
+  open defers 2 ticks so a full goal-view frame publishes first; zero rows = "No
+  details".
+- VALUES POPUP (Enter on any file row/window): every value, one item per value — or
+  per AUTHORED ROW / PARAGRAPH (see file speaking rules). Host-qualified source.
+- PanelCapture mechanics: patches every GClass298 draw-hook override (vmethod_0..3,
+  found by slot at load) + the three GClass230 text statics (smethod_33/34/36),
+  recording (string, pos) while armed; UI/PanelText (BCL-pure, tested) rebuilds
+  reading order (rows cluster by y, y-up; cells left-to-right).
+
+**File speaking rules** (Readouts.cs helpers, used by every surface):
+- IDENTITY: file ids repeat across hosts — rows, readouts and the popup are all
+  HOST-QUALIFIED (FindFileAt; ControlId ed.file.{host}.{id}), never resolved by id
+  alone. Battle file ids are PER-SIDE (GStruct16) — FileId reads the VIEWING team.
+- ROW STRUCTURE: SimFile.int_0 (the puzzles' fluent method_10) is an AUTHORED
+  values-per-row width — the drawn window FORCE-BREAKS after every Nth value
+  (method_43's i % int_7; the ~35-char cosmetic wrap is separate and never spoken).
+  Phone numbers (11), table records (2/3/4), song pairs (2) read off that wrap:
+  summary readouts join rows with ";" (audible pause; the 60-value cap trims to WHOLE
+  rows), the values popup makes each row ONE item, goal-required rows take columns
+  from the SimFile BACKING the spec (live file it shadows, else the goal ghost in
+  sim.list_6 — the F1 view's own precedence; specs carry no width).
+- PROSE: a file with NO authored width whose values include the game's "¶" paragraph
+  token (books/articles ship as word+punctuation tokens; the drawn window shows the
+  SAME comma'd stream) speaks as FLOWING PROSE — the TSpeech massaging precedent:
+  words space-joined, punctuation tokens attached to the word before, "¶" a "; "
+  pause; the popup makes each PARAGRAPH one item.
+- Held files read with holder + cursor; an ENEMY holder's cursor is never drawn — its
+  readout omits it. Immovable files speak "immovable".
+
+**Registers stop**: grouped by selected host, after files; badge label + name +
+LIVE plate value (the value part is Live — a register changing on its own re-announces
+while focused, the sighted player's ticking plate); write-only registers speak
+"write-only" with no value, like the plain drawn plate.
+
+**Sign grid** (SFCTA highway sign — the first sprite-content model read): host-scoped
+"{host} sign" stop; 3x9 cells speak BARE (character/"blank"/dot-question-exclamation
+names — a bare "." is TTS silence), Live, re-resolved per announce; up/down preserves
+the column (grid rows MUST share one StartRow key — GraphBuilder.VerticalTarget
+column-navigates only between same-key rows). The goal popup speaks the target message
+as geometry + per-row spans (0-based, the same numbers a #DATA write addresses). The
+drawn WAITING FOR ROW/COLUMN/CHARACTER protocol status is deliberately NOT a live node
+(zine-documented; user decision) — popup capture still carries it. Same rule reused
+for the Redshift modem's status panel.
+
+**Battle mode**: the stats stop mirrors the swapped drawn panel — Win Count
+(int_1/int_0 + method_47; LIVE row), Cycles vs sim.int_5 (per-round cap), Size, Points
+(logic dictionary_0[team]), Storage Limit (method_76(team) / int_6) as "You n,
+Opponent m" rows, no Activity; the Size tooltip is MODE-AWARE (battle = hard cap,
+normal = leaderboard eligibility). The opponent home link's ids are Nothing for my
+team (links rows skip = the blank drawn plates). SELECT OPPONENT (mouse-only hotspot)
+is a battle-only solution-stop button pushing OpponentBrowserScreen (modeled in
+BattleScreens.cs — rows "name, Beaten/Not beaten, Changed date"; Steam rows
+unavailable until the NPC falls). Battles end at BattleCompletionScreen (modeled:
+result heading as screen name, title, "{you} versus {opponent}", W/D/L, Your Rating —
+the badge is lettered sprite art, transcribed N/A + C (51-59) / B (60-79) / A (80-94)
+/ S (95-99) / S+ (100) mirroring the draw's ternary — the win-gated upload notice,
+and the three buttons with Return-to-Desktop's win gate; the win-column highlight box
+only restates the spoken heading).
+
+**Anonymous EXAs**: the game draws name tags ONLY for the viewing team (EditorScreen
+~2076); ExaDisplayName mirrors that gate exactly and the label is MODE-AWARE (user
+rule): battles say "enemy EXA", a normal puzzle's off-team EXA (a scripted NPC) says
+"other EXA". Viewing-team NPC terminals with drawn "???" tags speak raw (entity names
+pass through raw — user rule; glyph-naming stays confined to sign cells).
+
+**Redshift sandbox** (PB039, mode 2): the homebrew dev kit — the editor plus the drawn
+handheld console; brain = SpecialPuzzleLogics.GClass313. Pad registers #PADX/#PADY
+(-1/0/+1), #PADB (X=1 Y=10 Z=100 START=1000), #EN3D; sound #SQR0/#SQR1/#TRI0/#NSE0
+(read-write 0-99 → the synth every frame, audible natively; game music mutes while
+armed). The 120x100 screen composites EVERY live EXA: bool_4[100] = the 10x10 sprite
+at int_4/5/6 = GX/GY/GZ (GY 0 = TOP); GP write = op digit (0 clear/1 set/2 toggle
+pixel, 3 load glyph) + 2 digits; CO = int_7 free tag; CI = int_8 = highest
+pixel-overlapping CO else -9999 (both default -9999 = the drawn edit-time
+placeholders). ~30 cycles/sec wall-clock; no tests/goals/scores/completion. Pad
+KEYBOARD reads are RAW held keys (GClass64.smethod_10; bindings gclass52_19..26,
+defaults WASD/JKL/Enter=START), live whenever armed — suppression's THIRD seam covers
+smethod_10 (caller-audited: only the pad readers, smethod_11's modifiers and the F1
+button helper ride it). PLAY MODE (no key of its own — user design): sandbox + armed +
+FREE-RUNNING flips CapturesRawInput, standing the navigator and all three seams down
+("Play mode." after "Running."); any native pause (F3/Tab-step) returns browse, speaks
+"Paused." and arms the step echo; the game's own text-input gate already kills pad
+reads while a game field is armed. GraphNavigator's live-watch MUTES (baselining
+silently) whenever the focused screen captures raw input. Mod surfaces: task + scores
+stops absent (the game draws neither); window G/C readouts; "{exa} sprite" stop after
+code (the window's mouse-only 10x10 paint grid, index r*10+c row 0 top — the same
+index GP addresses; Enter toggles SolutionExa.bool_0 via the game's snapshot+dirty
+path, Ctrl+Z restores; armed = the followed instance's live pattern, read-only); the
+2D/3D switch (mouse-only hotspot → bool_10 + sound_29) as a toggle ending the
+Simulation stop; "Screen" stop (armed only) = the sprite TABLE in reading order ("XA,
+at 10, 5: A" — pattern-matched against the game's glyph cache GClass313.dictionary_1,
+force-loadable via public smethod_0; the font transcribes to " A-Z 0-9 . ? !" by
+index; unmatched = "custom shape, N pixels"; ", depth z" only in 3D; nothing Live —
+pause to orient). Real gamepads feed the pad natively — zero key conflicts.
+
+**Solution browser** (deob GClass253, obfuscated live; Ctrl+O/folder button;
+SolutionBrowserScreen.cs, all modes): rows = SolutionManager.smethod_3(puzzle) with
+the drawn per-mode stats (sandbox Size = solution.int_1 + "{0} EXAS"/"1 EXA"; battle
+WINS = int_0; normal Cycles/Size/Activity from solution.dictionary_0 else "Unsolved");
+selection-follows-focus via the PUBLIC method_0 + sound_43 on change; Enter = open
+(method_2, the double-click path), Backspace = delete (method_5 — faithfully
+confirm-less, announced). Actions stop under the game's GClass26 menu labels: Create
+New Solution (method_1), Copy (method_4), Export (sandbox, method_3 — GClass32 writes
+the solution into a disc PNG on the DESKTOP with zero visual feedback; the derived
+filename is announced) — each focus-follows onto the resulting row; a Back row voices
+the game's close gate (back/Escape DEAD while the editor's open solution was
+deleted). Sandbox adds the drawn export/import help LocStrings; normal mode mirrors
+the right-half panel (selected-solution gated): unsolved = the drawn notice, solved =
+the three histogram panels as per-stat stops. IMPORT is native OS drag-and-drop
+(armed while the browser is open; the game decodes, duplicates, saves and SELECTS) —
+an OnUpdate watch follows selection changes the mod didn't drive into focus (gated to
+the solutions stop so a mouse click never yanks focus out of the action rows).
+
+**Leaderboard panels** (shared LeaderboardRows.cs — feeds PuzzleCompleteScreen's
+Leaderboards view AND the browser; one Tab stop per stat, user rule — Tab jumps
+Cycles/Size/Activity, arrows stay within): per stat, the caption, percentile cutoffs +
+friends' scores merged best-first (each behind the game's own Steam options:
+EnableHistograms/EnableLeaderboards default ON, ShowTop/TenthPercentile default OFF —
+absent rows are usually that gate), then one row per NON-EMPTY histogram bin "lo to
+hi: N%" (percent of the FULLEST bin — the server sends peak-normalized shape, no
+counts; single-value bins read as the bare number; empty bins skipped) with ", your
+score" on the marker bucket ((score-1)*len/max — speaks even at 0%). Bin ranges are
+the exact CEIL-based INVERSE of the bucket map (the floor form drifted low whenever
+max % len != 0). THE PANEL IS LAYOUT-PARAMETERIZED — Theme.smethod_5's call sites
+genuinely differ: completion = caption spoken + marker from the RUN's score
+(GClass296.maybe_3); browser = NO caption + marker from the SELECTED solution's score
+(maybe_2, refreshed by the browser's own select), marker suppressed when over the
+size limit (the panel still draws — unlike the completion screen's whole-notice
+ineligibility treatment). PuzzleCompleteScreen: scores as rows, the Leaderboards/Test
+Run Data flip, Record GIF, and a leave button under the game's own label; Enter
+activates the FOCUSED node (never a global leave pass-through); Escape (Continue
+Editing) native. The solution stop's ed.exacount row counts AUTHORED programs against
+the create gate min(home free cells, storage cap) — labeled "EXA programs" so it
+can't read as a live-EXA limit.
+
+## Map parity rules (what the audits enforce — see the /parity-audit skill)
+Ground truth is THREE-WAY: pixels (screenshot) vs model (/eval) vs speech (/speech +
+calling the live module's helpers). Everything drawn must be hearable; nothing hidden
+may leak. The rulebook accumulated so far:
+
+- HOST NAMES (all in HostName, in precedence order): hidden hosts
+  (SimHost.method_10(goal); the goal flag can reveal) speak ONLY their cover caption —
+  occupants/files/registers gated on the map AND in the goal popup; NAME-DISPLAY MODE
+  (meta.genum145_0 != 0) letters every non-home host's INTERNAL name along a free
+  3-cell edge strip — mirrored incl. the free-strip scan (NameLabelDrawn: no free
+  strip = unnamed for everyone); plate-0 (genum154_0==0) means "the ART carries the
+  name" — speak "Unnamed host" UNLESS the puzzle's baked-art letters it (UC Berkeley:
+  multi-cell plate-0 hosts speak string_0.ToUpper; 1x1 relays stay unlettered); home
+  and opponent plates substitute by IDENTITY (sim.dictionary_0[team].simHost_0;
+  sandbox excepted; opponent = Steam persona else the battle character); the logic's
+  vmethod_10 override applies last; then the map's #-suffix truncation. Plate enums
+  2/3 (and 4 on a non-home host) draw the internal name — speak it.
+- LINKS: rows read "id, destination", "One way" prefixed when the far side has no
+  return id; locked links (bool_0, drawn red, ids usually cleared) speak "locked" even
+  id-less; a link with NO id on a side and NOT locked is silent from that side — that
+  matches the blank drawn connector plate. Single-cell hosts DO draw their link ids —
+  speak them. Runtime flips (a modem dial setting ids + unlocking) are pure model
+  state the per-frame re-resolve already speaks.
+- DECALS / BAKED LETTERING: every puzzle meta's texture_0 (and method_34 overlay art)
+  is baked brand art. If its lettering appears in NO spoken string, the task stop owes
+  a "Network logo:" row via the NetworkLogos transcription table (Goals.cs — 
+  language-invariant, keyed by puzzle id; no entry = no row). Sublines and taglines
+  count; title restatements do not. Grep descriptions/ + strings.csv to check.
+- PANELS: special-puzzle panel content drawn as TEXT is captured whole by PanelCapture
+  into the goal popup (markup stripped by GameText.Speech). Zine-documented protocol
+  status stays popup-only, never a live node (user decision). Panel content drawn as
+  SPRITES needs a per-puzzle MODEL read (the highway sign, UC Berkeley's banners) —
+  unless it mirrors already-hearable state (DIGICAM feeds mirror register plates).
+- ENTITY NAMES PASS THROUGH RAW (user rule): "???" and friends go to TTS as-is.
+- STATES SPEAK: immovable files, write-only registers, locked links, cover captions.
+- The window column, file identity, row structure and prose rules above are part of
+  parity too — the drawn wrap of an authored-width file IS sighted-readable structure.
