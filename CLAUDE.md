@@ -663,9 +663,14 @@ Patches/ExecutionCapture on Sim.method_55, the single per-EXA dispatch):
   instruction re-records next cycle = the drawn stay-highlighted line; link
   travel/dying record nothing) followed by enemy/NPC VISIBLE-EFFECT rows (a
   prefix/postfix diff around the cycle: travel, replication, grab/drop with the drawn
-  file id, MAKE id-less, kills, deaths incl. the forced file drop. NOT logged because
-  NOT drawn: enemy instructions/registers, enemy M, held-file WIPEs, victimless kill
-  poses). Names via ExaDisplayName, hosts/ids via HostName/FileId; hidden hosts mute.
+  file id, MAKE id-less, kills, deaths incl. the forced file drop, and HARDWARE
+  WRITES — "{exa} at {host}: wrote {reg}, now {value}", the drawn plate flip; the
+  vmethod_8 seam carries the WRITING EXA (base + every override slot-patched, the
+  PanelCapture technique), so attribution is exact, own writes never duplicate their
+  instruction rows, and the value spoken is the post-cycle viewing-team plate read.
+  NOT logged because NOT drawn: enemy instructions/INTERNAL registers, enemy M,
+  held-file WIPEs, victimless kill poses). Names via ExaDisplayName, hosts/ids via
+  HostName/FileId, plates via RegName; hidden hosts mute.
 - Both logs: cleared on each ARMING (the last run stays browsable after it stops),
   absent while empty, UNCAPPED stores (shared BCL-pure UI/GroupedLog; a silent
   insurance cap — 10M exec / 2M test entries — only so an unattended loop can't OOM;

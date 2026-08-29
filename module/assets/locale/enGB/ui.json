@@ -119,6 +119,7 @@
   "editor.execlog.killed": "{exa} at {host}: killed {victim}",
   "editor.execlog.died": "{exa} at {host} died",
   "editor.execlog.died.file": "{exa} at {host} died, dropping file {id}",
+  "editor.execlog.wrote": "{exa} at {host}: wrote {reg}, now {value}",
   "editor.problem": "Line {line}: {message}",
   "editor.problem.exa": "{exa} line {line}: {message}",
   "editor.goal.file": "File {id} at {host}: {values}.",

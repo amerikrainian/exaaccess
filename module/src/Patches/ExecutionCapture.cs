@@ -29,11 +29,15 @@ namespace ExaAccess.Patches
     /// non-player EXA (host, held file, dead mark) plus the file population before the cycle and
     /// diffs after it, appending rows to the same (test, cycle) region the player's instructions
     /// land in. Self-contained per call, so a test advance or battle round (a FRESH Sim) can
-    /// never fake "appeared" rows for the starting lineup. NOT logged, because not drawn: enemy
-    /// instructions and register state (window-less), enemy M-bus bubbles (team-gated at draw),
-    /// a WIPE of a held file (held = invisible), and victimless kill poses (mode-2 NPC terminals
-    /// fire one every cycle they idle — pure spam). MAKE shows the grab pose but no icon
-    /// vanishes and no id was ever drawn, so it logs as "made a file", id-less until dropped.
+    /// never fake "appeared" rows for the starting lineup. HARDWARE WRITES by off-team EXAs
+    /// log too (user request 2026-08-29 — the drawn plate flips value; a domination battle IS
+    /// watching territory plates flip): the vmethod_8 seam carries the writing EXA, so
+    /// attribution is exact and our own writes (already instruction rows) never duplicate.
+    /// NOT logged, because not drawn: enemy instructions and their INTERNAL register state
+    /// (window-less), enemy M-bus bubbles (team-gated at draw), a WIPE of a held file (held =
+    /// invisible), and victimless kill poses (mode-2 NPC terminals fire one every cycle they
+    /// idle — pure spam). MAKE shows the grab pose but no icon vanishes and no id was ever
+    /// drawn, so it logs as "made a file", id-less until dropped.
     /// </summary>
     internal static class ExecutionCapture
     {
@@ -50,7 +54,38 @@ namespace ExaAccess.Patches
                 harmony.Patch(Deobf.Method(typeof(Sim), "method_54"),
                     prefix: new HarmonyMethod(typeof(ExecutionCapture), nameof(CyclePrefix)),
                     postfix: new HarmonyMethod(typeof(ExecutionCapture), nameof(CyclePostfix)));
-                Log.Info("[patch] execution capture armed");
+
+                // ENEMY HARDWARE WRITES (user request 2026-08-29): every hardware register
+                // write is deferred through the logic's vmethod_8 WITH THE WRITING EXA — the
+                // exact attribution the value-diff approach can't give. Patch the base + every
+                // override (the PanelCapture slot technique); the prefix records off-team
+                // writers only (our own writes are already instruction rows), and the cycle
+                // postfix speaks the plate's post-cycle value — the drawn flip, never the
+                // enemy's code.
+                var writeSlot = Expr.MethodOf(() =>
+                    default(GClass298).vmethod_8(null, default(ExaValue), null));
+                var writePrefix = new HarmonyMethod(typeof(ExecutionCapture), nameof(WritePrefix));
+                harmony.Patch(writeSlot, prefix: writePrefix);
+                Type[] types;
+                try { types = typeof(GClass298).Assembly.GetTypes(); }
+                catch (System.Reflection.ReflectionTypeLoadException ex) { types = ex.Types; }
+                int writeHooks = 1;
+                foreach (var type in types)
+                {
+                    if (type == null || !type.IsSubclassOf(typeof(GClass298))) continue;
+                    foreach (var m in type.GetMethods(System.Reflection.BindingFlags.Public
+                        | System.Reflection.BindingFlags.NonPublic
+                        | System.Reflection.BindingFlags.Instance
+                        | System.Reflection.BindingFlags.DeclaredOnly))
+                    {
+                        var baseDef = m.GetBaseDefinition();
+                        if (baseDef == m || baseDef.DeclaringType != typeof(GClass298)) continue;
+                        if (baseDef.MetadataToken != writeSlot.MetadataToken) continue;
+                        harmony.Patch(m, prefix: writePrefix);
+                        writeHooks++;
+                    }
+                }
+                Log.Info("[patch] execution capture armed (" + writeHooks + " write hooks)");
             }
             catch (Exception ex) { Log.Error("[patch] execution capture failed to apply", ex); }
         }
@@ -112,9 +147,40 @@ namespace ExaAccess.Patches
         private static bool Hidden(SimHost host)
             => host == null || ExaEditorScreen.HostHidden(host, false);
 
+        // Off-team hardware writes collected during the cycle (the deferred-write loop runs
+        // inside method_54, between our prefix and postfix). Keyed by register — the last
+        // writer wins, one row per plate per cycle.
+        private static readonly Dictionary<GClass265, SimExa> _pendingWrites =
+            new Dictionary<GClass265, SimExa>();
+
+        private static void WritePrefix(GClass265 __0, SimExa __2)
+        {
+            try
+            {
+                if (!_snapValid || __0 == null || __2 == null) return; // armed cycles only
+                var editor = GameState.TopScreen() as EditorScreen;
+                if (editor == null) return;
+                if (__2.team_0 == editor.method_24()) return; // own writes = instruction rows
+                _pendingWrites[__0] = __2;
+            }
+            catch { }
+        }
+
+        private static SimHost HostOfRegister(Sim sim, GClass265 reg)
+        {
+            try
+            {
+                foreach (var host in sim.list_0)
+                    if (host.list_2.Contains(reg)) return host;
+            }
+            catch { }
+            return null;
+        }
+
         private static void CyclePrefix(Sim __instance)
         {
             _snapValid = false;
+            _pendingWrites.Clear();
             try
             {
                 var editor = GameState.TopScreen() as EditorScreen;
@@ -220,6 +286,33 @@ namespace ExaAccess.Patches
                             host = ExaEditorScreen.HostName(host),
                             id = ExaEditorScreen.FileId(snap.Held),
                         }));
+                }
+
+                // Enemy hardware writes: the DRAWN effect is the plate's value flipping —
+                // speak the post-cycle plate exactly as the viewing player's map shows it
+                // (vmethod_9, pure read, viewing team). The writer's code stays unspoken.
+                if (_pendingWrites.Count > 0)
+                {
+                    foreach (var kv in _pendingWrites)
+                    {
+                        var host = HostOfRegister(__instance, kv.Key);
+                        if (Hidden(host)) continue;
+                        string value = null;
+                        try
+                        {
+                            value = __instance.method_43()
+                                .vmethod_9(kv.Key, false, mine, false).method_2(true);
+                        }
+                        catch { }
+                        Store.Add(test, cycle, Loc.T("editor.execlog.wrote", new
+                        {
+                            exa = ExaEditorScreen.ExaDisplayName(kv.Value),
+                            host = ExaEditorScreen.HostName(host),
+                            reg = ExaEditorScreen.RegName(kv.Key),
+                            value = value ?? "?",
+                        }));
+                    }
+                    _pendingWrites.Clear();
                 }
 
                 // Kills — the cycle step returns its (killer, victim) pairs; the victim's own

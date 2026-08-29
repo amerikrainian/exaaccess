@@ -141,8 +141,9 @@ namespace ExaAccess.Screens
         }
 
         /// <summary>A hardware register as spoken: the game's badge label when the puzzle set one,
-        /// then the register name — "CNS #NERV".</summary>
-        private static string RegName(GClass265 reg)
+        /// then the register name — "CNS #NERV". (Internal: the exec log's enemy-write rows
+        /// name plates through it too.)</summary>
+        internal static string RegName(GClass265 reg)
         {
             try
             {
