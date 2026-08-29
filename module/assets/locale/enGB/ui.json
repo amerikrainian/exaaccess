@@ -173,6 +173,7 @@
   "editor.line.current": "current",
   "text.newline": "new line",
   "editor.exa.enemy": "enemy EXA",
+  "editor.exa.other": "other EXA",
   "battle.notbeaten": "Not beaten",
   "battle.opponent.state": "{beaten}, {changed} {date}",
   "battle.versus": "{you} versus {opponent}",

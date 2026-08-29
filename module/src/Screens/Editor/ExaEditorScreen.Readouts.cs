@@ -389,15 +389,19 @@ namespace ExaAccess.Screens
         }
 
         /// <summary>An EXA's name as the map shows it: the game draws name tags ONLY for the
-        /// player's team (EditorScreen's explicit team gate) — an opponent's EXA is an anonymous
-        /// sprite, so its internal name must never leak into speech. (Internal: the execution
-        /// log's enemy-effect rows name actors through the same gate.)</summary>
+        /// player's team (EditorScreen's explicit team gate) — an off-team EXA is an anonymous
+        /// sprite, so its internal name must never leak into speech. The anonymous label is
+        /// MODE-AWARE (user rule 2026-08-29): "enemy EXA" fits a battle opponent, but a normal
+        /// puzzle's off-team EXA is a scripted NPC (a librarian, a terminal), not an enemy —
+        /// it speaks the neutral label. (Internal: the execution log's effect rows name actors
+        /// through the same gate.)</summary>
         internal static string ExaDisplayName(SimExa exa)
         {
             try
             {
                 var e = Editor;
-                if (e != null && exa.team_0 != e.method_24()) return Loc.T("editor.exa.enemy");
+                if (e != null && exa.team_0 != e.method_24())
+                    return Loc.T(BattleMode(e) ? "editor.exa.enemy" : "editor.exa.other");
             }
             catch { }
             try { return exa.string_0; }

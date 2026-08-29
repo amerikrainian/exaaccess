@@ -834,10 +834,11 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     parity CONFIRMED — the special logic (GClass299) is an EMPTY
     GClass298 (no panels, no name overrides), plate enums 2/3/4 all
     speak as drawn, the id-less NPC wire is silent per the PB015
-    precedent, the anonymous NPC EXA speaks editor.exa.enemy
+    precedent, the anonymous NPC EXA speaks the anonymous label
     (EditorScreen ~2076: tags draw ONLY for the viewing team — the
     model gate is byte-exact; the earlier "??? speaks raw" NPCs were
-    VIEWING-TEAM terminals with drawn tags), an NPC-HELD file draws
+    VIEWING-TEAM terminals with drawn tags; this audit's follow-up
+    made the label mode-aware — "other EXA" outside battles), an NPC-HELD file draws
     no plate/window and the window dictionary mirrors that, and the
     game PRE-OPENS windows for files the player will MAKE (EntityID
     numbers from Sim.method_79 — entities that don't exist yet;
@@ -1034,7 +1035,11 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     team, so its links rows skip = the blank drawn plates; ENEMY EXAs
     draw NO name tag (EditorScreen's team gate ~line 2076) — occupants
     and held-file readouts speak "enemy EXA" (editor.exa.enemy), never
-    the internal names (ALPHA/BETA leaked before). SELECT OPPONENT (the
+    the internal names (ALPHA/BETA leaked before). The anonymous label
+    is MODE-AWARE since 2026-08-29 (user rule): battles say "enemy
+    EXA", a normal puzzle's off-team EXA (a scripted NPC) says "other
+    EXA" (editor.exa.other) — one gate in ExaDisplayName feeds every
+    surface (occupants, held-file readouts, exec-log effect rows). SELECT OPPONENT (the
     mouse-only hotspot on the opponent host) is a battle-only solution-
     stop button pushing OpponentBrowserScreen via the editor's private
     method_44 callback; OpponentBrowserGameScreen (BattleScreens.cs)
