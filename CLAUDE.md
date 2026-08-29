@@ -882,7 +882,18 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     file it shadows, else the goal ghost in sim.list_6 — the F1
     view's own precedence; specs carry no width of their own).
     Live-verified on PB040 (phone list rows of 11, playlist song
-    pairs); plate enums 2/3 draw the internal name
+    pairs). PROSE FILES (same day, PB016's books): a file with NO
+    authored width whose values include the game's "¶" paragraph
+    token (books/articles ship as word+punctuation tokens; the drawn
+    window shows the SAME comma'd stream — no sighted structure
+    exists) speaks as FLOWING PROSE — the TSpeech massaging
+    precedent: words space-joined, punctuation tokens attached to
+    the word before, "¶" a "; " pause; the values popup makes each
+    PARAGRAPH one item (IsProse/JoinProse/ProseSegments in
+    Readouts). PROBE TRAP: comparing "¶" in /eval needs a UTF-8
+    request body (WebClient.UploadData with charset=utf-8) — a
+    default-encoded POST mangles non-ASCII literals and the compare
+    silently misses (bit this feature's first probe); plate enums 2/3 draw the internal name
     (spoken identically), plate 4 on a NON-home host (zebros
     terminal) draws the internal name too; the tutorial one-way
     link (799) speaks "One way" from the id side while its id-less

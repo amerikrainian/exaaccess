@@ -70,28 +70,36 @@ namespace ExaAccess.Screens
             catch { return null; }
         }
 
+        /// <summary>The active source's value list, whichever kind backs the popup.</summary>
+        private System.Collections.Generic.IList<ExaValue> PopupValues()
+        {
+            try
+            {
+                if (_popupGoalRequired >= 0) return PopupGoalValues();
+                var file = PopupFile();
+                return file != null ? file.list_0 : null;
+            }
+            catch { return null; }
+        }
+
         private bool BuildFilePopup(GraphBuilder b)
         {
-            int count;
-            if (_popupGoalRequired >= 0)
-            {
-                var goal = PopupGoalValues();
-                if (goal == null) return false;
-                count = goal.Length;
-            }
-            else
-            {
-                var file = PopupFile();
-                if (file == null) return false;
-                count = 0;
-                try { count = file.list_0.Count; } catch { }
-            }
+            var vals = PopupValues();
+            if (vals == null) return false;
+            int count = vals.Count;
             string fid = _popupFile;
             // No context, no position counts (user rule): entering announces the VALUE alone,
-            // arrowing speaks each next value (or authored row) bare.
+            // arrowing speaks each next value (or authored row, or prose paragraph) bare.
             b.BeginStop("filepop");
-            int cols = Math.Max(1, PopupColumns());
-            int rows = Math.Max(1, (count + cols - 1) / cols); // an empty file keeps its one "blank" row
+            int rawCols = PopupColumns();
+            int rows;
+            if (rawCols <= 0 && IsProse(vals))
+                rows = Math.Max(1, ProseSegments(vals).Count);
+            else
+            {
+                int cols = Math.Max(1, rawCols);
+                rows = Math.Max(1, (count + cols - 1) / cols); // an empty file keeps its one "blank" row
+            }
             for (int i = 0; i < rows; i++)
             {
                 int vi = i;
@@ -134,21 +142,17 @@ namespace ExaAccess.Screens
         {
             try
             {
-                System.Collections.Generic.IList<ExaValue> vals;
-                if (_popupGoalRequired >= 0)
-                {
-                    var goal = PopupGoalValues();
-                    if (goal == null) return null;
-                    vals = goal;
-                }
-                else
-                {
-                    var file = PopupFile();
-                    if (file == null) return null;
-                    vals = file.list_0;
-                }
+                var vals = PopupValues();
+                if (vals == null) return null;
                 if (vals.Count == 0) return row == 0 ? Loc.T("text.blank") : null; // the empty file's one row
-                int cols = Math.Max(1, PopupColumns());
+                int rawCols = PopupColumns();
+                if (rawCols <= 0 && IsProse(vals))
+                {
+                    // Prose: one PARAGRAPH per item (the file's own "¶" markers), flow-joined.
+                    var segs = ProseSegments(vals);
+                    return row < segs.Count ? segs[row] : null;
+                }
+                int cols = Math.Max(1, rawCols);
                 int start = row * cols;
                 if (start >= vals.Count) return null;
                 var parts = new System.Collections.Generic.List<string>();

@@ -407,12 +407,86 @@ namespace ExaAccess.Screens
             return 0;
         }
 
+        /// <summary>True when a value list is tokenized PROSE — it contains the game's "¶"
+        /// paragraph-mark value (the books and articles ship as word/punctuation tokens).
+        /// The drawn window shows the same comma-separated token stream, so flow-joining is
+        /// TTS separator massaging of identical content (the TSpeech precedent), triggered
+        /// only by the model's own markers, never by guessing.</summary>
+        private static bool IsProse(System.Collections.Generic.IList<ExaValue> vals)
+        {
+            try
+            {
+                for (int i = 0; i < vals.Count; i++)
+                    if (vals[i].method_2(true) == "¶") return true;
+            }
+            catch { }
+            return false;
+        }
+
+        /// <summary>Tokenized prose as flowing speech: words joined by spaces, punctuation
+        /// tokens attached to the word before them ("IS , WHY" → "IS, WHY"), "¶" spoken as
+        /// the "; " pause. The characters are exactly the file's own values.</summary>
+        private static string JoinProse(System.Collections.Generic.List<string> parts)
+        {
+            var sb = new System.Text.StringBuilder();
+            bool start = true;
+            foreach (var t in parts)
+            {
+                if (t == "¶")
+                {
+                    if (!start) sb.Append("; ");
+                    start = true;
+                    continue;
+                }
+                bool punct = t.Length > 0;
+                foreach (var c in t)
+                    if (char.IsLetterOrDigit(c)) { punct = false; break; }
+                if (start) { sb.Append(t); start = false; }
+                else if (punct) sb.Append(t);
+                else sb.Append(' ').Append(t);
+            }
+            return sb.ToString().TrimEnd(' ', ';');
+        }
+
+        /// <summary>A prose file's paragraphs, each already flow-joined — the values popup's
+        /// items ("¶" splits; empty segments are skipped).</summary>
+        private static System.Collections.Generic.List<string> ProseSegments(
+            System.Collections.Generic.IList<ExaValue> vals)
+        {
+            var segs = new System.Collections.Generic.List<string>();
+            var cur = new System.Collections.Generic.List<string>();
+            try
+            {
+                for (int i = 0; i < vals.Count; i++)
+                {
+                    string t = vals[i].method_2(true);
+                    if (t == "¶")
+                    {
+                        if (cur.Count > 0) segs.Add(JoinProse(cur));
+                        cur.Clear();
+                    }
+                    else cur.Add(t);
+                }
+                if (cur.Count > 0) segs.Add(JoinProse(cur));
+            }
+            catch { }
+            return segs;
+        }
+
         /// <summary>The spoken form of a (possibly capped) value list: flat comma join, or —
         /// when the file carries an authored row width — rows of that many values separated
-        /// by "; ", the audible form of the drawn line break. Appends "and N more" when the
-        /// list was capped.</summary>
-        private static string JoinValueRows(System.Collections.Generic.List<string> parts, int total, int cols)
+        /// by "; ", the audible form of the drawn line break; or flowing prose when the list
+        /// carries "¶" markers and no authored width. Appends "and N more" when the list was
+        /// capped.</summary>
+        private static string JoinValueRows(System.Collections.Generic.List<string> parts, int total, int cols, bool prose = false)
         {
+            if (prose && cols <= 0)
+            {
+                string flow = JoinProse(parts);
+                if (total > parts.Count)
+                    flow += " " + Loc.T("editor.file.more", new { n = total - parts.Count });
+                return flow;
+            }
             // A capped list trims to WHOLE rows ("five numbers... and 33 more" beats a cut
             // mid-number); an uncapped list is never trimmed, and a row wider than the cap
             // keeps its partial row rather than vanishing.
@@ -588,7 +662,7 @@ namespace ExaAccess.Screens
                 int count = file.list_0.Count;
                 for (int i = 0; i < count && i < FileValuesSpoken; i++)
                     parts.Add(file.list_0[i].method_2(true));
-                string values = JoinValueRows(parts, count, FileColumns(file));
+                string values = JoinValueRows(parts, count, FileColumns(file), IsProse(file.list_0));
                 // The host is the stop's context now; a HELD file reads with its holder and
                 // cursor (the zine's file window attached beneath the EXA).
                 var holder = HolderOf(file);
