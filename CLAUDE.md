@@ -1026,9 +1026,15 @@ subsequent input, even `1+1`) — `/reload` resets the evaluator.
     BattleCompletionScreen (battles end there, NOT at
     PuzzleCompletionScreen): result heading as the screen name,
     title line, "{you} versus {opponent}", Wins/Draws/Losses, Your
-    Rating (the badge is LETTERED SPRITE art tiered by wins — loss =
-    "N/A" transcribed; the five win tiers speak NOTHING until a live
-    win shows their lettering — transcribe then), the win-gated upload
+    Rating ("Your Rating" IS the game's own loc string; the badge is
+    LETTERED SPRITE art tiered by wins — ALL SIX tiers transcribed
+    2026-08-29 by reading gclass175_0.texture_0..5 back off the GPU
+    via Renderer.smethod_9 + a vertical flip, the readback comes out
+    upside down: no-win = "N/A", then C (51-59) / B (60-79) /
+    A (80-94) / S (95-99) / S+ (100), mirroring the draw's ternary;
+    live-verified "Your Rating, S+" on a 100-win sweep — the
+    GPU-readback trick generalizes to any sprite that needs
+    transcribing), the win-gated upload
     notice, and Continue Editing / Record GIF / Return to Desktop
     (win-gated) replicating the click paths; Escape native. NetworkLogos
     grew PB014 ("KGOG News Network" — the subline the spoken KGOG-TV

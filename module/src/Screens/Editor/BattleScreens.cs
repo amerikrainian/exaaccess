@@ -232,17 +232,24 @@ namespace ExaAccess.Screens
             catch { return null; }
         }
 
-        /// <summary>The rating badge is LETTERED SPRITE art tiered by wins. Only the loss badge
-        /// is transcribed so far ("N/A", screenshot-verified 2026-08-24); the five win tiers
-        /// speak nothing rather than a guess until a live win shows their lettering.</summary>
+        /// <summary>The rating badge is LETTERED SPRITE art tiered by wins — all six tiers
+        /// transcribed 2026-08-29 by reading the badge textures back off the GPU
+        /// (gclass175_0.texture_0..5 via Renderer.smethod_9): C / B / A / S / S+, and N/A
+        /// when the battle wasn't won. The tier picks mirror the draw's exact ternary.
+        /// Letters are art transcription (language-invariant), not ui.json.</summary>
         private static string RatingText(BattleCompletionScreen s)
         {
             try
             {
-                if (WonField != null && !(bool)WonField.GetValue(s)) return GameText.T("N/A");
+                if (WonField == null || !(bool)WonField.GetValue(s)) return GameText.T("N/A");
+                int wins = int.Parse(IntField(s, WinsField));
+                if (wins == 100) return "S+";  // texture_5
+                if (wins >= 95) return "S";    // texture_4
+                if (wins >= 80) return "A";    // texture_0
+                if (wins < 60) return "C";     // texture_2
+                return "B";                    // texture_1
             }
-            catch { }
-            return null;
+            catch { return null; }
         }
 
         private static bool UploadNoticeShown(BattleCompletionScreen s)
