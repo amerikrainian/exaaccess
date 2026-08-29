@@ -321,6 +321,20 @@ namespace ExaAccess.Screens
                 // there (every EXA at line one, empty EXAs errored on every build).
                 bool running = false;
                 try { running = Editor?.method_0() == true; } catch { }
+                // SANDBOX windows grow the G row (GX,GY,GZ sprite position) and the C row
+                // (CO over CI) — live while armed; while editing the game draws the literal
+                // placeholders "0,0,0" and -9999/-9999, mirrored exactly.
+                if (SandboxMode(Editor))
+                {
+                    string g = "0,0,0", co = "-9999", ci = "-9999";
+                    if (running)
+                    {
+                        g = exa.int_4 + "," + exa.int_5 + "," + exa.int_6;
+                        co = exa.int_7.ToString();
+                        ci = exa.int_8.ToString();
+                    }
+                    readout += " " + Loc.T("editor.exa.readout.gc", new { g, co, ci });
+                }
                 if (running)
                 {
                     // The window's highlighted line, bare, up front; an error's message (the

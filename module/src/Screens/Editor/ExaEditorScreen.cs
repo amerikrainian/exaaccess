@@ -131,6 +131,10 @@ namespace ExaAccess.Screens
 
         private static bool BattleMode(EditorScreen e) => GameMode(e) == 1;
 
+        /// <summary>The Redshift sandbox (PB039): no tests/goals/scores, the map narrows,
+        /// the right half is the drawn handheld console, EXAs are sprites.</summary>
+        private static bool SandboxMode(EditorScreen e) => GameMode(e) == 2;
+
         public override void Build(GraphBuilder b)
         {
             var e = Editor;
@@ -159,8 +163,9 @@ namespace ExaAccess.Screens
             BuildSign(b, e);
             BuildProblems(b, e);
             BuildCode(b, e);
+            BuildSprite(b, e);
             BuildStats(b, e);
-            BuildControls(b);
+            BuildControls(b, e);
             BuildTestLog(b, e);
             BuildExecutionLog(b, e);
             BuildSolution(b, e);

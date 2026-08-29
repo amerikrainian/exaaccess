@@ -11,7 +11,7 @@ namespace ExaAccess.Screens
     {
         // ---- sim controls: the five buttons, each invoking the game's own handler path ----
 
-        private void BuildControls(GraphBuilder b)
+        private void BuildControls(GraphBuilder b, EditorScreen e)
         {
             b.BeginStop("controls");
             b.PushContext(Loc.T("editor.controls"), positions: false);
@@ -25,7 +25,42 @@ namespace ExaAccess.Screens
             ControlButton(b, "ed.ctl.pause", "Pause", "Pause the simulation.", PauseSim);
             ControlButton(b, "ed.ctl.reset", "Reset", "Reset the simulation.", ResetSim);
             b.EndRow();
+            // The console's 2D/3D switch (sandbox only): natively a MOUSE-ONLY hotspot on
+            // the drawn console (GClass313's click bounds — no key reaches it) flipping
+            // EditorScreen.bool_10, which #EN3D reads and the anaglyph crossfade follows.
+            // Same flip + the game's own switch sound; works armed or editing, like the click.
+            if (SandboxMode(e))
+                b.AddItem(ControlId.Structural("ed.3d"), new NodeVtable
+                {
+                    ControlType = ControlTypes.Toggle,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => Loc.T("editor.3dswitch"), kind: AnnouncementKinds.Label),
+                        new NodeAnnouncement(Mode3dText, live: true, kind: AnnouncementKinds.Value),
+                    },
+                    StateText = Mode3dText,
+                    OnActivate = Toggle3d,
+                });
             b.PopContext();
+        }
+
+        /// <summary>The switch position by its own drawn labels: "2D" or "3D".</summary>
+        private static string Mode3dText()
+        {
+            try { return Loc.T(Editor?.bool_10 == true ? "editor.mode3d" : "editor.mode2d"); }
+            catch { return null; }
+        }
+
+        private static void Toggle3d()
+        {
+            var e = Editor;
+            if (e == null) return;
+            try
+            {
+                e.bool_10 = !e.bool_10;
+                try { GClass45.soundsNamespace_0.sound_29.smethod_1(1f); } catch { }
+            }
+            catch (Exception ex) { Log.Error("[editor] 2D/3D toggle failed", ex); }
         }
 
         private static void ControlButton(GraphBuilder b, string id, string gameKey, string tooltipKey, Action activate)

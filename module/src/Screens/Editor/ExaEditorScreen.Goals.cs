@@ -13,17 +13,31 @@ namespace ExaAccess.Screens
 
         private void BuildTask(GraphBuilder b, EditorScreen e)
         {
+            // The description can be genuinely EMPTY — the sandbox ships a 0-byte
+            // sandbox.txt (Content\descriptions) — and the sandbox also has no goals, no
+            // logo row and no Show Goal, which left the whole stop as one silent blank row
+            // (user report, 2026-08-29). Rows build only when they carry content, and the
+            // stop only when it has rows — the Problems/logs absent-while-empty shape.
+            string desc = null;
+            try { desc = GameText.Speech(Meta(e)?.locString_2.ToString()); } catch { }
+            if (string.IsNullOrWhiteSpace(desc)) desc = null;
+            var sim0 = TheSim(e);
+            int goals = 0;
+            try { goals = sim0 != null ? sim0.list_2.Count : 0; } catch { }
+            if (desc == null && NetworkLogoText() == null && goals == 0 && GameMode(e) != 0)
+                return;
             b.BeginStop("task");
             b.PushContext(Loc.T("editor.task"), positions: false);
-            b.AddItem(ControlId.Structural("ed.desc"), new NodeVtable
-            {
-                ControlType = ControlTypes.Text,
-                Announcements = new[]
+            if (desc != null)
+                b.AddItem(ControlId.Structural("ed.desc"), new NodeVtable
                 {
-                    new NodeAnnouncement(() => GameText.Speech(Meta(Editor)?.locString_2.ToString()),
-                        kind: AnnouncementKinds.Label),
-                },
-            });
+                    ControlType = ControlTypes.Text,
+                    Announcements = new[]
+                    {
+                        new NodeAnnouncement(() => GameText.Speech(Meta(Editor)?.locString_2.ToString()),
+                            kind: AnnouncementKinds.Label),
+                    },
+                });
 
             // The map's NETWORK LOGO decal (meta.texture_0, drawn on every network's
             // backdrop) is baked art — a lettered brand reaches only sighted players, and

@@ -13,6 +13,11 @@ namespace ExaAccess.Screens
 
         private void BuildStats(GraphBuilder b, EditorScreen e)
         {
+            // SANDBOX (mode 2) draws NO scores panel at all — the Test Run block and the
+            // stat columns are both gated to modes 0/1 in the game's draw, and the run
+            // number is meaningless there (the sim ignores it). No stop, mirroring the
+            // screen; cycle numbers still speak through the step echo.
+            if (SandboxMode(e)) return;
             b.BeginStop("stats");
             b.PushContext(Loc.T("editor.stats"), positions: false);
 
