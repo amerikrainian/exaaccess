@@ -709,7 +709,13 @@ restored to the opener):
 - PanelCapture mechanics: patches every GClass298 draw-hook override (vmethod_0..3,
   found by slot at load) + the three GClass230 text statics (smethod_33/34/36),
   recording (string, pos) while armed; UI/PanelText (BCL-pure, tested) rebuilds
-  reading order (rows cluster by y, y-up; cells left-to-right).
+  reading order: cells first split into BLOCKS on >600-unit x-gaps (one special draw
+  can paint several spatially separate elements — PB038 exposed none, PB020 draws the
+  request table AND the disc code strip ~1700 apart; y-clustering across them shuffled
+  unrelated cells into one row), blocks read top-down; within a block rows cluster by
+  y (y-up, CONSECUTIVE-cell chaining at tolerance 15 — PB020's strip is one glyph per
+  call along an isometric diagonal, 14.17 y-step, and must stay ONE spoken row; table
+  rows step 41.5 and never chain), cells left-to-right.
 
 **File speaking rules** (Readouts.cs helpers, used by every surface):
 - IDENTITY: file ids repeat across hosts — rows, readouts and the popup are all
@@ -842,8 +848,13 @@ calling the live module's helpers). Everything drawn must be hearable; nothing h
 may leak. The rulebook accumulated so far:
 
 - HOST NAMES (all in HostName, in precedence order): hidden hosts
-  (SimHost.method_10(goal); the goal flag can reveal) speak ONLY their cover caption —
-  occupants/files/registers gated on the map AND in the goal popup; NAME-DISPLAY MODE
+  (SimHost.method_10(goal); the goal flag can reveal) gate their CONTENTS
+  (occupants/files/registers) on the map AND in the goal popup — but the game's
+  name-plate draw has NO hidden gate (EditorScreen's plate loop letters every
+  plate/name-mode host, covered or not — PB020's disc draws "LOCKED" across the cover
+  AND "DISC" on the edge frame, found 2026-08-29), so a covered host speaks its drawn
+  name as the label with the cover caption as the hosts-row VALUE (HiddenStateValue);
+  the caption serves as the label only when nothing letters the host; NAME-DISPLAY MODE
   (meta.genum145_0 != 0) letters every non-home host's INTERNAL name along a free
   3-cell edge strip — mirrored incl. the free-strip scan (NameLabelDrawn: no free
   strip = unnamed for everyone); plate-0 (genum154_0==0) means "the ART carries the

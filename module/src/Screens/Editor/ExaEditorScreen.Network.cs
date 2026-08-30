@@ -112,7 +112,9 @@ namespace ExaAccess.Screens
         {
             var host = HostAt(index);
             if (host == null) return null;
-            if (HostHidden(host, false)) return null; // the cover box shows nothing inside
+            // The cover box shows nothing inside — but its cover word ("LOCKED") is drawn, so
+            // when the label carries the drawn name the caption speaks as the row's value.
+            if (HostHidden(host, false)) return HiddenStateValue(host);
             try
             {
                 var parts = new System.Collections.Generic.List<string>();

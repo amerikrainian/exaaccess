@@ -93,5 +93,59 @@ namespace ExaAccess.Tests
             };
             Assert.Equal(new[] { "-73, -73", "477" }, PanelText.Assemble(cells));
         }
+
+        [Fact]
+        public void FarApartElementsSplitIntoBlocks()
+        {
+            // The PB020 goal view: the track-request table at x~3380 and the disc code strip
+            // ~1700 units left of it, overlapping in y. Without block segmentation the strip's
+            // glyphs shuffled into the table's rows ("9, 201, OK").
+            var cells = new List<PanelCell>
+            {
+                new PanelCell("TRACK REQUESTS", 3466f, 2082f),
+                new PanelCell("209", 3382f, 2031f),
+                new PanelCell("OK", 3556f, 2031f),
+                new PanelCell("204", 3382f, 1989.5f),
+                new PanelCell("OK", 3556f, 1989.5f),
+                new PanelCell("8", 1254f, 2031f),  // strip glyphs share the table's y range
+                new PanelCell("0", 1278.5f, 2016.8f),
+                new PanelCell("3", 1303f, 2002.7f),
+            };
+            Assert.Equal(new[]
+            {
+                "TRACK REQUESTS",
+                "209, OK",
+                "204, OK",
+                "8, 0, 3",
+            }, PanelText.Assemble(cells));
+        }
+
+        [Fact]
+        public void DiagonalGlyphRunChainsIntoOneRow()
+        {
+            // The disc code strip draws one glyph per call along an isometric diagonal
+            // (x +24.5, y -14.17 each) — consecutive-cell chaining keeps it one spoken row,
+            // while 41.5-stepped table rows stay separate.
+            var cells = new List<PanelCell>();
+            for (int i = 0; i < 15; i++)
+                cells.Add(new PanelCell(i % 2 == 0 ? "7" : "-", 1254f + 24.5f * i, 1670f - 14.17f * i));
+            Assert.Equal(
+                new[] { "7, -, 7, -, 7, -, 7, -, 7, -, 7, -, 7, -, 7" },
+                PanelText.Assemble(cells));
+        }
+
+        [Fact]
+        public void BlocksReadTopDownByTheirTopmostCell()
+        {
+            // The table's title sits above the strip's topmost glyph, so the table block
+            // reads first even though the strip is further left.
+            var cells = new List<PanelCell>
+            {
+                new PanelCell("strip", 1254f, 1670f),
+                new PanelCell("TITLE", 3294f, 2153f),
+                new PanelCell("row", 3382f, 2031f),
+            };
+            Assert.Equal(new[] { "TITLE", "row", "strip" }, PanelText.Assemble(cells));
+        }
     }
 }

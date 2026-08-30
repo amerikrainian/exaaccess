@@ -128,6 +128,11 @@ namespace ExaAccess.Screens
                 // spoken title ("Emerson's Guide") drops — the fuller-brand rule; the
                 // "Street Smarts GIS" half is carried by the spoken subtitle.
                 { "PB018", "Street Smarts GIS, Emerson's Restaurant Guide" },
+                // PB020: the chip face engraved over the core host — its model line and
+                // product name appear in no spoken string (the title carries only the brand),
+                // screenshot-verified 2026-08-29. The "WONDERDISC" decal is a title
+                // restatement and owes nothing.
+                { "PB020", "Sawayama SYWDX85769D3, Reality Processor" },
             };
 
         // The GIS maps' COMPASS ROSE decal: four link-id plates around a star with a

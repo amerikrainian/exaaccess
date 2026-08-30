@@ -164,11 +164,16 @@ namespace ExaAccess.Screens
             return Loc.T("editor.host.locked");
         }
 
-        // The DISPLAYED host name: a hidden host shows only its cover caption; a plateless
-        // host (genum154_0 == 0 — the secret/modem boxes) shows no name at all, so the
-        // internal one must never leak; then the uppercased internal name, overridable by the
-        // game mode (the tutorial's home host is internally "player" but displays "RHIZOME"),
-        // then the map's #-suffix truncation.
+        // The DISPLAYED host name: the game's name-plate draw has NO hidden gate
+        // (EditorScreen's plate loop letters every host with a plate enum or name-mode strip,
+        // covered or not — PB020's disc draws "LOCKED" across the cover AND "DISC" on the edge
+        // frame; audited 2026-08-29), so a covered host speaks its drawn name when one is
+        // drawn, falling back to the cover caption when nothing letters it (the cover replaces
+        // CONTENTS only — occupants/files/registers stay gated elsewhere). A plateless host
+        // (genum154_0 == 0 — the secret/modem boxes) shows no name at all, so the internal one
+        // must never leak; then the uppercased internal name, overridable by the game mode
+        // (the tutorial's home host is internally "player" but displays "RHIZOME"), then the
+        // map's #-suffix truncation.
         internal static string HostName(SimHost host) => HostName(host, false);
 
         private static string HostName(SimHost host, bool goal)
@@ -176,7 +181,34 @@ namespace ExaAccess.Screens
             if (host == null) return null;
             try
             {
-                if (HostHidden(host, goal)) return LockedLabel(host);
+                string drawn = DrawnHostName(host, goal);
+                if (HostHidden(host, goal)) return drawn ?? LockedLabel(host);
+                return drawn ?? Loc.T("editor.host.unnamed");
+            }
+            catch { return null; }
+        }
+
+        /// <summary>The cover word as a hosts-stop VALUE — spoken after the drawn name
+        /// ("DISC, Locked"); null when the caption already serves as the label (no name drawn)
+        /// or the host isn't covered.</summary>
+        internal static string HiddenStateValue(SimHost host)
+        {
+            try
+            {
+                if (!HostHidden(host, false)) return null;
+                return DrawnHostName(host, false) != null ? LockedLabel(host) : null;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>The name the map actually letters for this host, or null when nothing is
+        /// drawn — mirrors EditorScreen's plate draw (which never gates on hidden), the
+        /// name-display-mode strip scan, the home/opponent identity substitution, the logic's
+        /// vmethod_10 override, and the #-suffix truncation.</summary>
+        private static string DrawnHostName(SimHost host, bool goal)
+        {
+            try
+            {
                 var e = Editor;
                 var meta = Meta(e);
                 // NAME-DISPLAY MODE (meta.genum145_0 — the legacy-network puzzles): the game
@@ -197,7 +229,7 @@ namespace ExaAccess.Screens
                     if (!nameModeHome)
                         return nsim != null && NameLabelDrawn(host, nsim)
                             ? host.string_0.ToUpperInvariant()
-                            : Loc.T("editor.host.unnamed");
+                            : null;
                 }
                 if (host.genum154_0 == (GEnum154)0)
                 {
@@ -210,7 +242,7 @@ namespace ExaAccess.Screens
                     if (bsim != null && bsim.method_43() is SpecialPuzzleLogics.GClass304
                         && host.range2_0.Size.int_0 > 1 && host.range2_0.Size.int_1 > 1)
                         return host.string_0.ToUpperInvariant();
-                    return Loc.T("editor.host.unnamed");
+                    return null;
                 }
                 string name = null;
                 // The two HOME hosts substitute by IDENTITY, exactly as the plate draw does
