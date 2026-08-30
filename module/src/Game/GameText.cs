@@ -24,8 +24,11 @@ namespace ExaAccess.Game
             return key;
         }
 
-        /// <summary>T, massaged for speech: the game separates alternatives with " / " (read
-        /// unreliably by TTS) and embeds newlines/backslashes in some labels.</summary>
+        /// <summary>T, massaged for speech: the game embeds newlines/backslashes and emphasis
+        /// markup in some labels. Slashes pass through untouched: the game's whole localized
+        /// corpus (strings.csv + descriptions) carries exactly one " / ", and it is a DIVISION
+        /// sign in PB023's scoring formula — an earlier "separator → comma" rule turned it into
+        /// "(BA + ZA + APB), 3" (parity audit 2026-08-30).</summary>
         public static string TSpeech(string key) => Speech(T(key));
 
         /// <summary>The same speech massage for a game string obtained some other way (a LocString
@@ -40,7 +43,7 @@ namespace ExaAccess.Game
             s = s.Replace("\\*", "\u0001").Replace("\\_", "\u0002");
             s = s.Replace("*", "").Replace("_", "").Replace("‗", "");
             s = s.Replace("\u0001", "*").Replace("\u0002", "_");
-            return s.Replace(" / ", ", ").Replace("\n", " ").Replace("\\", "");
+            return s.Replace("\n", " ").Replace("\\", "");
         }
     }
 }

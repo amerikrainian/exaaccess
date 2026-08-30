@@ -523,7 +523,10 @@ More `/eval` traps, all hit live:
   LIVE via `module/src/Game/GameText.cs` (the game's own loc registry, deob
   `GClass7.smethod_5(key, …) → LocString` — resolved by shape; six shipped languages,
   keys are literally the English text so failed lookups stay readable). `TSpeech`
-  massages " / " separators/newlines for TTS. ui.json is ONLY for text the game
+  massages newlines/backslashes/emphasis markup for TTS — NEVER slashes: the game's
+  entire text corpus holds exactly one " / " and it is PB023's DIVISION sign (an old
+  separator→comma rule spoke the formula as "(BA + ZA + APB), 3" — PB023 audit,
+  2026-08-30). ui.json is ONLY for text the game
   genuinely lacks: role words, prompts for otherwise-silent screens, names for
   unlabeled/art-labeled things.
 - **No mod-authored hints. Ever.** If the game doesn't provide hint/description text
@@ -863,7 +866,12 @@ may leak. The rulebook accumulated so far:
   3-cell edge strip — mirrored incl. the free-strip scan (NameLabelDrawn: no free
   strip = unnamed for everyone); plate-0 (genum154_0==0) means "the ART carries the
   name" — speak "Unnamed host" UNLESS the puzzle's baked-art letters it (UC Berkeley:
-  multi-cell plate-0 hosts speak string_0.ToUpper; 1x1 relays stay unlettered); home
+  multi-cell plate-0 hosts speak string_0.ToUpper; 1x1 relays stay unlettered); when
+  a map has SEVERAL unnamed hosts they carry their hosts-stop POSITION ("Unnamed host
+  4" = the 4th host row — the number the navigator already speaks there, nothing
+  invented) so a link's destination stays identifiable, as it is by eye; a lone one
+  stays bare (UnnamedLabel; PB023's one-way ring of four plate-0 bases, 2026-08-30 —
+  the diamond art identifies them pictorially, not by lettering); home
   and opponent plates substitute by IDENTITY (sim.dictionary_0[team].simHost_0;
   sandbox excepted; opponent = Steam persona else the battle character); the logic's
   vmethod_10 override applies last; then the map's #-suffix truncation. Plate enums
@@ -878,8 +886,10 @@ may leak. The rulebook accumulated so far:
   is baked brand art. If its lettering appears in NO spoken string, the task stop owes
   a "Network logo:" row via the NetworkLogos transcription table (Goals.cs — 
   language-invariant, keyed by puzzle id; no entry = no row). Sublines and taglines
-  count; a FULLER brand name counts; title restatements do not. Grep descriptions/ +
-  strings.csv to check. The GIS maps' COMPASS ROSE decal (four link-id plates + a
+  count; a FULLER brand name counts; a distinct lettered MARK counts (PB012's numeral,
+  PB023's "XLB" initialism — letters the long-form title never speaks); title
+  restatements do not. Grep descriptions/ + strings.csv to check. The GIS maps'
+  COMPASS ROSE decal (four link-id plates + a
   drawn north arrow — the id→cardinal mapping the task text depends on) gets its own
   task-stop row via the CompassRoses table (ids in N,E,S,W order, editor.compass
   template); a mere link LEGEND that restates per-host-spoken ids owes nothing.

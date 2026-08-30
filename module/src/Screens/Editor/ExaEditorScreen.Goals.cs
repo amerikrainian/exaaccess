@@ -133,6 +133,11 @@ namespace ExaAccess.Screens
                 // screenshot-verified 2026-08-29. The "WONDERDISC" decal is a title
                 // restatement and owes nothing.
                 { "PB020", "Sawayama SYWDX85769D3, Reality Processor" },
+                // PB023: the league's initialism mark (saltire + baseball art around three
+                // letters) appears in no spoken string — the title carries only the long form.
+                // A distinct lettered mark, not a title restatement (the PB012 numeral-mark
+                // precedent); screenshot-verified 2026-08-30.
+                { "PB023", "XLB" },
             };
 
         // The GIS maps' COMPASS ROSE decal: four link-id plates around a star with a

@@ -166,6 +166,7 @@
   "editor.registers": "{host} registers",
   "editor.host.locked": "Locked host",
   "editor.host.unnamed": "Unnamed host",
+  "editor.host.unnamed.n": "Unnamed host {n}",
   "editor.link.locked": "locked",
   "editor.file.immovable": "immovable",
   "editor.reg.writeonly": "write-only",

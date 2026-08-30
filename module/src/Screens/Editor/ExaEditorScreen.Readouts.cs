@@ -183,9 +183,37 @@ namespace ExaAccess.Screens
             {
                 string drawn = DrawnHostName(host, goal);
                 if (HostHidden(host, goal)) return drawn ?? LockedLabel(host);
-                return drawn ?? Loc.T("editor.host.unnamed");
+                return drawn ?? UnnamedLabel(host);
             }
             catch { return null; }
+        }
+
+        /// <summary>The label for a host the map letters nothing for. When a map has SEVERAL
+        /// such hosts, a sighted player still tells them apart by position — a link visibly
+        /// runs to THAT host — so the label carries the host's hosts-stop position ("Unnamed
+        /// host 4" = the 4th host row, the same number the navigator already speaks there);
+        /// nothing is invented. A map's single unnamed host stays bare (PB023 audit,
+        /// 2026-08-30: four identical labels made its one-way ring unfollowable).</summary>
+        private static string UnnamedLabel(SimHost host)
+        {
+            try
+            {
+                var sim = TheSim(Editor);
+                if (sim != null)
+                {
+                    int unnamed = 0, position = 0;
+                    for (int i = 0; i < sim.list_0.Count; i++)
+                    {
+                        var h = sim.list_0[i];
+                        if (ReferenceEquals(h, host)) position = i + 1;
+                        if (!HostHidden(h, false) && DrawnHostName(h, false) == null) unnamed++;
+                    }
+                    if (unnamed > 1 && position > 0)
+                        return Loc.T("editor.host.unnamed.n", new { n = position });
+                }
+            }
+            catch { }
+            return Loc.T("editor.host.unnamed");
         }
 
         /// <summary>The cover word as a hosts-stop VALUE — spoken after the drawn name

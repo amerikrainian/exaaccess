@@ -30,7 +30,8 @@ namespace ExaAccess.Tests
         [Fact]
         public void MassagesSeparatorsAndNewlines()
         {
-            Assert.Equal("Reset, Pause", GameText.Speech("Reset / Pause"));
+            // The only " / " in the game's text is PB023's division sign — it must survive.
+            Assert.Equal("(BA + ZA + APB) / 3", GameText.Speech("(BA + ZA + APB) / 3"));
             Assert.Equal("a b", GameText.Speech("a\nb"));
         }
     }
