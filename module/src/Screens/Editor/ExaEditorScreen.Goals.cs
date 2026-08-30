@@ -267,6 +267,14 @@ namespace ExaAccess.Screens
                         var required = host.list_0[r];
                         string id = required.maybe_0.method_0()
                             ? required.maybe_0.method_2().ToString() : GameText.T("NEW");
+                        // The F1 view draws only the entities the map already windows — a file
+                        // in an off-team hand has no plate, no window and no ghost there, so
+                        // its row would speak an id and values no sighted player can see.
+                        if (required.maybe_0.method_0())
+                        {
+                            var live = FindFileAt(id, h);
+                            if (live != null && HeldByOffTeam(live, HolderOf(live), e)) continue;
+                        }
                         var values = new System.Collections.Generic.List<string>();
                         int total = required.exaValue_0.Length;
                         bool prose = IsProse(required.exaValue_0);

@@ -30,6 +30,11 @@ namespace ExaAccess.Screens
                 try
                 {
                     var holder = HolderOf(file);
+                    // A file in an OFF-TEAM hand is anonymous on the map: the game draws the
+                    // holder's card with no id plate and opens no window for it (the plate loop
+                    // walks unheld drawables only) — its id and values are on screen for no one.
+                    // The card itself speaks through the hosts row ("… holding a file").
+                    if (HeldByOffTeam(file, holder, e)) continue;
                     at = holder != null ? holder.method_0() : file.method_0();
                 }
                 catch { }

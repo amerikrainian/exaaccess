@@ -177,6 +177,7 @@
   "text.newline": "new line",
   "editor.exa.enemy": "enemy EXA",
   "editor.exa.other": "other EXA",
+  "editor.exa.holding": "{exa} holding a file",
   "battle.notbeaten": "Not beaten",
   "battle.opponent.state": "{beaten}, {changed} {date}",
   "battle.versus": "{you} versus {opponent}",

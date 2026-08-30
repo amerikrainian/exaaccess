@@ -121,7 +121,18 @@ namespace ExaAccess.Screens
                 foreach (var entity in host.method_8())
                 {
                     var exa = entity as SimExa;
-                    if (exa != null) { parts.Add(ExaDisplayName(exa)); continue; }
+                    if (exa != null)
+                    {
+                        // A holder is drawn WITH its file (the card in its hand) while the file
+                        // itself leaves this list (held = not in method_8) — say so, or the card
+                        // a sighted player sees on every scripted NPC is silent (PB024, 2026-08-30).
+                        bool holding = false;
+                        try { holding = exa.maybe_3.method_0(); } catch { }
+                        parts.Add(holding
+                            ? Loc.T("editor.exa.holding", new { exa = ExaDisplayName(exa) })
+                            : ExaDisplayName(exa));
+                        continue;
+                    }
                     var file = entity as SimFile;
                     if (file != null) parts.Add(Loc.T("editor.file", new { id = FileId(file) }));
                 }

@@ -742,7 +742,13 @@ restored to the opener):
   words space-joined, punctuation tokens attached to the word before, "¶" a "; "
   pause; the popup makes each PARAGRAPH one item.
 - Held files read with holder + cursor; an ENEMY holder's cursor is never drawn — its
-  readout omits it. Immovable files speak "immovable".
+  readout omits it. A file in an OFF-TEAM hand is ANONYMOUS on the map: the game's
+  plate loop walks unheld drawables only (no id plate on the card), opens no window
+  for it, and the F1 view reuses that window set (no ghost either) — so the files
+  stop and the goal popup SKIP it (HeldByOffTeam) while the hosts row speaks the card
+  as "{exa} holding a file" (any holder, own team too — the held file has just left
+  the occupant list). PB024's scripted players, 2026-08-30. Immovable files speak
+  "immovable".
 
 **Registers stop**: grouped by selected host, after files; badge label + name +
 LIVE plate value (the value part is Live — a register changing on its own re-announces
@@ -900,7 +906,11 @@ may leak. The rulebook accumulated so far:
   into the goal popup (markup stripped by GameText.Speech). Zine-documented protocol
   status stays popup-only, never a live node (user decision). Panel content drawn as
   SPRITES needs a per-puzzle MODEL read (the highway sign, UC Berkeley's banners) —
-  unless it mirrors already-hearable state (DIGICAM feeds mirror register plates).
+  unless it mirrors already-hearable state (DIGICAM feeds mirror register plates;
+  PB024's captioned "live view" panel draws 0–3 fixed character sprites for the
+  scripted-EXA count in ONE host — the hosts row's "other EXA" entries — with baked
+  gamer-tag lettering that is art, not model; the caption is text and PanelCapture
+  carries it).
 - ENTITY NAMES PASS THROUGH RAW (user rule): "???" and friends go to TTS as-is.
 - STATES SPEAK: immovable files, write-only registers, locked links, cover captions.
 - The window column, file identity, row structure and prose rules above are part of

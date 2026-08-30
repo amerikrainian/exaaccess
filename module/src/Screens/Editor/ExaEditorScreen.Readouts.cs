@@ -609,6 +609,18 @@ namespace ExaAccess.Screens
             catch { return null; }
         }
 
+        /// <summary>A file in an OFF-TEAM EXA's hand is anonymous everywhere the game draws:
+        /// the holder's card carries no id plate (the plate loop walks unheld drawables only),
+        /// no window opens for it, and the goal view reuses that same window set — so neither
+        /// its id nor its values are on screen for anyone until it drops. Surfaces that would
+        /// name it (files stop, goal popup) skip it; the card itself speaks through the hosts
+        /// row's "holding a file" (PB024's scripted players, 2026-08-30).</summary>
+        private static bool HeldByOffTeam(SimFile file, SimExa holder, EditorScreen e)
+        {
+            try { return file != null && holder != null && e != null && holder.team_0 != e.method_24(); }
+            catch { return false; }
+        }
+
         /// <summary>The player EXA currently holding this file, else null.</summary>
         private static SimExa HolderOf(SimFile file)
         {
