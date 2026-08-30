@@ -144,6 +144,10 @@ namespace ExaAccess.Screens
             {
                 // PB018: N=800 (the drawn arrow sits on the 800 point), E=801, S=802, W=803.
                 { "PB018", new[] { 800, 801, 802, 803 } },
+                // PB021: same arrangement — the gold N sits on the 800 point (screen up-left),
+                // then 801/802/803 clockwise; cross-checked against the grid's link axes,
+                // screenshot-verified 2026-08-29.
+                { "PB021", new[] { 800, 801, 802, 803 } },
             };
 
         private static int[] CompassRose()
