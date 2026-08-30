@@ -593,7 +593,11 @@ draws neither goals nor the button in battles/sandbox).
 Tab stays navigation), Run/Fast/Pause/Reset buttons via the game handler seams
 (method_18/19/20 + method_57 pre-action; native F3/F4/F5 equivalent). Compile errors
 are SPOKEN instead of entering the game's LOCKED error view (which would trap editing
-until reset). Step echo speaks "Cycle n" + the pending instruction (incl. cycle 0);
+until reset). Step echo speaks "Cycle n" + the pending instruction (incl. cycle 0) —
+VIEWING-TEAM EXAs only, like every code surface (the fallback once slid to the first
+live EXA of ANY team: with the player's EXAs all dead it read the OPPONENT's pending
+instruction under its raw name — PB022 leak, fixed 2026-08-29; with no live player
+EXA the echo is a bare "Cycle n", enemy moves stay exec-log effect rows);
 run/stop transitions announce ("Running." / "Stopped at cycle n."). The Test Run row is
 an adjustable slider (arrows; PgUp/PgDn = the coarse step — every slider takes
 ui.pageUp/Down → OnAdjust large) whose Enter opens the game's inline typed field.

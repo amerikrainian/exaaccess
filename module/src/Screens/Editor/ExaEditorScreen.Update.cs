@@ -254,11 +254,17 @@ namespace ExaAccess.Screens
                 var sim = TheSim(e);
                 SimExa target = null;
                 var focused = FocusedCodeExa(e);
+                Team mine = e.method_24();
                 if (sim != null)
                     foreach (var entity in sim.list_1)
                     {
                         var exa = entity as SimExa;
                         if (exa == null || !exa.maybe_2.method_0()) continue;
+                        // Another team's code is never drawn (no window, no tag, no line
+                        // highlight — the team gate), so the echo must not read it either:
+                        // with no live player EXA the echo stays a bare "Cycle n" (enemy
+                        // MOVES still land in the exec log as visible-effect rows).
+                        if (exa.team_0 != mine) continue;
                         if (focused != null && ReferenceEquals(exa.maybe_2.method_2(), focused)) { target = exa; break; }
                         if (target == null) target = exa;
                     }
