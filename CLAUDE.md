@@ -439,6 +439,28 @@ Module (each reload starts this half cold — statics are per-load):
   literals; '*' bold markup stripped) + RETURN TO GAME; buttons/win-count labels are
   game loc keys ("INSTRUCTIONS"/"NEW GAME"/"WIN COUNT"). Escape stays native (leave /
   close instructions).
+- `module/src/Screens/CustomPuzzleScreens.cs` — Axiom VirtualNetwork+ (CustomPuzzleScreen,
+  name-preserved; the desktop's fourth launcher): the custom-network manager. Two tabs
+  (Remote = subscribed Workshop items, Personal = the player's own scripts — `.js` files
+  under `<user data>\custom\`, edited OUTSIDE the game; the game watches the folder),
+  date-ordered rows (privates via Deobf: maybe_0 selection, genum145_0 tab, method_0 tab
+  click — which also selects the tab's first row — method_1 select, method_3 create,
+  method_4..8 = the row menu's Edit/Test/Upload/Copy/Delete, method_9 the close X; the
+  puzzle list + metadata come from the INTERNAL static `Puzzles` via Deobf), the
+  tab-specific bottom button (Browse Steam Workshop = the Steam overlay / Create New Virtual
+  Network), the menu verbs as an actions stop on the SELECTED network (Test dims on a script
+  error, Upload until solved — "solved" for a personal network = the save's hash matches the
+  CURRENT script, GClass287.method_19), Close, and the detail pane (personal: title /
+  subtitle / description or the script error text; remote: the browser-layout histogram
+  stops via LeaderboardRows, or the unsolved notice). Row states speak the game's own words
+  ("Solved", "Uploaded", "Script error"). Enter = play (the double-click path), Backspace =
+  delete (confirm-less like the menu, announced), Escape native. Edit launches the OS file
+  browser with zero in-game feedback — the script path is announced. The map PREVIEW image
+  is art (the description carries the words). Plus `NetworkMenuScreen` over the mouse-only
+  row menu (deob GClass245) and `NetworkUploadScreen` over the Workshop upload dialog (deob
+  GClass277: announce-only while uploading; the manager's error text speaks once and gets a
+  Close row). Tested 2026-09-06 by driving the graph's own node actions (create → rows /
+  actions / details → delete); Upload and the Steam overlay untested (real side effects).
 - `module/src/Patches/GameKeySuppression.cs` — the focus-mode key-suppression seam:
   Harmony prefixes on `GClass64.smethod_17/22` (via `Expr.MethodOf`; positional `__0`
   binding — shipping param names are obfuscated) return not-pressed for the navigator's
