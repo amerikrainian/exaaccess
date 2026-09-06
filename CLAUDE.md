@@ -895,7 +895,11 @@ may leak. The rulebook accumulated so far:
 - LINKS: rows read "id, destination", "One way" prefixed when the far side has no
   return id; locked links (bool_0, drawn red, ids usually cleared) speak "locked" even
   id-less; a link with NO id on a side and NOT locked is silent from that side — that
-  matches the blank drawn connector plate. Single-cell hosts DO draw their link ids —
+  matches the blank drawn connector plate — EXCEPT when the far side is blank too: a
+  connector blank at BOTH ends is drawn (a ramp with an empty plate each side) and
+  would be heard from nowhere, so both sides speak "blank, destination" (text.blank,
+  the empty-drawn-value word; PB028's scripted-terminal corridor, 2026-09-06).
+  Single-cell hosts DO draw their link ids —
   speak them. Runtime flips (a modem dial setting ids + unlocking) are pure model
   state the per-frame re-resolve already speaks.
 - DECALS / BAKED LETTERING: every puzzle meta's texture_0 (and method_34 overlay art)

@@ -138,6 +138,11 @@ namespace ExaAccess.Screens
                 // A distinct lettered mark, not a title restatement (the PB012 numeral-mark
                 // precedent); screenshot-verified 2026-08-30.
                 { "PB023", "XLB" },
+                // PB028: the same station backdrop as PB014 — "News Network" is lettering the
+                // spoken title ("KGOG-TV") and subtitle ("Satellite Uplink") lack; grep-verified
+                // absent from strings.csv, screenshot-verified 2026-09-06. The panel's own KGOG
+                // mark restates the title and owes nothing.
+                { "PB028", "KGOG News Network" },
             };
 
         // The GIS maps' COMPASS ROSE decal: four link-id plates around a star with a

@@ -58,17 +58,23 @@ namespace ExaAccess.Screens
                 try { localId = link.method_2(host).method_2(team); }
                 catch { continue; }
                 // A LOCKED link draws as a red line even with its ids cleared — a visible
-                // "connection exists, currently closed". Only a linkless, unlocked side is
-                // truly nothing from here.
+                // "connection exists, currently closed". A linkless, unlocked side is nothing
+                // from here when the FAR side carries the id (the one-way link is heard from
+                // there) — but a connector blank at BOTH ends is drawn (a ramp with an empty
+                // plate on each side) and would be heard from nowhere, so both sides speak
+                // the empty plate as their id, the "blank" word empty drawn values already
+                // use (PB028's terminal↔storage corridor, audit 2026-09-06).
                 bool locked = false;
                 try { locked = link.bool_0; } catch { }
-                if (!localId.method_0() && !locked) continue;
-                string idPart = localId.method_0() ? localId.method_2() + ", " : "";
                 var dest = link.method_1(host);
+                bool farHasId = false;
+                try { farHasId = link.method_2(dest).method_2(team).method_0(); } catch { }
+                bool bothBlank = !localId.method_0() && !farHasId && !locked;
+                if (!localId.method_0() && !locked && !bothBlank) continue;
+                string idPart = localId.method_0() ? localId.method_2() + ", "
+                    : bothBlank ? Loc.T("text.blank") + ", " : "";
                 string other = HostName(dest);
-                bool oneWay;
-                try { oneWay = localId.method_0() && !link.method_2(dest).method_2(team).method_0(); }
-                catch { oneWay = false; }
+                bool oneWay = localId.method_0() && !farHasId;
                 int destIndex = sim.list_0.IndexOf(dest);
                 b.AddItem(ControlId.Structural("ed.link." + _selectedHost + "." + i), new NodeVtable
                 {
