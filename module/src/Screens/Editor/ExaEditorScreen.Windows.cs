@@ -96,13 +96,22 @@ namespace ExaAccess.Screens
                 var windows = WindowListField?.GetValue(e)
                     as System.Collections.Generic.Dictionary<EntityID, EditorWindow>;
                 if (windows != null)
+                {
+                    // dictionary_1 is the game's window-STATE cache: insertion-ordered, never
+                    // pruned, accumulating every id windowed across test-run switches. The
+                    // drawn column is not that order — the game sorts its window set by the
+                    // entity's display rank (method_40: OrderBy entityDisplayRank_0, a
+                    // creation-order counter, so files list host by host the way the puzzle
+                    // authored them). Enumerating the cache read PB024's column roughly
+                    // backwards (audit 2026-09-06); collect, then order the rows as drawn.
+                    var drawn = new System.Collections.Generic.List<
+                        System.Collections.Generic.KeyValuePair<EntityID, SimFile>>();
                     foreach (var winId in windows.Keys)
                     {
                         if (winId.Type != (GEnum147)1) continue; // files only — EXAs handled above
-                        var id = winId;
                         // The game hides a window whose entity is gone or sits in a hidden
                         // host — gate at build; announcements still re-find live.
-                        var f0 = FindFileForWindow(id.Number, id.Hostname);
+                        var f0 = FindFileForWindow(winId.Number, winId.Hostname);
                         if (f0 == null) continue;
                         try
                         {
@@ -111,6 +120,12 @@ namespace ExaAccess.Screens
                             if (HostHidden(at0, false)) continue;
                         }
                         catch { }
+                        drawn.Add(new System.Collections.Generic.KeyValuePair<EntityID, SimFile>(winId, f0));
+                    }
+                    // OrderBy is stable, so two cache keys resolving to one file keep cache order.
+                    foreach (var pair in System.Linq.Enumerable.OrderBy(drawn, p => p.Value.entityDisplayRank_0))
+                    {
+                        var id = pair.Key;
                         string key = "win.file." + id.Number + "."
                             + (id.Hostname.method_0() ? id.Hostname.method_2() : "-");
                         b.AddItem(ControlId.Structural(key), new NodeVtable
@@ -124,6 +139,7 @@ namespace ExaAccess.Screens
                             OnActivate = () => OpenWindowFilePopup(id),
                         });
                     }
+                }
             }
             catch (Exception ex) { Log.Error("[editor] file windows failed", ex); }
             b.PopContext();

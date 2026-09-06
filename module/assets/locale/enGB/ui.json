@@ -123,6 +123,7 @@
   "editor.problem": "Line {line}: {message}",
   "editor.problem.exa": "{exa} line {line}: {message}",
   "editor.goal.file": "File {id} at {host}: {values}.",
+  "editor.goal.file.plain": "File {id} at {host}.",
   "editor.goal.register": "{id} at {host}: {value}.",
   "editor.goal.register.plain": "{id} at {host}.",
   "editor.goal.sign": "Sign row {row}: {text}.",

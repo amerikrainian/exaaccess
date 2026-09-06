@@ -640,7 +640,12 @@ EVERY instance's line and name theirs only when >1 is alive ("current, XA:1"; ba
 
 **Windows stop**: one row per drawn window, EXAs then FILE windows (private
 dictionary_1; EntityID keys are Type/Hostname/Number — immovable files key
-id@hostname). Rows are keyed by ENTITY number — unique even for REPL copies (a
+id@hostname). FILE ROWS ARE ORDERED AS DRAWN: dictionary_1 is an insertion-ordered
+window-STATE cache that never prunes (it accumulates every id windowed across
+test-run switches), while the game sorts its window set by
+SimEntity.entityDisplayRank_0 (method_40's OrderBy — EXAs rank 0, files a
+creation-order counter, host by host as authored); enumerating the cache read
+PB024's column roughly backwards (audit 2026-09-06). Rows are keyed by ENTITY number — unique even for REPL copies (a
 replicated SimExa shares its parent's SOLUTION number but gets a fresh EntityID and
 the game's ":n" name; keying by solution number created duplicate ControlIds which
 KILL the whole graph rebuild). Copies get read-only rows; edit (Enter → code,
@@ -744,11 +749,16 @@ restored to the opener):
 - Held files read with holder + cursor; an ENEMY holder's cursor is never drawn — its
   readout omits it. A file in an OFF-TEAM hand is ANONYMOUS on the map: the game's
   plate loop walks unheld drawables only (no id plate on the card), opens no window
-  for it, and the F1 view reuses that window set (no ghost either) — so the files
-  stop and the goal popup SKIP it (HeldByOffTeam) while the hosts row speaks the card
-  as "{exa} holding a file" (any holder, own team too — the held file has just left
-  the occupant list). PB024's scripted players, 2026-08-30. Immovable files speak
-  "immovable".
+  for it, and the F1 view windows it neither (its id never enters the window set) —
+  so the files stop SKIPS it (HeldByOffTeam) while the hosts row speaks the card as
+  "{exa} holding a file" (any holder, own team too — the held file has just left the
+  occupant list). PB024's scripted players, 2026-08-30. BUT the F1 MAP still draws
+  its goal GHOST as a card WITH the id plate at the holder's cell (every file
+  created by the puzzle gets a required spec + ghost; the ghost is unheld, so the
+  plate loop letters it) — the popup speaks that as an id-only row ("File 251 at
+  AVERFORD.", editor.goal.file.plain: no values, no values popup — the window is
+  absent for everyone). Re-audit 2026-09-06 caught it: the first pass judged the
+  window set only. Immovable files speak "immovable".
 
 **Registers stop**: grouped by selected host, after files; badge label + name +
 LIVE plate value (the value part is Live — a register changing on its own re-announces

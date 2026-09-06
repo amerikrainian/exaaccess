@@ -267,13 +267,25 @@ namespace ExaAccess.Screens
                         var required = host.list_0[r];
                         string id = required.maybe_0.method_0()
                             ? required.maybe_0.method_2().ToString() : GameText.T("NEW");
-                        // The F1 view draws only the entities the map already windows — a file
-                        // in an off-team hand has no plate, no window and no ghost there, so
-                        // its row would speak an id and values no sighted player can see.
+                        // A file in an off-team hand has no plate and no window on the map,
+                        // and the F1 view windows it neither (its id never enters the window
+                        // set) — but the F1 MAP still draws its goal GHOST as a card WITH the
+                        // id plate at the holder's cell (the ghost is unheld, so the plate loop
+                        // letters it; PB024's dropped weapon files, audit 2026-09-06). Speak
+                        // exactly that: id + host, no values (on screen for no one) and no
+                        // values popup.
                         if (required.maybe_0.method_0())
                         {
                             var live = FindFileAt(id, h);
-                            if (live != null && HeldByOffTeam(live, HolderOf(live), e)) continue;
+                            if (live != null && HeldByOffTeam(live, HolderOf(live), e))
+                            {
+                                rows.Add(GoalRow.Plain(Loc.T("editor.goal.file.plain", new
+                                {
+                                    id,
+                                    host = HostName(host, true),
+                                })));
+                                continue;
+                            }
                         }
                         var values = new System.Collections.Generic.List<string>();
                         int total = required.exaValue_0.Length;
