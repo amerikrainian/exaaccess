@@ -802,7 +802,10 @@ for the Redshift modem's status panel.
 (logic dictionary_0[team]), Storage Limit (method_76(team) / int_6) as "You n,
 Opponent m" rows, no Activity; the Size tooltip is MODE-AWARE (battle = hard cap,
 normal = leaderboard eligibility). The opponent home link's ids are Nothing for my
-team (links rows skip = the blank drawn plates). SELECT OPPONENT (mouse-only hotspot)
+team on BOTH sides, and the map draws its corridor with a blank plate at each end —
+so it speaks "blank, {opponent}" / "blank, {host}" under the both-blank connector rule
+(PB028; PB019 re-verified 2026-09-06: the corridor is visibly where the opponent enters
+the network). SELECT OPPONENT (mouse-only hotspot)
 is a battle-only solution-stop button pushing OpponentBrowserScreen (modeled in
 BattleScreens.cs — rows "name, Beaten/Not beaten, Changed date"; Steam rows
 unavailable until the NPC falls). Battles end at BattleCompletionScreen (modeled:
