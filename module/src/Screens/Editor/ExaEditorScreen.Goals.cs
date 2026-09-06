@@ -116,6 +116,10 @@ namespace ExaAccess.Screens
                 // PB012: the bank's numeral mark + full brand name (the spoken title drops
                 // "National"), screenshot-verified 2026-08-23.
                 { "PB012", "1, Equity First National Bank" },
+                // PB025: the same bank backdrop on the second Equity First job (title "Equity
+                // First Bank", subtitle names the branch) — "National" and the numeral mark
+                // are still lettering only; screenshot-verified 2026-09-06.
+                { "PB025", "1, Equity First National Bank" },
                 // PB014: the battle map's backdrop brand — the "News Network" subline is
                 // lettering the spoken "KGOG-TV (Programming Hub)" lacks,
                 // screenshot-verified 2026-08-24.
