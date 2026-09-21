@@ -499,6 +499,15 @@ Ask the host which module actually runs:
 `typeof(ExaAccess.Bootstrap).GetField("_moduleLoader", NonPublic|Static).GetValue(null)`,
 then `.GetType().GetProperty("Module").GetValue(...)` → `.GetType().Assembly` is the
 live generation.
+AUDIT PROBE (DEBUG only, `Screens/Editor/ExaEditorScreen.AuditProbe.cs`): one typed
+entry point, `ExaEditorScreen.Audit(cmd, arg)`, invoked by reflection on the LIVE
+generation — `list` (campaign rows + visibility), `open <row id>` (the desktop's public
+opener DesktopScreen.smethod_0 — opens ANY puzzle, locked or not, no save surgery; it
+may still create a solution file, so back the save folder up first), `leave`, `model`
+(hosts / both-side link ids + plate style / registers / files / goals), `host <n>`,
+`dump` (every node of the navigator's current render, fully composed), `act <idpart>`,
+`close`, `wins` (the game's window-cache ids). The whole post-modem campaign + bonus
+sweep (2026-09-20) ran on it.
 More `/eval` traps, all hit live:
 - While EDITING a puzzle the sim is rebuilt EVERY FRAME — game objects captured by an
   earlier `/eval` are stale by the next call; identity-based reads (home-plate
@@ -774,13 +783,19 @@ restored to the opener):
   for it, and the F1 view windows it neither (its id never enters the window set) —
   so the files stop SKIPS it (HeldByOffTeam) while the hosts row speaks the card as
   "{exa} holding a file" (any holder, own team too — the held file has just left the
-  occupant list). PB024's scripted players, 2026-08-30. BUT the F1 MAP still draws
-  its goal GHOST as a card WITH the id plate at the holder's cell (every file
-  created by the puzzle gets a required spec + ghost; the ghost is unheld, so the
-  plate loop letters it) — the popup speaks that as an id-only row ("File 251 at
-  AVERFORD.", editor.goal.file.plain: no values, no values popup — the window is
-  absent for everyone). Re-audit 2026-09-06 caught it: the first pass judged the
-  window set only. Immovable files speak "immovable".
+  occupant list). PB024's scripted players, 2026-08-30. The GOAL VIEW is different:
+  it builds its window set from the DIFF REPORT (EditorScreen Class107) — a
+  FileIsMissing entry adds the required spec's EntityID, so the F1 view WINDOWS such
+  a file, id and values, and draws its ghost card with the id plate. GoalViewWindows
+  mirrors that through DiffReportEntry.method_21 (the public tagged-union dispatch):
+  entry present = a full values row; absent = the id-only ghost row
+  (editor.goal.file.plain). Verified 2026-09-20 off the game's own window cache
+  (dictionary_1 gains exactly the held files' ids once the goal view draws) on PB054
+  AND PB024 — correcting the 2026-09-06 note that called the window absent for
+  everyone. Immovable files speak "immovable".
+- REDACTION BARS: a value made only of U+2588 full blocks (PB056's censored reports)
+  speaks "redacted" (text.redacted) — in prose flow it is a WORD slot; the punctuation
+  rule once glued it onto the previous word.
 
 **Registers stop**: grouped by selected host, after files; badge label + name +
 LIVE plate value (the value part is Live — a register changing on its own re-announces
@@ -918,8 +933,16 @@ may leak. The rulebook accumulated so far:
   vmethod_10 override applies last; then the map's #-suffix truncation. Plate enums
   1/2/3 (and 4 on a non-home host) draw the internal name — speak it.
 - LINKS: rows read "id, destination", "One way" prefixed when the far side has no
-  return id; locked links (bool_0, drawn red, ids usually cleared) speak "locked" even
-  id-less; a link with NO id on a side and NOT locked is silent from that side — that
+  return id. PLATE-LESS links (SimHostLink.genum177_0 == 0 — the plate draw is gated on
+  it) draw a connector with NO id plate at either end whatever the model holds: they
+  read "blank, destination", never "One way" (PB058's internal buses leaked ids the
+  puzzle hides in a file, 2026-09-20) — EXCEPT on compass-rose maps, where the rose
+  letters every id against a direction and the id stays derivable. The bool_0 flag is
+  NOT a drawn "locked" state on art maps: its only drawn form is the red link tile of
+  the flat-tile maps (meta.bool_1), and it suppresses the auto bridge sprite — so
+  "locked" speaks only on flat-tile maps or on id-less flagged rows (the modems'
+  undialed lines); an id-carrying flagged link (PB056's home link) reads like any
+  other. Flagged links speak even id-less; a link with NO id on a side and NOT locked is silent from that side — that
   matches the blank drawn connector plate — EXCEPT when the far side is blank too: a
   connector blank at BOTH ends is drawn (a ramp with an empty plate each side) and
   would be heard from nowhere, so both sides speak "blank, destination" (text.blank,
@@ -927,6 +950,11 @@ may leak. The rulebook accumulated so far:
   Single-cell hosts DO draw their link ids —
   speak them. Runtime flips (a modem dial setting ids + unlocking) are pure model
   state the per-frame re-resolve already speaks.
+- ART-LETTERED HOSTS beyond UC Berkeley go one at a time through the ArtLetteredHosts
+  table (Readouts.cs, keyed "puzzle id/internal name" — PB032's mainframe slab).
+  COVER CAPTIONS shared by several covered hosts carry the hosts-stop position exactly
+  like unnamed hosts ("Locked 8", editor.host.caption.n — PB056's field of identical
+  covers made every link destination the same word).
 - DECALS / BAKED LETTERING: every puzzle meta's texture_0 (and method_34 overlay art)
   is baked brand art. If its lettering appears in NO spoken string, the task stop owes
   a "Network logo:" row via the NetworkLogos transcription table (Goals.cs — 
@@ -950,6 +978,17 @@ may leak. The rulebook accumulated so far:
   scripted-EXA count in ONE host — the hosts row's "other EXA" entries — with baked
   gamer-tag lettering that is art, not model; the caption is text and PanelCapture
   carries it).
+  Popup refinements, all 2026-09-20: GoalPanelLettering (Goals.cs) transcribes a
+  LETTERED SPRITE a panel shows in the goal view (PB029B's dead camera frame; PB056's
+  baked frame text, gated by PanelLetteringShown while a photo sprite covers it);
+  PanelCapture drops MATRIX-TRANSFORMED text that equals a spoken host name (PB032's
+  logic paints every host name's floor reflection through its draw hook — phantom
+  rows) but keeps flat captions that name a host (PB054's camera panel); GoalRowHost
+  keeps the map-side host name where the goal-view vmethod_10 override swaps the
+  lettering for status text (PB035B read "#DATA at {message}"). And one panel is NOT
+  popup-only: PB053's queue board (baked "NOW SERVING" + a live logic-drawn value) is
+  map STATE a sighted player reads at any time — a Live node on the host-scoped sign
+  stop of the host it stands in, caption-led in the popup too.
 - ENTITY NAMES PASS THROUGH RAW (user rule): "???" and friends go to TTS as-is.
 - STATES SPEAK: immovable files, write-only registers, locked links, cover captions.
 - The window column, file identity, row structure and prose rules above are part of
