@@ -156,6 +156,9 @@ namespace ExaAccess.Screens
                 // texture — textures/networks/unknown/background2 — nothing drives it);
                 // screenshot-verified 2026-09-20.
                 { "PB034", "НГТУ, ОТДЕЛ ПРИКЛАДНОЙ СЕМИОТИКИ, НЕ ПОДКЛЮЧЕН" },
+                // PB053: the agency's initialism mark + system subline; the spoken title is
+                // only the long form (the PB023 precedent). Screenshot-verified 2026-09-20.
+                { "PB053", "MVA, Scheduling System" },
             };
 
         // GOAL-VIEW panel lettering: a special panel whose F1 rendering swaps its feed for a
@@ -371,6 +374,9 @@ namespace ExaAccess.Screens
                         catch { }
                     }
                 AddHighwaySignRows(logic, rows);
+                // PB053's board: the captured value is bare — its baked caption leads it.
+                if (logic is SpecialPuzzleLogics.BonusNth && Patches.PanelCapture.Lines.Count > 0)
+                    rows.Add(GoalRow.Plain(ServingBoardCaption));
                 foreach (var line in Patches.PanelCapture.Lines)
                     rows.Add(GoalRow.Plain(GameText.Speech(line)));
                 string art;

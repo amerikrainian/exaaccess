@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Reflection;
 using ExaAccess.Game;
 using ExaAccess.Localization;
@@ -28,6 +28,7 @@ namespace ExaAccess.Screens
 
         private void BuildSign(GraphBuilder b, EditorScreen e)
         {
+            if (BuildServingBoard(b, e)) return;
             var sign = LiveSign(e);
             if (sign == null) return;
             var sim = TheSim(e);
@@ -60,6 +61,49 @@ namespace ExaAccess.Screens
                 b.EndRow();
             }
             b.PopContext();
+        }
+
+        // ---- PB053's queue board: the map letters a wall display over the clerk's counter
+        // host — baked "NOW SERVING" art plus ONE live text value the logic draws every frame
+        // (BonusNth.string_0, or the game's literal ERROR once bool_1 trips). Sighted players
+        // read it off the map at any time, so it is a live node, not popup-only (this is
+        // map state, not a zine-documented protocol status). Same host-scoped "sign" stop as
+        // the highway sign, on the host whose cells the board stands in; the caption is a
+        // language-invariant art transcription like NetworkLogos. Audit 2026-09-20. ----
+        private const string ServingBoardCaption = "NOW SERVING";
+
+        private bool BuildServingBoard(GraphBuilder b, EditorScreen e)
+        {
+            var sim = TheSim(e);
+            if (sim == null || !(sim.method_43() is SpecialPuzzleLogics.BonusNth)) return false;
+            if (_selectedHost >= sim.list_0.Count) return true;
+            var host = sim.list_0[_selectedHost];
+            if (host.string_0 != "private" || HostHidden(host, false)) return true;
+            b.BeginStop("sign");
+            b.PushContext(Loc.T("editor.sign", new { host = HostName(host) }), positions: false);
+            b.AddItem(ControlId.Structural("ed.board"), new NodeVtable
+            {
+                ControlType = ControlTypes.Text,
+                SpeaksOwnPosition = true,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => ServingBoardCaption, kind: AnnouncementKinds.Label),
+                    new NodeAnnouncement(ServingBoardValue, live: true, kind: AnnouncementKinds.Value),
+                },
+            });
+            b.PopContext();
+            return true;
+        }
+
+        private static string ServingBoardValue()
+        {
+            try
+            {
+                var logic = TheSim(Editor)?.method_43() as SpecialPuzzleLogics.BonusNth;
+                if (logic == null) return null;
+                return logic.bool_1 ? "ERROR" : logic.string_0; // the draw's own ternary
+            }
+            catch { return null; }
         }
 
         /// <summary>Re-resolved per call — the edit-time per-frame sim rebuild replaces the
