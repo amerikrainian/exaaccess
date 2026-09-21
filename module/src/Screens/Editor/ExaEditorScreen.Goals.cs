@@ -309,7 +309,8 @@ namespace ExaAccess.Screens
                         if (required.maybe_0.method_0())
                         {
                             var live = FindFileAt(id, h);
-                            if (live != null && HeldByOffTeam(live, HolderOf(live), e))
+                            if (live != null && HeldByOffTeam(live, HolderOf(live), e)
+                                && !GoalViewWindows(sim, required))
                             {
                                 rows.Add(GoalRow.Plain(Loc.T("editor.goal.file.plain", new
                                 {
@@ -370,22 +371,8 @@ namespace ExaAccess.Screens
                         catch { }
                     }
                 AddHighwaySignRows(logic, rows);
-                // Some logics letter decoration through their draw hook — PB032 paints each
-                // host name's floor REFLECTION there — which the tap records like panel text.
-                // A captured line made of nothing but this map's host names restates labels
-                // the rows above already carry and would read as phantom goal rows: skip it.
-                var hostNames = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                foreach (var h in sim.list_0)
-                {
-                    string n = HostName(h);
-                    if (!string.IsNullOrEmpty(n)) hostNames.Add(n);
-                }
                 foreach (var line in Patches.PanelCapture.Lines)
-                {
-                    string spoken = GameText.Speech(line);
-                    if (OnlyHostNames(spoken, hostNames)) continue;
-                    rows.Add(GoalRow.Plain(spoken));
-                }
+                    rows.Add(GoalRow.Plain(GameText.Speech(line)));
                 string art;
                 var gmeta = Meta(e);
                 if (gmeta != null && GoalPanelLettering.TryGetValue(gmeta.string_0, out art))
@@ -410,12 +397,40 @@ namespace ExaAccess.Screens
             return HostName(host, true);
         }
 
-        private static bool OnlyHostNames(string line, System.Collections.Generic.HashSet<string> hostNames)
+        /// <summary>True when the F1 view opens a WINDOW for this required file even though an
+        /// off-team EXA holds the live one: the goal view builds its window set from the diff
+        /// report, and a FileIsMissing entry adds the spec's EntityID (EditorScreen's Class107
+        /// callbacks) — so the file's id AND values are on screen there (PB054's dropped
+        /// inventories, audit 2026-09-20). Without such an entry only the ghost's id plate is
+        /// drawn (PB024) and the row stays id-only. method_21 is the entry's own public
+        /// tagged-union dispatch; every other case is a no-op here.</summary>
+        private static bool GoalViewWindows(Sim sim, SimRequiredFile required)
         {
-            if (string.IsNullOrWhiteSpace(line) || hostNames.Count == 0) return false;
-            foreach (var piece in line.Split(','))
-                if (!hostNames.Contains(piece.Trim())) return false;
-            return true;
+            bool found = false;
+            try
+            {
+                foreach (var entry in sim.list_5)
+                    entry.method_21(_ => { }, _ => { },
+                        missing => { if (ReferenceEquals(missing.simRequiredFile_0, required)) found = true; },
+                        _ => { }, _ => { }, _ => { }, _ => { });
+            }
+            catch { }
+            return found;
+        }
+
+        /// <summary>PanelCapture's map-plane filter (see PanelCapture.IsHostName): is this
+        /// string one of the current map's spoken host names?</summary>
+        internal static bool IsSpokenHostName(string text)
+        {
+            try
+            {
+                var sim = TheSim(Editor);
+                if (sim == null || string.IsNullOrWhiteSpace(text)) return false;
+                foreach (var h in sim.list_0)
+                    if (string.Equals(HostName(h), text.Trim(), StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            catch { }
+            return false;
         }
 
         // The highway sign (SFCTA) draws its content as glyph SPRITES from a font atlas — no

@@ -36,6 +36,7 @@ namespace ExaAccess.Screens
                     case "dump": return AuditDump();
                     case "act": return AuditAct(arg);
                     case "close": return AuditClose();
+                    case "wins": return AuditWins();
                 }
                 return "unknown command";
             }
@@ -206,6 +207,17 @@ namespace ExaAccess.Screens
                 return "activated " + node.Id;
             }
             return "no node matches";
+        }
+
+        // The game's window-STATE cache keys (insertion-ordered, never pruned): an id the
+        // goal view windows shows up here once that view has drawn.
+        private static string AuditWins()
+        {
+            var dict = WindowListField.GetValue(Editor) as System.Collections.IDictionary;
+            if (dict == null) return "no dictionary";
+            var sb = new StringBuilder();
+            foreach (EntityID key in dict.Keys) sb.Append(key.Number).Append(key.Hostname.method_0() ? "@" + key.Hostname.method_2() : "").Append(" | ");
+            return sb.ToString();
         }
 
         private static string AuditClose()

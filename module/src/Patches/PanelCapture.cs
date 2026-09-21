@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
 using ExaAccess.Game;
@@ -92,12 +92,13 @@ namespace ExaAccess.Patches
                 }
 
                 var text = new HarmonyMethod(typeof(PanelCapture), nameof(TextPostfix));
+                var planeText = new HarmonyMethod(typeof(PanelCapture), nameof(PlaneTextPostfix));
                 harmony.Patch(Expr.MethodOf(() => GClass230.smethod_33(null, default(Vector2), null,
                         default(Color), default(GEnum165), 0f, 0f, 0f, 0f, 0, default(Color), 0,
-                        (Matrix4?)null, 0f, default(Color), false, false)), postfix: text);
+                        (Matrix4?)null, 0f, default(Color), false, false)), postfix: planeText);
                 harmony.Patch(Expr.MethodOf(() => GClass230.smethod_34(null, default(Vector2), null,
                         default(Color), default(GEnum165), 0f, 0f, 0f, 0f, 0, default(Color), 0,
-                        (Matrix4?)null, 0f, default(Color), false, false)), postfix: text);
+                        (Matrix4?)null, 0f, default(Color), false, false)), postfix: planeText);
                 harmony.Patch(Expr.MethodOf(() => GClass230.smethod_36(null, default(Vector2), null,
                         default(Color), default(GEnum165), 0f, 0f, 0f, 0f, 0, default(Color), 0)),
                     postfix: text);
@@ -128,6 +129,26 @@ namespace ExaAccess.Patches
                 _record = false;
             }
             return __exception;
+        }
+
+        /// <summary>Set by the editor screen: true when a string is one of the current map's
+        /// spoken host names. Some logics letter MAP-PLANE decoration through their draw hook —
+        /// PB032 paints every host name's floor reflection there, matrix-transformed onto the
+        /// isometric plane — and recorded as panel text those restated labels read as phantom
+        /// goal rows. Only TRANSFORMED text is tested: a panel caption that names a host (the
+        /// PB054 camera panel) is flat screen text and stays.</summary>
+        public static Func<string, bool> IsHostName;
+
+        // smethod_33/34 carry the optional plane matrix at parameter 12.
+        private static void PlaneTextPostfix(string __0, Vector2 __1, Matrix4? __12)
+        {
+            if (!_record) return;
+            try
+            {
+                if (__12.HasValue && IsHostName != null && IsHostName(__0)) return;
+            }
+            catch { }
+            TextPostfix(__0, __1);
         }
 
         private static void TextPostfix(string __0, Vector2 __1)

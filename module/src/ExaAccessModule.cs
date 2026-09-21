@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using ExaAccess.Localization;
 using ExaAccess.Modularity;
 using HarmonyLib;
@@ -119,6 +119,7 @@ namespace ExaAccess
                 Patches.GameKeySuppression.Apply(_harmony); // focus-mode key swallow (see the class doc)
                 Patches.SimNarration.Apply(_harmony);       // buffer sim errors the model deletes too fast
                 Patches.ExecutionCapture.Apply(_harmony);   // per-cycle executed instructions -> the execution log
+                Patches.PanelCapture.IsHostName = Screens.ExaEditorScreen.IsSpokenHostName;
                 Patches.PanelCapture.Apply(_harmony);       // special-puzzle panel text + goal-view force
             }
             FrameLoop.Tick();
