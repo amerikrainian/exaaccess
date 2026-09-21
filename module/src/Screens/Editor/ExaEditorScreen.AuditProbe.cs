@@ -37,6 +37,25 @@ namespace ExaAccess.Screens
                     case "act": return AuditAct(arg);
                     case "close": return AuditClose();
                     case "wins": return AuditWins();
+                    // lockcodes: PB056's lock combinations (public int_2) — audit-only, to drive the
+                    // unlock path in a scripted run pass.
+                    case "lockcodes":
+                    {
+                        var hy = TheSim(Editor)?.method_43() as SpecialPuzzleLogics.BonusHydroponix;
+                        return hy == null ? "not that puzzle" : string.Join(",", hy.int_2);
+                    }
+                    // code <text, '|' = newline>: replace the FIRST EXA's program (edit-time; the
+                    // per-frame rebuild compiles it). step <n>: advance n cycles through the game's
+                    // own start/advance seam. reset: the game's reset. For scripted run passes —
+                    // the solution file this touches is the audit's throwaway one.
+                    case "code":
+                        Editor.solution_0.list_0[0].string_1 = arg.Replace('|', (char)10);
+                        Invoke(DirtyMethod, Editor);
+                        return "code set (" + Editor.solution_0.list_0[0].string_1.Split((char)10).Length + " lines)";
+                    case "step":
+                        AuditScreen.StepSim(); // the user's own F2 path, narration included
+                        return "stepped";
+                    case "reset": AuditScreen.ResetSim(); return "reset";
                     // devflag on|off: the game's in-memory "show everything" flag (GClass1.bool_5) —
                     // reveals every campaign row and the CHATSUBO Chat/Tasks tabs; nothing is saved.
                     case "devflag": GClass1.bool_5 = arg == "on"; return "bool_5 = " + GClass1.bool_5;

@@ -522,7 +522,10 @@ opener DesktopScreen.smethod_0 — opens ANY puzzle, locked or not, no save surg
 may still create a solution file, so back the save folder up first), `leave`, `model`
 (hosts / both-side link ids + plate style / registers / files / goals), `host <n>`,
 `dump` (every node of the navigator's current render, fully composed), `act <idpart>`,
-`close`, `wins` (the game's window-cache ids). The whole post-modem campaign + bonus
+`close`, `wins` (the game's window-cache ids), `devflag on|off`, `credits` / `creditseek`,
+and for SCRIPTED RUN PASSES `code <program, '|' = newline>` (first EXA), `step` (the mod's
+own F2 path — StepSim, narration included; calling the game's advance seam directly
+skips the step echo and looks like missing speech), `reset`, `lockcodes` (PB056). The whole post-modem campaign + bonus
 sweep (2026-09-20) ran on it.
 More `/eval` traps, all hit live:
 - While EDITING a puzzle the sim is rebuilt EVERY FRAME — game objects captured by an
