@@ -16,6 +16,10 @@ namespace ExaAccess.Screens
 
         private int _selectedHost;
 
+        // Maps whose style-0 (plate-less) link ids are lettered NOWHERE on screen — see BuildLinks.
+        private static readonly System.Collections.Generic.HashSet<string> UnletteredStyle0Maps =
+            new System.Collections.Generic.HashSet<string> { "PB058" };
+
         private void BuildHosts(GraphBuilder b, EditorScreen e)
         {
             var sim = TheSim(e);
@@ -68,15 +72,22 @@ namespace ExaAccess.Screens
                 try { locked = link.bool_0; } catch { }
                 // PLATE-LESS links: the plate draw is gated on the link's plate style
                 // (EditorScreen: method_3(cell) != 0 && id present) — a style-0 link draws its
-                // connector with NO id plate at either end, whatever ids the model carries
-                // (PB058's internal buses: the ids are the puzzle's to discover from a file).
-                // Speaking them leaked what no sighted player can read, so such a link reads
-                // like any other unlettered connector: "blank, destination" — and never
-                // "One way", which only the (undrawn) ids would tell. Audit 2026-09-20.
+                // connector with NO id plate at either end. But the artists use style 0 exactly
+                // where something ELSE letters the ids: a LINK LEGEND decal with direction
+                // arrows (PB016, PB027, PB029B, PB030), the compass rose (PB018, PB021, PB055),
+                // or the game's own hardcoded mid-link lettering (Puzzles.puzzle_29 = PB019) —
+                // there the ids are readable and stay spoken. Only a map verified to letter
+                // them NOWHERE blanks them ("blank, destination", never "One way"): PB058,
+                // whose internal bus ids are the puzzle's to discover from a file. All 48
+                // puzzles swept 2026-09-20 (probe `model` prints each link's plate style); the
+                // first cut blanked every style-0 link and silenced the legend maps.
                 bool plateless = false;
-                // EXCEPT on the compass-rose maps: there the rose letters every id against a
-                // direction, so a plate-less link's id is readable off the layout — it stays.
-                try { plateless = (int)link.genum177_0 == 0 && CompassRose() == null; } catch { }
+                try
+                {
+                    plateless = (int)link.genum177_0 == 0
+                        && UnletteredStyle0Maps.Contains(Meta(e)?.string_0 ?? "");
+                }
+                catch { }
                 if (plateless && !locked) localId = GStruct10.gstruct10_0;
                 var dest = link.method_1(host);
                 bool farHasId = false;

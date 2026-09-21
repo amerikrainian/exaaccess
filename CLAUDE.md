@@ -950,10 +950,17 @@ may leak. The rulebook accumulated so far:
   1/2/3 (and 4 on a non-home host) draw the internal name — speak it.
 - LINKS: rows read "id, destination", "One way" prefixed when the far side has no
   return id. PLATE-LESS links (SimHostLink.genum177_0 == 0 — the plate draw is gated on
-  it) draw a connector with NO id plate at either end whatever the model holds: they
-  read "blank, destination", never "One way" (PB058's internal buses leaked ids the
-  puzzle hides in a file, 2026-09-20) — EXCEPT on compass-rose maps, where the rose
-  letters every id against a direction and the id stays derivable. The bool_0 flag is
+  it) draw a connector with NO id plate at either end. The artists use style 0 exactly
+  where something ELSE letters the ids — a LINK LEGEND decal with direction arrows
+  (PB016, PB027, PB029B, PB030), the compass rose (PB018, PB021, PB055), or the game's
+  hardcoded mid-link lettering (Puzzles.puzzle_29 = PB019) — so ids stay spoken by
+  DEFAULT; only maps verified to letter them nowhere (UnletteredStyle0Maps, Network.cs:
+  PB058, whose bus ids hide in a file) read "blank, destination", never "One way". All
+  48 puzzles swept 2026-09-20; the first cut blanked every style-0 link and silenced
+  the legend maps for a few commits. Also from that re-read: overlay sprites with
+  GClass229.bool_0 == false are painted AFTER the plates, so baked art can cover a drawn
+  plate (PB055's long bridge) — judge a missing plate by pixels, not by style alone.
+  The bool_0 flag is
   NOT a drawn "locked" state on art maps: its only drawn form is the red link tile of
   the flat-tile maps (meta.bool_1), and it suppresses the auto bridge sprite — so
   "locked" speaks only on flat-tile maps or on id-less flagged rows (the modems'
