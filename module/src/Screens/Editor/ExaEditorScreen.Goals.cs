@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Reflection;
 using ExaAccess.Game;
 using ExaAccess.Localization;
@@ -147,6 +147,19 @@ namespace ExaAccess.Screens
                 // absent from strings.csv, screenshot-verified 2026-09-06. The panel's own KGOG
                 // mark restates the title and owes nothing.
                 { "PB028", "KGOG News Network" },
+            };
+
+        // GOAL-VIEW panel lettering: a special panel whose F1 rendering swaps its feed for a
+        // LETTERED SPRITE (no text call for PanelCapture to record). Transcribed like
+        // NetworkLogos (one texture set ships for all languages), spoken as the popup row
+        // right after the captured panel caption. Keyed by puzzle id; no entry = no row.
+        private static readonly System.Collections.Generic.Dictionary<string, string> GoalPanelLettering =
+            new System.Collections.Generic.Dictionary<string, string>
+            {
+                // PB029B: the camera panel's goal-view frame, screenshot-verified 2026-09-20.
+                // (Its live feed mirrors the spoken register plates; the same frame at run
+                // time coincides with the spoken goal failure.)
+                { "PB029B", "NO SIGNAL" },
             };
 
         // The GIS maps' COMPASS ROSE decal: four link-id plates around a star with a
@@ -350,6 +363,10 @@ namespace ExaAccess.Screens
                 AddHighwaySignRows(logic, rows);
                 foreach (var line in Patches.PanelCapture.Lines)
                     rows.Add(GoalRow.Plain(GameText.Speech(line)));
+                string art;
+                var gmeta = Meta(e);
+                if (gmeta != null && GoalPanelLettering.TryGetValue(gmeta.string_0, out art))
+                    rows.Add(GoalRow.Plain(art));
             }
             catch { }
             return rows;
