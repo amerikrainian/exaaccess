@@ -405,20 +405,10 @@ namespace ExaAccess.Screens
             {
                 string host = null;
                 try { host = HostName(exa.method_0()); } catch { }
-                string none = GameText.T("None");
                 string x = exa.exaValue_0.method_2(true);
                 string t = exa.exaValue_1.method_2(true);
-                // A held file reads with its CURSOR: the value F would read/write next
-                // ("200, cursor at 72"; "end" = the append position).
-                string f = exa.maybe_3.method_0()
-                    ? Loc.T("editor.f.held", new
-                    {
-                        id = FileId(exa.maybe_3.method_2()),
-                        cursor = CursorValue(exa),
-                    })
-                    : none;
-                string m = (exa.maybe_4.method_0() ? exa.maybe_4.method_2().method_2(true) : none)
-                    + " " + (exa.mbusMode_0 == (MBusMode)1 ? GameText.T("Local") : GameText.T("Global"));
+                string f = FRegisterText(exa);
+                string m = MRegisterText(exa);
                 string readout = Loc.T("editor.exa.readout",
                     new { host = host ?? "?", x, t, f, m });
                 // Sim-only additions — the per-frame edit-time rebuild makes both meaningless
@@ -456,6 +446,68 @@ namespace ExaAccess.Screens
                 return readout;
             }
             catch { return null; }
+        }
+
+        // A held file reads with its CURSOR: the value F would read/write next
+        // ("200, cursor at 72"; "end" = the append position).
+        private static string FRegisterText(SimExa exa)
+        {
+            return exa.maybe_3.method_0()
+                ? Loc.T("editor.f.held", new
+                {
+                    id = FileId(exa.maybe_3.method_2()),
+                    cursor = CursorValue(exa),
+                })
+                : GameText.T("None");
+        }
+
+        private static string MRegisterText(SimExa exa)
+        {
+            return (exa.maybe_4.method_0() ? exa.maybe_4.method_2().method_2(true) : GameText.T("None"))
+                + " " + (exa.mbusMode_0 == (MBusMode)1 ? GameText.T("Local") : GameText.T("Global"));
+        }
+
+        /// <summary>The bare X/T/F/M keys: speak that one register of the FOCUSED EXA — the
+        /// focused window row's EXA (copies included), else the instance the code view follows
+        /// (the last-armed program, else the first). Worded like the window readout; the EXA
+        /// is named only when several of the player's EXAs are alive (with one it is noise).</summary>
+        private void SpeakRegister(char reg)
+        {
+            try
+            {
+                var e = Editor;
+                if (e == null) return;
+                SimExa exa = null;
+                int n;
+                var key = Navigation.FocusedNodeId?.StructuralKey as string;
+                if (key != null && key.StartsWith("win.exa.", StringComparison.Ordinal)
+                    && int.TryParse(key.Substring(8), out n))
+                    exa = FindExaByEntity(n);
+                if (exa == null)
+                {
+                    var program = LastOrFirstExa(e);
+                    if (program != null) exa = FollowedExa(program);
+                }
+                if (exa == null)
+                {
+                    Speech.Tts.Speak(Loc.T("value.unavailable"), interrupt: true);
+                    return;
+                }
+                string value = reg == 'X' ? exa.exaValue_0.method_2(true)
+                    : reg == 'T' ? exa.exaValue_1.method_2(true)
+                    : reg == 'F' ? FRegisterText(exa)
+                    : MRegisterText(exa);
+                int mine = 0;
+                foreach (var entity in TheSim(e).list_1)
+                {
+                    var x = entity as SimExa;
+                    if (x != null && Mine(x)) mine++;
+                }
+                Speech.Tts.Speak(mine > 1
+                    ? Loc.T("editor.register.exa", new { exa = exa.string_0, reg = reg.ToString(), value })
+                    : Loc.T("editor.register", new { reg = reg.ToString(), value }), interrupt: true);
+            }
+            catch (Exception ex) { Log.Error("[editor] register read failed", ex); }
         }
 
         /// <summary>The instruction an EXA executes next (the game's highlighted line), read from

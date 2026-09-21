@@ -180,6 +180,15 @@ namespace ExaAccess.Screens
                 yield return new ElementAction("ui.followNext", () => FollowInstance(1));
                 yield return new ElementAction("ui.followPrev", () => FollowInstance(-1));
             }
+            // The bare register letters read the focused EXA — never while a text field has
+            // focus (code, go-to-cycle): there the letters are typing.
+            if (!Navigation.TextEntryFocused)
+            {
+                yield return new ElementAction("ui.reg.x", () => SpeakRegister('X'));
+                yield return new ElementAction("ui.reg.t", () => SpeakRegister('T'));
+                yield return new ElementAction("ui.reg.f", () => SpeakRegister('F'));
+                yield return new ElementAction("ui.reg.m", () => SpeakRegister('M'));
+            }
             // Escape closes the popups (their game-side Escape is suppressed while
             // ModalCapturesEscape holds — see GameKeySuppression). First match wins, so a
             // file popup stacked over the goal popup closes first, back onto its goal row.

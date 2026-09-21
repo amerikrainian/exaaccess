@@ -309,6 +309,10 @@ namespace ExaAccess.UI
                 case "ui.runto.exa":
                 case "ui.followNext": // NOTE: every screen-scoped action id must be listed
                 case "ui.followPrev": // here or its binding matches and then goes nowhere
+                case "ui.reg.x":
+                case "ui.reg.t":
+                case "ui.reg.f":
+                case "ui.reg.m":
                     // Screen-scoped actions: the focused screen may advertise a handler by id.
                     return Screen != null && Screen.InvokeAction(action.Key);
                 case "ui.tooltip":

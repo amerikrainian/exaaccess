@@ -104,6 +104,13 @@ namespace ExaAccess
                 .AddBinding(Input.Scancode.Down, alt: true);
             Input.InputManager.Register("ui.followPrev", "Previous EXA instance", Input.InputCategory.UI)
                 .AddBinding(Input.Scancode.Up, alt: true);
+            // Register reads in the EXA editor: the bare register letter speaks that register
+            // of the focused EXA. The screen withholds them while a text field has focus —
+            // there the letters are typing.
+            Input.InputManager.Register("ui.reg.x", "Read X register", Input.InputCategory.UI).AddBinding(Input.Scancode.X);
+            Input.InputManager.Register("ui.reg.t", "Read T register", Input.InputCategory.UI).AddBinding(Input.Scancode.T);
+            Input.InputManager.Register("ui.reg.f", "Read F register", Input.InputCategory.UI).AddBinding(Input.Scancode.F);
+            Input.InputManager.Register("ui.reg.m", "Read M register", Input.InputCategory.UI).AddBinding(Input.Scancode.M);
 
             Input.InputManager.ActiveCategoriesProvider = () =>
                 new System.Collections.Generic.List<Input.InputCategory>(Screens.ScreenManager.ActiveInputCategories());
