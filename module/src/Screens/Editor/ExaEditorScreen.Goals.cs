@@ -162,6 +162,12 @@ namespace ExaAccess.Screens
                 // PB056: the seal's subline — the spoken title carries only the department.
                 // Screenshot-verified 2026-09-20.
                 { "PB056", "Department of Defense, USAF Secure Facility" },
+                // PB057: the seal's monogram — a lettered mark the title never speaks (the
+                // PB023 precedent); the ring restates the title and owes nothing. 2026-09-20.
+                { "PB057", "EV" },
+                // PB055: the GIS vendor's globe mark; the airline line restates the title.
+                // Grep-verified absent from the game text, screenshot-verified 2026-09-20.
+                { "PB055", "Globalyst" },
             };
 
         // GOAL-VIEW panel lettering: a special panel whose F1 rendering swaps its feed for a
@@ -209,6 +215,10 @@ namespace ExaAccess.Screens
                 // then 801/802/803 clockwise; cross-checked against the grid's link axes,
                 // screenshot-verified 2026-08-29.
                 { "PB021", new[] { 800, 801, 802, 803 } },
+                // PB055: the same rose (gold N on the 800 point, then clockwise) — and on this
+                // map the rose is the ONLY place the ids are lettered; cross-checked against
+                // the model (800 runs to the host drawn up-left), screenshot-verified 2026-09-20.
+                { "PB055", new[] { 800, 801, 802, 803 } },
             };
 
         private static int[] CompassRose()

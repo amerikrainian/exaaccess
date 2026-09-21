@@ -66,9 +66,22 @@ namespace ExaAccess.Screens
                 // use (PB028's terminal↔storage corridor, audit 2026-09-06).
                 bool locked = false;
                 try { locked = link.bool_0; } catch { }
+                // PLATE-LESS links: the plate draw is gated on the link's plate style
+                // (EditorScreen: method_3(cell) != 0 && id present) — a style-0 link draws its
+                // connector with NO id plate at either end, whatever ids the model carries
+                // (PB058's internal buses: the ids are the puzzle's to discover from a file).
+                // Speaking them leaked what no sighted player can read, so such a link reads
+                // like any other unlettered connector: "blank, destination" — and never
+                // "One way", which only the (undrawn) ids would tell. Audit 2026-09-20.
+                bool plateless = false;
+                // EXCEPT on the compass-rose maps: there the rose letters every id against a
+                // direction, so a plate-less link's id is readable off the layout — it stays.
+                try { plateless = (int)link.genum177_0 == 0 && CompassRose() == null; } catch { }
+                if (plateless && !locked) localId = GStruct10.gstruct10_0;
                 var dest = link.method_1(host);
                 bool farHasId = false;
                 try { farHasId = link.method_2(dest).method_2(team).method_0(); } catch { }
+                if (plateless && !locked) farHasId = false;
                 bool bothBlank = !localId.method_0() && !farHasId && !locked;
                 if (!localId.method_0() && !locked && !bothBlank) continue;
                 // The flag's only DRAWN form is the red link tile of the flat-tile maps

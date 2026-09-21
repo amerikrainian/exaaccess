@@ -127,7 +127,7 @@ namespace ExaAccess.Screens
                     var dest = link.method_1(host);
                     sb.Append("  LINK ").Append(i).Append(" local=").Append(M(link.method_2(host).method_2(team)))
                       .Append(" far=").Append(M(link.method_2(dest).method_2(team)))
-                      .Append(" locked=").Append(link.bool_0).Append(" -> ")
+                      .Append(" locked=").Append(link.bool_0).Append(" plate=").Append((int)link.genum177_0).Append(" -> ")
                       .Append(sim.list_0.IndexOf(dest)).Append(" '").Append(dest.string_0).Append("'\n");
                 }
                 foreach (var reg in host.list_2)
