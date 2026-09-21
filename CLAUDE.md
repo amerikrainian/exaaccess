@@ -397,9 +397,16 @@ Module (each reload starts this half cold — statics are per-load):
   Chat/Tasks tabs once unlocked), program launchers + close. KeepStateOnPop (desktop
   survives beneath cutscene/editor pushes). OnUpdate announces NEW chat lines and
   task appeared/completed events, watermarked PER GAME-DESKTOP INSTANCE — priming on
-  focus would swallow the queued lines the game flushes on re-expose. Deferred:
-  leaderboards/histograms, the multiplayer opponent table, side-jobs tab live-verify
-  (needs an ember-7 save), the custom-win hold-button.
+  focus would swallow the queued lines the game flushes on re-expose. SIDE JOBS
+  live-verified 2026-09-20 WITHOUT an ember-7 save: the game's in-memory show-all dev flag
+  (GClass1.bool_5 — probe `devflag on|off`, never saved) reveals the Chat/Tasks tabs and
+  every row. The Tasks tab draws each job as POSTER HANDLE + title + a check that follows
+  the desktop's completion MARKER (private method_7), so side rows speak "handle, title"
+  and read the marker; side jobs ship no EMBER vignettes (Enter goes straight to the
+  editor). The details stop also carries the EMBER-2 panel's mouse-only INTRO / OUTRO
+  replay buttons (Ember2CutsceneScreen.smethod_0's gates: present when the task has the
+  vignette, "unavailable" until seen). Deferred: leaderboards/histograms, the multiplayer
+  opponent table, the custom-win hold-button.
 - `module/src/Screens/CutsceneScreens.cs` — `CutsceneScreen` over the visual-novel
   cutscene player (deob GClass255, obfuscated live — the nivas/ghast/isadora scenes;
   FULLY LINEAR: vignette script + current-line int, no choices): ANNOUNCE-ONLY with
@@ -420,6 +427,15 @@ Module (each reload starts this half cold — statics are per-load):
   `TrashWorldNewsScreen` — name-only over the zine reader (deob GClass214, obfuscated
   live; ghast-1/2 cutscenes end by pushing it): announces the game's own hotspot
   label, content reading is future work.
+- `module/src/Screens/CreditsScreen.cs` — the game's VICTORY screen: the credits roll (deob
+  GClass252, obfuscated live), pushed by Ember2CutsceneScreen when the final story
+  epilogue's last line is advanced. ~73s, timed, non-interactive (black screen + music;
+  Escape skips only once config `CreditsSeen` is set — the roll sets it itself at the end,
+  then pops + transitions out). Announce-only with CapturesRawInput: PanelCapture's CREDITS
+  TAP (prefix/finalizer on GClass252.imethod_1) publishes each frame's drawn strings and
+  OnUpdate speaks the ARRIVALS (the staggered cast block accumulates on screen); the logo
+  card is a sprite, transcribed. Test via the probe: `credits` pushes it, `creditseek <t>`
+  sets its clock — POP it before ~73s or the game writes CreditsSeen into the user's config.
 - `module/src/Screens/SolitaireGameScreen.cs` — ПАСЬЯНС (game type SolitaireScreen,
   name-preserved; state PUBLIC on GameLogic.solitaireState_0, persists across visits;
   natively 100% mouse — press=grab, release=drop-or-silent-snapback; game reads only
@@ -593,7 +609,7 @@ More `/eval` traps, all hit live:
 8. **(done)** Control panel end to end (see ControlPanelScreens.cs notes above).
    Deferred there: hostname EDITING; Exit Game quits instantly (faithful).
 9. **(done)** Desktop hub + the key-suppression seam. Deferred on the desktop:
-   leaderboards/histograms, the multiplayer opponent table, side-jobs live-verify,
+   leaderboards/histograms, the multiplayer opponent table,
    the custom-win hold-button.
 10. **(done)** Desktop destinations: both cutscene players, the Workhouse, TRASH WORLD
     NEWS launcher (zines ship as text-layer PDFs read in the user's own viewer — and
