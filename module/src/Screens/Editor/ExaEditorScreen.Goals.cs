@@ -288,6 +288,7 @@ namespace ExaAccess.Screens
             {
                 var sim = TheSim(e);
                 if (sim == null) return rows;
+                var logic = sim.method_43();
                 for (int h = 0; h < sim.list_0.Count; h++)
                 {
                     var host = sim.list_0[h];
@@ -313,7 +314,7 @@ namespace ExaAccess.Screens
                                 rows.Add(GoalRow.Plain(Loc.T("editor.goal.file.plain", new
                                 {
                                     id,
-                                    host = HostName(host, true),
+                                    host = GoalRowHost(logic, host),
                                 })));
                                 continue;
                             }
@@ -333,7 +334,7 @@ namespace ExaAccess.Screens
                             Text = Loc.T("editor.goal.file", new
                             {
                                 id,
-                                host = HostName(host, true),
+                                host = GoalRowHost(logic, host),
                                 values = joined,
                             }),
                             Host = h,
@@ -341,7 +342,6 @@ namespace ExaAccess.Screens
                         });
                     }
                 }
-                var logic = sim.method_43();
                 if (logic != null)
                     foreach (var host in sim.list_0)
                     {
@@ -356,8 +356,8 @@ namespace ExaAccess.Screens
                             else if (reg.genum160_0 == (GEnum160)1)
                                 value = Loc.T("editor.reg.writeonly");
                             rows.Add(GoalRow.Plain(string.IsNullOrEmpty(value)
-                                ? Loc.T("editor.goal.register.plain", new { id, host = HostName(host, true) })
-                                : Loc.T("editor.goal.register", new { id, host = HostName(host, true), value })));
+                                ? Loc.T("editor.goal.register.plain", new { id, host = GoalRowHost(logic, host) })
+                                : Loc.T("editor.goal.register", new { id, host = GoalRowHost(logic, host), value })));
                         }
                         try
                         {
@@ -393,6 +393,21 @@ namespace ExaAccess.Screens
             }
             catch { }
             return rows;
+        }
+
+        /// <summary>The host a goal-popup row is "at". The goal-view name — except where the
+        /// logic's goal-view vmethod_10 override replaces the lettering with STATUS text (the
+        /// pagers' display strip shows the target message there): that text is its own
+        /// "{host}: {status}" row, and using it as the location read "#DATA at {message}"
+        /// (PB035B, audit 2026-09-20). Those rows keep the map-side name.</summary>
+        private static string GoalRowHost(GClass298 logic, SimHost host)
+        {
+            try
+            {
+                if (logic != null && logic.vmethod_10(host, true).method_0()) return HostName(host);
+            }
+            catch { }
+            return HostName(host, true);
         }
 
         private static bool OnlyHostNames(string line, System.Collections.Generic.HashSet<string> hostNames)
