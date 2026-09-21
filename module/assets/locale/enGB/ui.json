@@ -1,4 +1,4 @@
-{
+﻿{
   "app.ready": "ExaAccess ready.",
 
   "splash.press_any_key": "Press any key to continue",
@@ -175,6 +175,7 @@
   "editor.host.locked": "Locked host",
   "editor.host.unnamed": "Unnamed host",
   "editor.host.unnamed.n": "Unnamed host {n}",
+  "editor.host.caption.n": "{caption} {n}",
   "editor.link.locked": "locked",
   "editor.file.immovable": "immovable",
   "editor.reg.writeonly": "write-only",
@@ -243,6 +244,7 @@
 
   "role.text field": "text field",
   "text.blank": "blank",
+  "text.redacted": "redacted",
   "text.space": "space",
   "text.capital": "Cap {letter}",
   "text.selected": "{text} selected",

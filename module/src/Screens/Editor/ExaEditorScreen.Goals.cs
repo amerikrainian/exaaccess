@@ -159,6 +159,9 @@ namespace ExaAccess.Screens
                 // PB053: the agency's initialism mark + system subline; the spoken title is
                 // only the long form (the PB023 precedent). Screenshot-verified 2026-09-20.
                 { "PB053", "MVA, Scheduling System" },
+                // PB056: the seal's subline — the spoken title carries only the department.
+                // Screenshot-verified 2026-09-20.
+                { "PB056", "Department of Defense, USAF Secure Facility" },
             };
 
         // GOAL-VIEW panel lettering: a special panel whose F1 rendering swaps its feed for a
@@ -172,7 +175,26 @@ namespace ExaAccess.Screens
                 // (Its live feed mirrors the spoken register plates; the same frame at run
                 // time coincides with the spoken goal failure.)
                 { "PB029B", "NO SIGNAL" },
+                // PB056: the archive panel's frame texture bakes this in; a photo sprite
+                // covers it once the logic's private bool_3 flips (PanelLetteringShown).
+                { "PB056", "ACCESS DENIED" },
             };
+
+        private static readonly FieldInfo ArchiveOpenField =
+            Deobf.Field(typeof(SpecialPuzzleLogics.BonusHydroponix), "bool_3");
+
+        /// <summary>False while a panel's baked lettering is painted over (PB056: the photo
+        /// sprite drawn on top once the archive opens).</summary>
+        private static bool PanelLetteringShown(GClass298 logic)
+        {
+            try
+            {
+                if (logic is SpecialPuzzleLogics.BonusHydroponix && ArchiveOpenField != null)
+                    return !(bool)ArchiveOpenField.GetValue(logic);
+            }
+            catch { }
+            return true;
+        }
 
         // The GIS maps' COMPASS ROSE decal: four link-id plates around a star with a
         // drawn north arrow — the id→cardinal mapping the task text depends on ("move
@@ -381,7 +403,8 @@ namespace ExaAccess.Screens
                     rows.Add(GoalRow.Plain(GameText.Speech(line)));
                 string art;
                 var gmeta = Meta(e);
-                if (gmeta != null && GoalPanelLettering.TryGetValue(gmeta.string_0, out art))
+                if (gmeta != null && GoalPanelLettering.TryGetValue(gmeta.string_0, out art)
+                    && PanelLetteringShown(logic))
                     rows.Add(GoalRow.Plain(art));
             }
             catch { }

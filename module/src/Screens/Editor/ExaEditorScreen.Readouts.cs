@@ -164,6 +164,35 @@ namespace ExaAccess.Screens
             return Loc.T("editor.host.locked");
         }
 
+        /// <summary>The cover caption as a host LABEL. When several covered hosts share one
+        /// caption a sighted player still tells the boxes apart by position — a link visibly
+        /// runs to THAT box — so the label carries the hosts-stop position, exactly the
+        /// UnnamedLabel rule ("Locked 8" = the 8th host row). A lone covered host stays bare.
+        /// PB056's field of identical covers, audit 2026-09-20.</summary>
+        private static string CoverLabel(SimHost host, bool goal)
+        {
+            string caption = LockedLabel(host);
+            try
+            {
+                var sim = TheSim(Editor);
+                if (sim != null)
+                {
+                    int same = 0, position = 0;
+                    for (int i = 0; i < sim.list_0.Count; i++)
+                    {
+                        var h = sim.list_0[i];
+                        if (ReferenceEquals(h, host)) position = i + 1;
+                        if (HostHidden(h, goal) && DrawnHostName(h, goal) == null
+                            && LockedLabel(h) == caption) same++;
+                    }
+                    if (same > 1 && position > 0)
+                        return Loc.T("editor.host.caption.n", new { caption, n = position });
+                }
+            }
+            catch { }
+            return caption;
+        }
+
         // The DISPLAYED host name: the game's name-plate draw has NO hidden gate
         // (EditorScreen's plate loop letters every host with a plate enum or name-mode strip,
         // covered or not — PB020's disc draws "LOCKED" across the cover AND "DISC" on the edge
@@ -182,7 +211,7 @@ namespace ExaAccess.Screens
             try
             {
                 string drawn = DrawnHostName(host, goal);
-                if (HostHidden(host, goal)) return drawn ?? LockedLabel(host);
+                if (HostHidden(host, goal)) return drawn ?? CoverLabel(host, goal);
                 return drawn ?? UnnamedLabel(host);
             }
             catch { return null; }
@@ -488,7 +517,18 @@ namespace ExaAccess.Screens
         /// sign-cell precedent for drawn-but-empty slots. Everything else passes through
         /// raw (user rule). Not applied to prose flow.</summary>
         private static string ValueSpeech(string t)
-            => string.IsNullOrWhiteSpace(t) ? Loc.T("text.blank") : t;
+            => string.IsNullOrWhiteSpace(t) ? Loc.T("text.blank") : IsRedactionBar(t) ? Loc.T("text.redacted") : t;
+
+        /// <summary>A value made only of U+2588 full blocks — the game's REDACTION BAR (PB056's
+        /// censored reports draw them as solid black strips). To TTS the glyph is silence or
+        /// noise, so the drawn bar gets a speakable name, like the sign cells' punctuation
+        /// (the task text's own word family: it asks for the "unredacted" report).</summary>
+        private static bool IsRedactionBar(string t)
+        {
+            if (string.IsNullOrEmpty(t)) return false;
+            foreach (var c in t) if (c != '█') return false;
+            return true;
+        }
 
         /// <summary>True when a value list is tokenized PROSE — it contains the game's "¶"
         /// paragraph-mark value (the books and articles ship as word/punctuation tokens).
@@ -519,6 +559,14 @@ namespace ExaAccess.Screens
                 {
                     if (!start) sb.Append("; ");
                     start = true;
+                    continue;
+                }
+                // A redaction bar has no letters but is a WORD slot, never punctuation.
+                if (IsRedactionBar(t))
+                {
+                    if (!start) sb.Append(' ');
+                    sb.Append(Loc.T("text.redacted"));
+                    start = false;
                     continue;
                 }
                 bool punct = t.Length > 0;

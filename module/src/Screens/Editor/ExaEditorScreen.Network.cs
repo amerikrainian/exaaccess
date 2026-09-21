@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Reflection;
 using ExaAccess.Game;
 using ExaAccess.Localization;
@@ -71,6 +71,14 @@ namespace ExaAccess.Screens
                 try { farHasId = link.method_2(dest).method_2(team).method_0(); } catch { }
                 bool bothBlank = !localId.method_0() && !farHasId && !locked;
                 if (!localId.method_0() && !locked && !bothBlank) continue;
+                // The flag's only DRAWN form is the red link tile of the flat-tile maps
+                // (meta.bool_1 — EditorScreen's color2); on an art map a flagged link that
+                // carries an id is lettered and traversed like any other (PB056's home link,
+                // audit 2026-09-20), so "locked" there would describe nothing on screen. The
+                // id-less flagged rows (the modems' undialed lines) keep the word.
+                bool flatTiles = false;
+                try { flatTiles = Meta(e).bool_1; } catch { }
+                bool speakLocked = locked && (flatTiles || !localId.method_0());
                 string idPart = localId.method_0() ? localId.method_2() + ", "
                     : bothBlank ? Loc.T("text.blank") + ", " : "";
                 string other = HostName(dest);
@@ -83,7 +91,7 @@ namespace ExaAccess.Screens
                     {
                         new NodeAnnouncement(() => (oneWay ? Loc.T("editor.link.oneway") + ", " : "")
                             + idPart + other
-                            + (locked ? ", " + Loc.T("editor.link.locked") : ""),
+                            + (speakLocked ? ", " + Loc.T("editor.link.locked") : ""),
                             kind: AnnouncementKinds.Label),
                     },
                     // Enter = traverse, "as if you scrolled to the destination": it becomes the
