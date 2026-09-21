@@ -51,8 +51,18 @@ namespace ExaAccess
             // One greeting, right at boot (the game window isn't even up yet), so the user knows the
             // mod is alive before the splash prompt arrives. A hot reload mid-session doesn't re-greet.
             if (host.ModuleGeneration == 1)
+            {
                 Speech.Tts.Speak(Loc.T("app.ready"));
+                // The launch update check: one background request per game launch.
+                _updateCheck = new Update.UpdateChecker();
+                _updateCheck.Start(Update.UpdateChecker.LocalVersion());
+            }
         }
+
+        // Its line is spoken from Tick when the request lands with a release strictly newer than
+        // the running build; every other outcome is a log line only.
+        private Update.UpdateChecker _updateCheck;
+        private bool _updateAnnounced;
 
         /// <summary>The nav action set (the WrathAccess ui.* vocabulary GraphNavigator dispatches on)
         /// and the input hooks. Bindings are the standard screen-reader set; rebinding UI comes with
@@ -121,6 +131,12 @@ namespace ExaAccess
                 Patches.ExecutionCapture.Apply(_harmony);   // per-cycle executed instructions -> the execution log
                 Patches.PanelCapture.IsHostName = Screens.ExaEditorScreen.IsSpokenHostName;
                 Patches.PanelCapture.Apply(_harmony);       // special-puzzle panel text + goal-view force
+            }
+            // Ticks only run after game init, so this can never talk over the boot prompt.
+            if (!_updateAnnounced && _updateCheck != null && _updateCheck.NewerVersion != null)
+            {
+                _updateAnnounced = true;
+                Speech.Tts.Speak(Loc.T("app.update_available", new { version = _updateCheck.NewerVersion }));
             }
             FrameLoop.Tick();
         }
