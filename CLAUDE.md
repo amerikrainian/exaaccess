@@ -675,7 +675,7 @@ ui.pageUp/Down → OnAdjust large) whose Enter opens the game's inline typed fie
 **Register keys**: bare X / T / F / M (screen-scoped ui.reg.*) speak that register of
 the FOCUSED EXA — the focused window row's EXA (copies included), else the instance the
 code view follows (last-armed program, else the first). Worded like the window readout
-("F 200, cursor at MOVE"); the EXA is named only when >1 of the player's are alive.
+("F 200, cursor at MOVE"); the EXA is NEVER named — the user knows who they focused.
 WITHHELD while any TextEntry node has focus (code, go-to-cycle) — there letters type.
 
 **Run-to** (the game's Alt+Click, via public method_52; marker is ONE-SHOT — first

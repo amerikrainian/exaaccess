@@ -470,7 +470,7 @@ namespace ExaAccess.Screens
         /// <summary>The bare X/T/F/M keys: speak that one register of the FOCUSED EXA — the
         /// focused window row's EXA (copies included), else the instance the code view follows
         /// (the last-armed program, else the first). Worded like the window readout; the EXA
-        /// is named only when several of the player's EXAs are alive (with one it is noise).</summary>
+        /// is never named — the user knows who they focused (user rule, 2026-09-21).</summary>
         private void SpeakRegister(char reg)
         {
             try
@@ -497,15 +497,7 @@ namespace ExaAccess.Screens
                     : reg == 'T' ? exa.exaValue_1.method_2(true)
                     : reg == 'F' ? FRegisterText(exa)
                     : MRegisterText(exa);
-                int mine = 0;
-                foreach (var entity in TheSim(e).list_1)
-                {
-                    var x = entity as SimExa;
-                    if (x != null && Mine(x)) mine++;
-                }
-                Speech.Tts.Speak(mine > 1
-                    ? Loc.T("editor.register.exa", new { exa = exa.string_0, reg = reg.ToString(), value })
-                    : Loc.T("editor.register", new { reg = reg.ToString(), value }), interrupt: true);
+                Speech.Tts.Speak(Loc.T("editor.register", new { reg = reg.ToString(), value }), interrupt: true);
             }
             catch (Exception ex) { Log.Error("[editor] register read failed", ex); }
         }

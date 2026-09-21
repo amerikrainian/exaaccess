@@ -62,7 +62,6 @@
   "editor.windows": "Windows",
   "editor.exa.readout": "on {host}. X {x}, T {t}, F {f}, M {m}.",
   "editor.register": "{reg} {value}",
-  "editor.register.exa": "{exa}, {reg} {value}",
   "editor.file": "File {id}",
   "editor.files": "{host} files",
   "editor.file.readout": "{count}: {values}",
