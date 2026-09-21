@@ -4,7 +4,7 @@
 
 //! Installer UI strings. The language follows the Windows display language;
 //! EXAACCESS_INSTALLER_LANG (a tag like "de" or "pt-br") overrides it. The mod
-//! ships English only (lang/en.txt); a translation adds a table here and a
+//! ships English only (locale\enGB); a translation adds a table here and a
 //! match arm in `pick`, keyed off the tag.
 //!
 //! Error details interpolated into {error} come from the core modules and stay

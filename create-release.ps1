@@ -120,7 +120,8 @@ try {
 
     $releaseNotes = Get-ChangelogSection -ChangelogPath $changelogPath -ReleaseTitle $releaseTitle
     $notesFile = Join-Path ([System.IO.Path]::GetTempPath()) "ExaAccess-$VersionTag-release-notes.md"
-    Set-Content -LiteralPath $notesFile -Value $releaseNotes -Encoding UTF8
+    # UTF-8 without a byte-order mark: Set-Content -Encoding UTF8 writes one, and gh keeps it in the release body.
+    [System.IO.File]::WriteAllText($notesFile, $releaseNotes, (New-Object System.Text.UTF8Encoding $false))
 
     try {
         if ($null -eq (Get-Command gh -ErrorAction SilentlyContinue)) {
