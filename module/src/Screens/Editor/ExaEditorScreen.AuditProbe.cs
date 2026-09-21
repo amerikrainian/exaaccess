@@ -37,6 +37,9 @@ namespace ExaAccess.Screens
                     case "act": return AuditAct(arg);
                     case "close": return AuditClose();
                     case "wins": return AuditWins();
+                    // devflag on|off: the game's in-memory "show everything" flag (GClass1.bool_5) —
+                    // reveals every campaign row and the CHATSUBO Chat/Tasks tabs; nothing is saved.
+                    case "devflag": GClass1.bool_5 = arg == "on"; return "bool_5 = " + GClass1.bool_5;
                     // credits: push the credits roll; creditseek <t>: set its clock. POP it (leave)
                     // before ~73s or the game itself marks CreditsSeen in config.cfg.
                     case "credits": return GameApi.PushScreen(new GClass252()) ? "credits pushed" : "push failed";

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
 using ExaAccess.Game;
@@ -103,7 +103,8 @@ namespace ExaAccess.Screens
             try
             {
                 var gl = GameLogic.gameLogic_0;
-                return gl != null && gl.saveData_0.method_13("ember-7", 0);
+                // The game's own gate, dev clause included (DesktopScreen: ember-7 || GClass1.bool_5).
+                return gl != null && (gl.saveData_0.method_13("ember-7", 0) || GClass1.bool_5);
             }
             catch { return false; }
         }
@@ -112,6 +113,23 @@ namespace ExaAccess.Screens
         {
             try { return d.method_6(item); }
             catch { return false; }
+        }
+
+        // The Tasks tab's drawn check is the DESKTOP's completion marker (private method_7:
+        // a GClass38 marker for the item, or the dev flag) — it lands when the desktop
+        // announces the completion, which can trail the save's own flag.
+        private static readonly MethodInfo CompletedMarkerMethod = Deobf.Method(typeof(DesktopScreen), "method_7");
+
+        private static bool SideJobChecked(CampaignItem item)
+        {
+            try
+            {
+                var d = GameState.TopScreen() as DesktopScreen;
+                if (d != null && CompletedMarkerMethod != null)
+                    return (bool)CompletedMarkerMethod.Invoke(d, new object[] { item });
+            }
+            catch { }
+            return Completed(item);
         }
 
         private static bool Completed(CampaignItem item)
@@ -172,16 +190,39 @@ namespace ExaAccess.Screens
             BuildPrograms(b, d);
         }
 
+        /// <summary>A side job's POSTER: the Tasks tab draws each row as handle + title
+        /// (Vignette.dictionary_0 of the puzzle's vignetteCharacter_1 — the same substitution
+        /// the home-host plate uses), so the row speaks "handle, title". Null for the main
+        /// list, whose rows draw the title alone.</summary>
+        private static string SideJobPoster(CampaignItem item)
+        {
+            try
+            {
+                if (!item.maybe_1.method_0()) return null;
+                var meta = PuzzleMetaMethod?.Invoke(null, new object[] { item.maybe_1.method_2() }) as GClass361;
+                return meta == null ? null : CharacterName(meta.vignetteCharacter_1);
+            }
+            catch { return null; }
+        }
+
+        private static readonly MethodInfo PuzzleMetaMethod =
+            Deobf.Method(typeof(Puzzle).Assembly.GetType("Puzzles"), "smethod_2");
+
         private static void TaskRow(GraphBuilder b, CampaignItem item, string idPrefix)
         {
+            bool side = idPrefix == "side.";
             b.AddItem(ControlId.Referenced(item, idPrefix + item.string_0), new NodeVtable
             {
                 ControlType = ControlTypes.Button,
                 Announcements = new[]
                 {
-                    new NodeAnnouncement(() => GameText.Speech(item.locString_0.ToString()),
-                        kind: AnnouncementKinds.Label),
-                    new NodeAnnouncement(() => Completed(item) ? Loc.T("value.complete") : null,
+                    new NodeAnnouncement(() =>
+                    {
+                        string title = GameText.Speech(item.locString_0.ToString());
+                        string poster = side ? SideJobPoster(item) : null;
+                        return string.IsNullOrEmpty(poster) ? title : poster + ", " + title;
+                    }, kind: AnnouncementKinds.Label),
+                    new NodeAnnouncement(() => (side ? SideJobChecked(item) : Completed(item)) ? Loc.T("value.complete") : null,
                         kind: AnnouncementKinds.Value),
                 },
                 // Selection follows focus — never spoken; engine-only, for stop landings.
@@ -308,7 +349,53 @@ namespace ExaAccess.Screens
                 },
                 OnActivate = () => Open(null),
             });
+            // The EMBER-2 panel's INTRO / OUTRO buttons (mouse-only in the game): replay the
+            // selected task's story vignettes. A button exists when the task HAS that vignette
+            // (CampaignItem.method_1/method_2) and lights up once it has been seen
+            // (saveData.method_13(id, part)) — Ember2CutsceneScreen.smethod_0's own gates; the
+            // click pushes the same player with the desktop's panel origin.
+            ReplayButton(b, "details.intro", "Intro", 0);
+            ReplayButton(b, "details.outro", "Outro", 1);
             b.PopContext();
+        }
+
+        private static bool HasVignette(CampaignItem item, int part)
+        {
+            try { return item != null && (part == 0 ? item.method_1() : item.method_2()); }
+            catch { return false; }
+        }
+
+        private static bool VignetteSeen(CampaignItem item, int part)
+        {
+            try { return GameLogic.gameLogic_0.saveData_0.method_13(item.string_0, part); }
+            catch { return false; }
+        }
+
+        private static void ReplayButton(GraphBuilder b, string id, string gameKey, int part)
+        {
+            if (!HasVignette(SelectedTask, part)) return;
+            b.AddItem(ControlId.Structural(id), new NodeVtable
+            {
+                ControlType = ControlTypes.Button,
+                Announcements = new[]
+                {
+                    new NodeAnnouncement(() => GameText.T(gameKey), kind: AnnouncementKinds.Label),
+                    new NodeAnnouncement(() => VignetteSeen(SelectedTask, part) ? null : Loc.T("value.unavailable"),
+                        kind: AnnouncementKinds.Enabled),
+                },
+                OnActivate = () =>
+                {
+                    var item = SelectedTask;
+                    if (!HasVignette(item, part)) return;
+                    if (!VignetteSeen(item, part))
+                    {
+                        Speech.Tts.Speak(Loc.T("value.unavailable"), interrupt: true);
+                        return;
+                    }
+                    GameApi.PushScreen(new Ember2CutsceneScreen(item.string_0, part, DesktopScreen.vector2_0,
+                        true, false, GStruct10.gstruct10_0));
+                },
+            });
         }
 
         private void BuildChatsubo(GraphBuilder b, DesktopScreen d)
