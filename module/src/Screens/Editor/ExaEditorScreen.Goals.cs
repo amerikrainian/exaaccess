@@ -147,6 +147,15 @@ namespace ExaAccess.Screens
                 // absent from strings.csv, screenshot-verified 2026-09-06. The panel's own KGOG
                 // mark restates the title and owes nothing.
                 { "PB028", "KGOG News Network" },
+                // PB033: the agency seal's lettering — the spoken title names only the
+                // government, and no description/strings.csv text carries either line;
+                // grep- and screenshot-verified 2026-09-20.
+                { "PB033", "FEMA, Genetic Database" },
+                // PB034 "UNKNOWN NETWORK 2": PB008's brand + department line again, and this
+                // background bakes in a monitor whose screen is lettered too (a static
+                // texture — textures/networks/unknown/background2 — nothing drives it);
+                // screenshot-verified 2026-09-20.
+                { "PB034", "НГТУ, ОТДЕЛ ПРИКЛАДНОЙ СЕМИОТИКИ, НЕ ПОДКЛЮЧЕН" },
             };
 
         // GOAL-VIEW panel lettering: a special panel whose F1 rendering swaps its feed for a
