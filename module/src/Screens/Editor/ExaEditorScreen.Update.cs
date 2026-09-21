@@ -253,9 +253,17 @@ namespace ExaAccess.Screens
             {
                 var sim = TheSim(e);
                 SimExa target = null;
-                var focused = FocusedCodeExa(e);
+                // Off the code stop the game's code focus is released (DisarmCode) — the echo
+                // stays on the LAST-armed program's followed instance, never sliding back to
+                // the first EXA just because focus Tabbed to another stop.
+                var focused = FocusedCodeExa(e) ?? LastOrFirstExa(e);
                 Team mine = e.method_24();
-                if (sim != null)
+                if (focused != null)
+                {
+                    var followed = FollowedExa(focused);
+                    if (followed != null && followed.team_0 == mine) target = followed;
+                }
+                if (sim != null && target == null)
                     foreach (var entity in sim.list_1)
                     {
                         var exa = entity as SimExa;

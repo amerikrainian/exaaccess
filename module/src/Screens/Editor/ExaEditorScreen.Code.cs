@@ -386,6 +386,30 @@ namespace ExaAccess.Screens
         // the original the moment the instance dies or the program changes. ----
         private int _followedEntity = -1; // EntityID number; -1 = the original
 
+        // ---- the TARGET EXA: one notion shared by the code stop, the step echo and the
+        // register keys — the last-armed program (+ its followed instance). EXA window rows
+        // SELECT it as focus lands on them (selection-follows-focus), so scrolling to XB and
+        // Tabbing to code lands on XB's code; copyEntity -1 = the original. ----
+
+        private bool IsTargetExa(int solution, int copyEntity)
+        {
+            try
+            {
+                var program = LastOrFirstExa(Editor);
+                if (program == null || program.method_0() != solution) return false;
+                return copyEntity < 0 ? _followedEntity < 0 : _followedEntity == copyEntity;
+            }
+            catch { return false; }
+        }
+
+        private void SelectTargetExa(int solution, int copyEntity)
+        {
+            if (IsTargetExa(solution, copyEntity)) return;
+            _lastCodeExa = solution;
+            _followedEntity = copyEntity;
+            _virtLine = -1; // the read cursor re-snaps to the new target's current line
+        }
+
         private SimExa FollowedExa(SolutionExa program)
         {
             try

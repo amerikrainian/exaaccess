@@ -57,6 +57,8 @@ namespace ExaAccess.Screens
                         // Enter = its program's code, read cursor on THE COPY's current line;
                         // Shift+Enter (ui.runto.exa) pins it — see RunToPinned.
                         OnActivate = () => JumpToCopyCode(cn),
+                        Selected = () => IsTargetExa(solution, cn),
+                        OnSelect = () => SelectTargetExa(solution, cn),
                     });
                     continue;
                 }
@@ -72,6 +74,8 @@ namespace ExaAccess.Screens
                     // delete it (the game's own method_36, instantly undoable with Ctrl+Z).
                     OnActivate = () => { _followedEntity = -1; JumpToCode(n); },
                     OnSecondary = () => DeleteExa(n),
+                    Selected = () => IsTargetExa(n, -1),
+                    OnSelect = () => SelectTargetExa(n, -1),
                 });
                 b.AddItem(ControlId.Structural("win.mbus." + n), new NodeVtable
                 {
