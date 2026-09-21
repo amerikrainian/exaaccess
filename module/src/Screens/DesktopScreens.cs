@@ -418,11 +418,33 @@ namespace ExaAccess.Screens
                 // The side-jobs list (the game's second campaign).
                 var side = GClass61.gclass290_1?.list_0;
                 if (side != null)
+                {
+                    int hiddenSlots = 0;
                     foreach (var item in side)
                     {
-                        if (!Visible(d, item)) continue;
+                        if (!Visible(d, item)) { hiddenSlots++; continue; }
                         TaskRow(b, item, "side.");
                     }
+                    // The game draws every side job's SLOT: a revealed job as a lettered row, an
+                    // unrevealed one as a dim empty frame — so a sighted player sees how many are
+                    // still to come. One trailing text row carries that count (user decision,
+                    // 2026-09-20: wording ours, the fact the game's).
+                    if (hiddenSlots > 0)
+                    {
+                        int n = hiddenSlots;
+                        b.AddItem(ControlId.Structural("side.hidden"), new NodeVtable
+                        {
+                            ControlType = ControlTypes.Text,
+                            Announcements = new[]
+                            {
+                                new NodeAnnouncement(() => n == 1
+                                    ? Loc.T("desktop.sidejobs.hidden.one")
+                                    : Loc.T("desktop.sidejobs.hidden", new { n }),
+                                    kind: AnnouncementKinds.Label),
+                            },
+                        });
+                    }
+                }
             }
             else
             {

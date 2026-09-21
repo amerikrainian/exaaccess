@@ -37,6 +37,16 @@ namespace ExaAccess.Screens
                     case "act": return AuditAct(arg);
                     case "close": return AuditClose();
                     case "wins": return AuditWins();
+                    // devwin: exactly what the game's Ctrl+Shift+F11 dev skip does in a normal puzzle
+                    // (synthetic Shift chords never reach SDL) — the completion screen, zero scores.
+                    // markseen <id>: set a story flag (saveData.method_12(id, 0)) — "ember-7" unlocks
+                    // the real Chat/Tasks tabs. BOTH WRITE THE SAVE: back it up, restore after.
+                    case "devwin":
+                        return GameApi.PushScreen(new PuzzleCompletionScreen(Editor, Editor.solution_0, 0, 0, 0, false))
+                            ? "completion pushed" : "push failed";
+                    case "markseen":
+                        GameLogic.gameLogic_0.saveData_0.method_12(arg, 0);
+                        return "marked " + arg;
                     // lockcodes: PB056's lock combinations (public int_2) — audit-only, to drive the
                     // unlock path in a scripted run pass.
                     case "lockcodes":

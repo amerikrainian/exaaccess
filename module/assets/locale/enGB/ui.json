@@ -1,5 +1,6 @@
 ﻿{
   "app.ready": "ExaAccess ready.",
+  "app.update_available": "ExaAccess update {version} available.",
 
   "splash.press_any_key": "Press any key to continue",
 
@@ -174,6 +175,8 @@
   "lb.ineligible": "The size of your solution ({size}) exceeds the size limit for this task ({limit}). Your scores are not eligible for histograms or leaderboards.",
   "editor.registers": "{host} registers",
   "editor.host.locked": "Locked host",
+  "desktop.sidejobs.hidden": "{n} more, not yet available",
+  "desktop.sidejobs.hidden.one": "1 more, not yet available",
   "editor.host.unnamed": "Unnamed host",
   "editor.host.unnamed.n": "Unnamed host {n}",
   "editor.host.caption.n": "{caption} {n}",

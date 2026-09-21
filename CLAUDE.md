@@ -312,6 +312,16 @@ Module (each reload starts this half cold — statics are per-load):
   work). Tables load from `<game>\ExaAccess\locale\<lang>\<table>.json` — rooted off
   the HOST dll (the module is byte-loaded, it has no disk location). Module-side so a
   hot reload re-reads the JSON: edit a string, build/copy, /reload, hear it.
+- `module/src/Update/` — the LAUNCH UPDATE CHECK, ported from Guildrun Access: `UpdateCheck`
+  (pure, unit-tested: tag parsing, strict numeric IsNewer, plus CleanLocal — the SDK stamps
+  "+{commit}" onto InformationalVersion and a suffixed last component would parse as zero)
+  and `UpdateChecker` (one thread-pool request per GAME LAUNCH — generation 1 only — to
+  GitHub's releases/latest; HttpWebRequest, and TLS 1.2 switched on explicitly because the
+  process is the game's exe and its target framework picks the default protocols). Only a
+  strictly newer release speaks ("ExaAccess update {version} available.", from Tick — so
+  always after the boot prompt); up to date / dev build ahead / offline / rate-limited /
+  no release published (404) are log lines only. `EXAACCESS_UPDATE_URL` overrides the feed
+  for end-to-end checks (verified against a real GitHub repo's payload, 2026-09-20).
 - `module/src/FrameLoop.cs` — ordered, defensive per-frame step registry (steps:
   keyboard snapshot → input → loc poll → screens). `FrameClock.cs` — Stopwatch clock.
 - `module/src/UI/` — `ScreenNames` (locale-backed labels + obfuscation filter),
@@ -405,7 +415,14 @@ Module (each reload starts this half cold — statics are per-load):
   and read the marker; side jobs ship no EMBER vignettes (Enter goes straight to the
   editor). The details stop also carries the EMBER-2 panel's mouse-only INTRO / OUTRO
   replay buttons (Ember2CutsceneScreen.smethod_0's gates: present when the task has the
-  vignette, "unavailable" until seen). Deferred: leaderboards/histograms, the multiplayer
+  vignette, "unavailable" until seen). Unrevealed side jobs are drawn as dim EMPTY SLOTS,
+  so the list ends with one text row "{n} more, not yet available" (user decision,
+  2026-09-20; checked against the real 4-revealed / 5-hidden state via probe `markseen
+  ember-7`). The side-job COMPLETION flow is verified too (probe `devwin` = exactly what
+  the game's Ctrl+Shift+F11 dev skip pushes): completion screen incl. its leaderboards,
+  Return to Desktop, then "Task complete: …" and the row's check. Returning lands focus on
+  the Tasks tab (a fresh DesktopScreen instance starts on Chat; the tab re-selects on
+  landing) — the list is one Down away. Deferred: leaderboards/histograms, the multiplayer
   opponent table, the custom-win hold-button.
 - `module/src/Screens/CutsceneScreens.cs` — `CutsceneScreen` over the visual-novel
   cutscene player (deob GClass255, obfuscated live — the nivas/ghast/isadora scenes;
@@ -523,7 +540,7 @@ may still create a solution file, so back the save folder up first), `leave`, `m
 (hosts / both-side link ids + plate style / registers / files / goals), `host <n>`,
 `dump` (every node of the navigator's current render, fully composed), `act <idpart>`,
 `close`, `wins` (the game's window-cache ids), `devflag on|off`, `credits` / `creditseek`,
-and for SCRIPTED RUN PASSES `code <program, '|' = newline>` (first EXA), `step` (the mod's
+and for SCRIPTED RUN PASSES `code <program, '|' = newline>` (first EXA), `devwin` / `markseen <id>` (both WRITE THE SAVE — back up, restore), `step` (the mod's
 own F2 path — StepSim, narration included; calling the game's advance seam directly
 skips the step echo and looks like missing speech), `reset`, `lockcodes` (PB056). The whole post-modem campaign + bonus
 sweep (2026-09-20) ran on it.
