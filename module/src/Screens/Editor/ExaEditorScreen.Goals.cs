@@ -361,8 +361,22 @@ namespace ExaAccess.Screens
                         catch { }
                     }
                 AddHighwaySignRows(logic, rows);
+                // Some logics letter decoration through their draw hook — PB032 paints each
+                // host name's floor REFLECTION there — which the tap records like panel text.
+                // A captured line made of nothing but this map's host names restates labels
+                // the rows above already carry and would read as phantom goal rows: skip it.
+                var hostNames = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var h in sim.list_0)
+                {
+                    string n = HostName(h);
+                    if (!string.IsNullOrEmpty(n)) hostNames.Add(n);
+                }
                 foreach (var line in Patches.PanelCapture.Lines)
-                    rows.Add(GoalRow.Plain(GameText.Speech(line)));
+                {
+                    string spoken = GameText.Speech(line);
+                    if (OnlyHostNames(spoken, hostNames)) continue;
+                    rows.Add(GoalRow.Plain(spoken));
+                }
                 string art;
                 var gmeta = Meta(e);
                 if (gmeta != null && GoalPanelLettering.TryGetValue(gmeta.string_0, out art))
@@ -370,6 +384,14 @@ namespace ExaAccess.Screens
             }
             catch { }
             return rows;
+        }
+
+        private static bool OnlyHostNames(string line, System.Collections.Generic.HashSet<string> hostNames)
+        {
+            if (string.IsNullOrWhiteSpace(line) || hostNames.Count == 0) return false;
+            foreach (var piece in line.Split(','))
+                if (!hostNames.Contains(piece.Trim())) return false;
+            return true;
         }
 
         // The highway sign (SFCTA) draws its content as glyph SPRITES from a font atlas — no

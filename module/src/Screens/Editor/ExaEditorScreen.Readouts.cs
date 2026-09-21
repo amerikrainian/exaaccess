@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Reflection;
 using ExaAccess.Game;
 using ExaAccess.Localization;
@@ -229,6 +229,16 @@ namespace ExaAccess.Screens
             catch { return null; }
         }
 
+        // Plate-0 hosts whose name is lettered in the map's baked art (language-invariant,
+        // screenshot-transcribed; keyed "puzzle id/internal host name"). No entry = the art
+        // letters nothing and the host stays unnamed for everyone.
+        private static readonly System.Collections.Generic.Dictionary<string, string> ArtLetteredHosts =
+            new System.Collections.Generic.Dictionary<string, string>
+            {
+                // PB032: the mainframe slab carries its name across the top face, 2026-09-20.
+                { "PB032/holman-iii", "HOLMAN-III" },
+            };
+
         /// <summary>The name the map actually letters for this host, or null when nothing is
         /// drawn — mirrors EditorScreen's plate draw (which never gates on hidden), the
         /// name-display-mode strip scan, the home/opponent identity substitution, the logic's
@@ -270,6 +280,11 @@ namespace ExaAccess.Screens
                     if (bsim != null && bsim.method_43() is SpecialPuzzleLogics.GClass304
                         && host.range2_0.Size.int_0 > 1 && host.range2_0.Size.int_1 > 1)
                         return host.string_0.ToUpperInvariant();
+                    // Other maps letter a plate-0 host in their BAKED art one at a time —
+                    // transcribed per (puzzle, internal host name), the NetworkLogos pattern.
+                    string lettered;
+                    if (meta != null && ArtLetteredHosts.TryGetValue(meta.string_0 + "/" + host.string_0, out lettered))
+                        return lettered;
                     return null;
                 }
                 string name = null;
