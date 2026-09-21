@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using ExaAccess.UI;
@@ -137,6 +137,7 @@ namespace ExaAccess.Screens
             Register(new CutsceneScreen());
             Register(new EmberCutsceneScreen());
             Register(new TrashWorldNewsScreen());
+            Register(new CreditsScreen());
             Register(new WorkhouseScreen());
             Register(new SolitaireGameScreen());
             Register(new ExaEditorScreen());

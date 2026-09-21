@@ -37,6 +37,16 @@ namespace ExaAccess.Screens
                     case "act": return AuditAct(arg);
                     case "close": return AuditClose();
                     case "wins": return AuditWins();
+                    // credits: push the credits roll; creditseek <t>: set its clock. POP it (leave)
+                    // before ~73s or the game itself marks CreditsSeen in config.cfg.
+                    case "credits": return GameApi.PushScreen(new GClass252()) ? "credits pushed" : "push failed";
+                    case "creditseek":
+                    {
+                        var roll = GameState.TopScreen() as GClass252;
+                        if (roll == null) return "credits not on top";
+                        Deobf.Field(typeof(GClass252), "float_0").SetValue(roll, float.Parse(arg, System.Globalization.CultureInfo.InvariantCulture));
+                        return "clock = " + arg;
+                    }
                 }
                 return "unknown command";
             }

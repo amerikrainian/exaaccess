@@ -102,9 +102,35 @@ namespace ExaAccess.Patches
                 harmony.Patch(Expr.MethodOf(() => GClass230.smethod_36(null, default(Vector2), null,
                         default(Color), default(GEnum165), 0f, 0f, 0f, 0f, 0, default(Color), 0)),
                     postfix: text);
+                // The CREDITS roll (deob GClass252, pushed when the final story epilogue ends):
+                // a timed, non-interactive screen whose every line is a text-static draw from
+                // its per-frame imethod_1 — the same tap reads it, no strings duplicated.
+                harmony.Patch(Expr.MethodOf(() => default(GClass252).imethod_1(0f)),
+                    prefix: new HarmonyMethod(typeof(PanelCapture), nameof(CreditsPrefix)),
+                    finalizer: new HarmonyMethod(typeof(PanelCapture), nameof(CreditsFinalizer)));
                 Log.Info("[patch] panel capture armed (" + patched + " draw hooks)");
             }
             catch (Exception ex) { Log.Error("[patch] panel capture failed to apply", ex); }
+        }
+
+        private static bool _credits;
+        private static readonly List<string> CreditsBuffer = new List<string>();
+
+        /// <summary>The text the credits screen drew in its LAST complete frame, in draw order
+        /// (name, any extra line, role). Replaced every frame; empty between cards.</summary>
+        public static List<string> CreditsFrame { get; private set; } = new List<string>();
+
+        private static void CreditsPrefix()
+        {
+            _credits = true;
+            CreditsBuffer.Clear();
+        }
+
+        private static Exception CreditsFinalizer(Exception __exception)
+        {
+            _credits = false;
+            CreditsFrame = new List<string>(CreditsBuffer);
+            return __exception;
         }
 
         private static bool ShowGoalPrefix(ref bool __result)
@@ -142,6 +168,7 @@ namespace ExaAccess.Patches
         // smethod_33/34 carry the optional plane matrix at parameter 12.
         private static void PlaneTextPostfix(string __0, Vector2 __1, Matrix4? __12)
         {
+            if (_credits) { TextPostfix(__0, __1); return; }
             if (!_record) return;
             try
             {
@@ -153,6 +180,12 @@ namespace ExaAccess.Patches
 
         private static void TextPostfix(string __0, Vector2 __1)
         {
+            if (_credits)
+            {
+                try { if (!string.IsNullOrWhiteSpace(__0) && CreditsBuffer.Count < BufferCap) CreditsBuffer.Add(__0); }
+                catch { }
+                return;
+            }
             if (!_record) return;
             try
             {
