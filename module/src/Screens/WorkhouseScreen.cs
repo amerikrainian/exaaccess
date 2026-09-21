@@ -266,9 +266,21 @@ namespace ExaAccess.Screens
                         new NodeAnnouncement(() => desc, kind: AnnouncementKinds.Label),
                         new NodeAnnouncement(() => price, kind: AnnouncementKinds.Value),
                     },
+                    // Enter spells the row out — the abbreviations ("DP CABERNET", "OYSTER PL")
+                    // have to be transcribed letter-exact, and TTS reads them as words.
+                    OnActivate = () => Speech.Tts.Speak(Spell(desc) + ", " + Spell(price)),
                 });
             }
             b.PopContext();
+        }
+
+        // Character by character; a bare space or "." is TTS silence, so both are named.
+        private static string Spell(string text)
+        {
+            var parts = new List<string>();
+            foreach (char c in text)
+                parts.Add(c == ' ' ? Loc.T("text.space") : c == '.' ? Loc.T("text.dot") : c.ToString());
+            return string.Join(", ", parts);
         }
 
         private void BuildForm(GraphBuilder b, GClass50 s)
