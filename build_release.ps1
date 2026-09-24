@@ -1,6 +1,7 @@
 # Build the distributable mod zip: the Release build's shipping file set laid out as the
 # game folder - EXAPUNKS.exe.config, ExaAccess.dll, ExaAccess.Module.dll, Mono.Cecil.dll,
-# 0Harmony.dll, prism.dll, steam_appid.txt, and the ExaAccess\ folder (namemap.tsv + locale\).
+# 0Harmony.dll, prism.dll, steam_appid.txt, and the ExaAccess\ folder (namemap.tsv + locale\ +
+# docs\ - the zine text documents TRASH WORLD NEWS opens).
 # The zip root IS the game folder, so the installer (and a manual user) extracts it straight
 # into the game dir. A Release build carries no dev tooling (no dev server, no Mono.CSharp).
 #
@@ -27,11 +28,12 @@ $hostOutDir = Join-Path $scriptDir "bin\Release"
 $moduleOutDir = Join-Path $scriptDir "module\bin\Release"
 $nameMap = Join-Path $scriptDir "module\obj\Release\namemap.tsv"
 $localeDir = Join-Path $scriptDir "module\assets\locale"
+$docsDir = Join-Path $scriptDir "docs\game"
 $prismDll = Join-Path $scriptDir "third_party\prism\prism.dll"
 $configFile = Join-Path $scriptDir "deploy\EXAPUNKS.exe.config"
 $zipPath = Join-Path $releaseDir "ExaAccess-v$version.zip"
 
-foreach ($required in @($prismDll, $configFile, $localeDir, (Join-Path $scriptDir "game\EXAPUNKS-deob.exe"))) {
+foreach ($required in @($prismDll, $configFile, $localeDir, $docsDir, (Join-Path $scriptDir "game\EXAPUNKS-deob.exe"))) {
     if (-not (Test-Path $required)) {
         throw "Required file not found: $required (the module build needs game\EXAPUNKS-deob.exe - run tools\prepare-game.ps1)"
     }
@@ -87,6 +89,10 @@ try {
     # Packaging pattern adapted from SayTheSpire2:
     # https://github.com/bradjrenshaw/say-the-spire2
     Copy-Item -Path $localeDir -Destination (Join-Path $modDir "locale") -Recurse
+    # The zine documents (docs\game\*.md): TRASH WORLD NEWS's Digital Version buttons open these
+    # instead of the game's text-locked PDFs (module/src/Screens/TrashWorldNewsScreen.cs).
+    New-Item -ItemType Directory -Force (Join-Path $modDir "docs") | Out-Null
+    Copy-Item -Path (Join-Path $docsDir "*.md") -Destination (Join-Path $modDir "docs")
 
     if (Test-Path $zipPath) {
         Remove-Item -LiteralPath $zipPath -Force

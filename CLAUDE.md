@@ -177,8 +177,8 @@ still cannot build the module.
 A Debug build deploys into the game folder: `ExaAccess.dll`, `ExaAccess.Module.dll`,
 `Mono.Cecil.dll` (the remapper), `0Harmony.dll`, `prism.dll` (native screen-reader
 bridge), `EXAPUNKS.exe.config`, `Mono.CSharp.dll` (dev REPL), `ExaAccess\namemap.tsv`
-+ `ExaAccess\locale\`, writes `steam_appid.txt`, and deletes any stale pre-DLL
-`ExaAccess.exe`.
++ `ExaAccess\locale\` + `ExaAccess\docs\` (the zine text documents from repo `docs/game/`),
+writes `steam_appid.txt`, and deletes any stale pre-DLL `ExaAccess.exe`.
 The HOST dll copy needs the game closed (file-locked; the deploy warns and continues);
 the MODULE dll deploys fine with the game running — that's the hot-reload loop.
 `dotnet build -c Release` compiles without deploying and contains zero dev tooling.
@@ -191,7 +191,7 @@ belongs there — grow the suite with each subsystem.
 User install (the future installer) = copy 7 files into the game folder —
 `EXAPUNKS.exe.config`, `ExaAccess.dll`, `ExaAccess.Module.dll`, `Mono.Cecil.dll`,
 `0Harmony.dll`, `prism.dll`, `steam_appid.txt` — plus the `ExaAccess\` folder
-(`namemap.tsv` + `locale\`). Uninstall = delete the config. (namemap.tsv ships name
+(`namemap.tsv` + `locale\` + `docs\`). Uninstall = delete the config. (namemap.tsv ships name
 pairs only — the same information our ordinals always encoded; no game code ships.) The config binds the
 host assembly by **full display name**, so the host's `AssemblyVersion` is pinned at
 **1.0.0.0** in its csproj — bump both in lockstep or the mod silently stops loading
@@ -441,9 +441,14 @@ Module (each reload starts this half cold — statics are per-load):
   user rule, 2026-08-22), arrows re-read, Enter picks by pushing the option's digit
   as a synthetic SDL key so the game's own choice path runs byte-identically; native
   digits keep working in parallel. Covers the fullscreen story mode. Plus
-  `TrashWorldNewsScreen` — name-only over the zine reader (deob GClass214, obfuscated
-  live; ghast-1/2 cutscenes end by pushing it): announces the game's own hotspot
-  label, content reading is future work.
+  `TrashWorldNewsScreen` — the zine reader (deob GClass214, obfuscated live; ghast-1/2
+  cutscenes end by pushing it): issue tabs (unlock flags mirrored), the per-tab buttons,
+  close, and the art-only printing instructions. THE ZINES SHIP AS TEXT DOCUMENTS
+  (repo `docs/game/twn-1.md`, `twn-2.md`, `twn-epilogue.md` → `<game>\ExaAccess\docs\`,
+  deployed by the module build and staged into the release zip): each tab's DIGITAL
+  VERSION button shell-opens the matching document (ids match the files' `id:` headers;
+  a missing document falls back to the game's PDF); the PRINTABLE buttons still open
+  the game's PDFs, byte-identical to the click (user rule, 2026-09-24).
 - `module/src/Screens/CreditsScreen.cs` — the game's VICTORY screen: the credits roll (deob
   GClass252, obfuscated live), pushed by Ember2CutsceneScreen when the final story
   epilogue's last line is advanced. ~73s, timed, non-interactive (black screen + music;
@@ -632,8 +637,9 @@ More `/eval` traps, all hit live:
    leaderboards/histograms, the multiplayer opponent table,
    the custom-win hold-button.
 10. **(done)** Desktop destinations: both cutscene players, the Workhouse, TRASH WORLD
-    NEWS launcher (zines ship as text-layer PDFs read in the user's own viewer — and
-    NOTE: the shipped PDFs are password-protected against text extraction).
+    NEWS launcher (the game's PDFs are password-protected against text extraction, so
+    since 2026-09-24 the zines ship as text documents under `docs/game/` and the Digital
+    Version buttons open those — see TrashWorldNewsScreen).
 11. **(in progress)** The EXA editor — see "Editor reference" below. Deferred: EXA
     rename (cosmetic), live Redshift play narration (the sound registers are the
     game's own real-time channel — by design, play by ear), GClass26 row context menu

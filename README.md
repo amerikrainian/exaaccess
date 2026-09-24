@@ -4,9 +4,9 @@ Screen-reader accessibility mod for EXAPUNKS.
 
 ## A Quick Note
 
-The game requires you to read PDFs of what it calls Trash World News. While they are somewhat usable with a screen reader, you may find [this page](https://exapunks.fandom.com/wiki/EXA_instructions) helpful for getting to grips with EXA instructions.
+The game expects you to read zines it calls Trash World News, which it ships as PDFs whose text a screen reader cannot extract. The mod ships each zine as a plain text document instead (the `ExaAccessdocs` folder next to the game): in Trash World News, the Digital Version button on each issue opens the matching document in your text editor. The printable buttons still open the game's PDFs. You may also find [this page](https://exapunks.fandom.com/wiki/EXA_instructions) helpful for getting to grips with EXA instructions.
 
-Note that you will still have to reference the PDFs every now and then for e.g., packet protocols, as they are not described by the game.
+You will still need to reference the zines every now and then for e.g., packet protocols, as they are not described by the game.
 
 ## Keys
 

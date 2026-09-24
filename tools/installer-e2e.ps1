@@ -71,7 +71,8 @@ try {
     $out = @("y", "1", "4") | & $Cli 2>&1
     $out | ForEach-Object { Write-Host "    $_" }
     $shipped = @("EXAPUNKS.exe.config", "ExaAccess.dll", "ExaAccess.Module.dll", "Mono.Cecil.dll", "0Harmony.dll",
-        "prism.dll", "steam_appid.txt", "ExaAccess\namemap.tsv", "ExaAccess\locale\enGB\ui.json", "ExaAccess\install.json")
+        "prism.dll", "steam_appid.txt", "ExaAccess\namemap.tsv", "ExaAccess\locale\enGB\ui.json",
+        "ExaAccess\docs\twn-1.md", "ExaAccess\docs\twn-2.md", "ExaAccess\docs\twn-epilogue.md", "ExaAccess\install.json")
     foreach ($rel in $shipped) { Assert-True (Test-Path (Join-Path $game $rel)) "installed $rel" }
     Assert-True ((Get-Content -Raw (Join-Path $game "steam_appid.txt")) -eq "716490") "steam_appid.txt is the shipped one"
     Assert-True ((@(Get-ChildItem -Recurse -File (Join-Path $game "ExaAccess\backups") -ErrorAction SilentlyContinue | Where-Object Name -eq "steam_appid.txt")).Count -eq 1) "pre-existing steam_appid.txt backed up"

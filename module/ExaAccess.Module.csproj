@@ -89,7 +89,14 @@
     </ItemGroup>
     <Copy SourceFiles="@(LocaleFiles)"
           DestinationFiles="@(LocaleFiles->'$(GameDir)\ExaAccess\locale\%(RecursiveDir)%(Filename)%(Extension)')" />
-    <Message Importance="high" Text="ExaAccess.Module + locale deployed to $(GameDir)" />
+    <!-- The zine documents (repo docs/game/*.md): TRASH WORLD NEWS's Digital Version buttons
+         shell-open these from <game>\ExaAccess\docs\ instead of the game's text-locked PDFs
+         (Screens/TrashWorldNewsScreen.cs). -->
+    <ItemGroup>
+      <DocFiles Include="$(MSBuildProjectDirectory)\..\docs\game\*.md" />
+    </ItemGroup>
+    <Copy SourceFiles="@(DocFiles)" DestinationFolder="$(GameDir)\ExaAccess\docs" />
+    <Message Importance="high" Text="ExaAccess.Module + locale + docs deployed to $(GameDir)" />
   </Target>
 
 </Project>

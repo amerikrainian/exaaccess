@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using ExaAccess.Game;
@@ -10,14 +11,16 @@ namespace ExaAccess.Screens
 {
     /// <summary>
     /// The TRASH WORLD NEWS launcher (deob GClass214 — obfuscated live): the zine "reference
-    /// materials" book. The zines themselves never render in-game — the buttons shell-open the
-    /// shipped PDFs (real text layers, ToUnicode maps — screen-reader-readable in the user's own
-    /// viewer) via the game's method_39. Modeled fully: issue tabs (select-on-arrow; locked ones
-    /// present as unavailable, unlocking with the same story flags the game checks), the per-tab
-    /// digital/printable buttons replicating the exact click paths, close (Escape stays native),
-    /// and an information stop mirroring the left page's art-only printing instructions.
-    /// A button press announces that the PDF opened — the game's only feedback is a viewer window
-    /// appearing behind the game.
+    /// materials" book. The zines themselves never render in-game — the game's buttons shell-open
+    /// the shipped PDFs via method_39 (the PDFs are password-protected against text extraction, so
+    /// a screen reader gets little out of them). The mod ships each zine as a TEXT DOCUMENT
+    /// (repo docs/game/*.md → &lt;game&gt;\ExaAccess\docs\), and the per-tab DIGITAL VERSION button
+    /// opens that document in the user's own editor instead; the PRINTABLE buttons still open the
+    /// game's PDFs, byte-identical to the click. Modeled fully: issue tabs (select-on-arrow;
+    /// locked ones present as unavailable, unlocking with the same story flags the game checks),
+    /// the buttons, close (Escape stays native), and an information stop mirroring the left page's
+    /// art-only printing instructions. A button press announces what opened — the game's only
+    /// feedback is a viewer window appearing behind the game.
     /// </summary>
     public sealed class TrashWorldNewsScreen : Screen
     {
@@ -71,6 +74,32 @@ namespace ExaAccess.Screens
             catch (Exception ex) { Log.Error("[news] pdf open failed", ex); }
         }
 
+        // The mod's zine documents ship next to the locale tables: <game>\ExaAccess\docs\<id>.md,
+        // rooted off the HOST dll (the module is byte-loaded and has no disk location — the same
+        // anchor LocalizationManager uses). Per-tab ids match the doc files' own `id:` headers.
+        private static string DocPath(string id) =>
+            Path.Combine(Path.GetDirectoryName(typeof(Log).Assembly.Location), "ExaAccess", "docs", id + ".md");
+
+        // Shell-open the text document (the OS's .md association — a plain editor at worst).
+        // A missing document (a hand-copied install without the docs folder) falls back to the
+        // game's PDF so the button never goes dead.
+        private static void OpenDoc(string id, string pdfFallback)
+        {
+            string path = DocPath(id);
+            try
+            {
+                if (!File.Exists(path))
+                {
+                    Log.Warning("[news] zine document missing: " + path + " — opening the PDF instead.");
+                    OpenPdf(pdfFallback);
+                    return;
+                }
+                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+                Speech.Tts.Speak(Loc.T("news.opened.doc"));
+            }
+            catch (Exception ex) { Log.Error("[news] document open failed: " + path, ex); }
+        }
+
         public override void Build(GraphBuilder b)
         {
             if (News == null) return;
@@ -86,7 +115,8 @@ namespace ExaAccess.Screens
             int tab = Tab;
             b.PushContext(Loc.T("news.digital.header"));
             Button(b, "news.btn.digital", "news.digital",
-                () => OpenPdf(tab == 2 ? "epilogue_en" : tab == 0 ? "digital_en_1" : "digital_en_2"));
+                () => OpenDoc(tab == 2 ? "twn-epilogue" : tab == 0 ? "twn-1" : "twn-2",
+                    tab == 2 ? "epilogue_en" : tab == 0 ? "digital_en_1" : "digital_en_2"));
             b.PopContext();
             if (tab != 2) // the epilogue ships digital-only, exactly as the game offers it
             {

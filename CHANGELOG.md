@@ -1,5 +1,9 @@
 # Changelog
 
+## V0.1.2
+
+- Trash World News now ships as text documents. The Digital Version button on each issue opens the zine in your text editor instead of the game's locked PDF; the printable buttons are unchanged.
+
 ## V0.1.1
 
 - Pressing enter on the items in the first task of the game now spells out the item for the illiterates out there. Hey, I mean I technically am, I can say these things, right?
