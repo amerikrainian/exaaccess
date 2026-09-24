@@ -13,6 +13,7 @@ namespace ExaAccess.Screens
 
         private object _instance;
         private bool _wasRunning, _wasSolved, _wasCodeFocused, _wasShowGoal, _wasPlayMode;
+        private int _renameFocused = -1; // the EXA whose rename node had our focus last tick
 
         public override void OnUpdate()
         {
@@ -78,6 +79,12 @@ namespace ExaAccess.Screens
             // vtable, which only becomes a text field at the NEXT rebuild — the flag check
             // would kill it on the opening frame.
             if (NameArmed(e) && !Navigation.TextEntryFocused) CommitName(e);
+            // Leaving an EXA's rename node commits that name (falling edge on OUR focus, keyed
+            // to the EXA we armed — a mouse user's own title click is never closed under them).
+            int renameFocused = FocusedRenameExa();
+            if (_renameFocused >= 0 && renameFocused != _renameFocused && ArmedNameExa(e) == _renameFocused)
+                CommitExaName(e, announce: false);
+            _renameFocused = renameFocused;
             if (RunFieldOpen(e)
                 && !ControlId.Structural("ed.run").Equals((Navigation.Active as GraphNavigator)?.FocusedNodeId))
                 CloseRunField(announce: false);

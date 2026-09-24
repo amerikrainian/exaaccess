@@ -60,6 +60,7 @@ namespace ExaAccess.UI
                 }
                 _lastSpokenKey = null;
                 _lastSpokenNode = null;
+                _focusHolder = null;
                 _pendingFocus = null;
                 _pendingStop = null;
                 _liveKey = null;
@@ -114,6 +115,7 @@ namespace ExaAccess.UI
             _state.CurKey = null;
             _lastSpokenKey = null;
             _lastSpokenNode = null;
+            _focusHolder = null;
             _pendingFocus = null;
             _liveKey = null;
         }
@@ -147,6 +149,7 @@ namespace ExaAccess.UI
                     if (_graph.Current.Nodes.ContainsKey(_pendingFocus))
                     {
                         _graph.Focus(_pendingFocus);
+                        FocusArrived(_graph.CurrentNode);
                         ArmTextEntry(_graph.CurrentNode); // programmatic focus on a field = ready to type
                         if (!_pendingAnnounce) { _lastSpokenKey = _pendingFocus; _lastSpokenNode = _graph.CurrentNode; }
                     }
@@ -165,6 +168,7 @@ namespace ExaAccess.UI
 
             if (_lastSpokenKey == null || !_lastSpokenKey.Equals(node.Id))
             {
+                FocusArrived(node); // reconcile-driven moves (a node vanished, a stop landing) blur too
                 // Queued (not interrupting): landings follow the screen name / preceding feedback.
                 if (FocusMode.Active) Speak(ComposeMove(_lastSpokenNode, node, entry: _lastSpokenNode == null));
                 _lastSpokenKey = node.Id;
@@ -440,6 +444,7 @@ namespace ExaAccess.UI
             if (land == null || !_graph.Focus(land.Id)) return true;
 
             var node = _graph.CurrentNode;
+            FocusArrived(node);
             // Stop landings deliberately skip OnSelect — EXCEPT text fields: Tab into a form
             // means "focused field, ready to type" (armed before the announce).
             ArmTextEntry(node);
@@ -490,12 +495,31 @@ namespace ExaAccess.UI
 
         // Selection-follows-focus (NodeVtable.OnSelect): run the landing node's select action
         // BEFORE announcing it, so the announcement's live parts read the post-select state.
-        private static void SelectOnLanding(MoveResult result)
+        private void SelectOnLanding(MoveResult result)
         {
+            FocusArrived(result.To);
             var select = result.To?.Vtable?.OnSelect;
             if (select == null) return;
             try { select(); }
             catch (System.Exception ex) { Log.Error("[nav] OnSelect threw", ex); }
+        }
+
+        // ---- blur: the node that last received focus. When focus arrives elsewhere its OnBlur
+        // runs FIRST (before the newcomer's OnSelect / announce) so a field commits before the
+        // landing is read. Keyed by node id: a rebuild's fresh node object for the same id is
+        // the same holder. ----
+        private GraphNode _focusHolder;
+
+        private void FocusArrived(GraphNode node)
+        {
+            if (node == null) return;
+            var prev = _focusHolder;
+            _focusHolder = node;
+            if (prev == null || prev.Id == null || prev.Id.Equals(node.Id)) return;
+            var blur = prev.Vtable?.OnBlur;
+            if (blur == null) return;
+            try { blur(); }
+            catch (System.Exception ex) { Log.Error("[nav] OnBlur threw", ex); }
         }
 
         // Text fields arm on EVERY way focus can arrive (stop landings and programmatic focus

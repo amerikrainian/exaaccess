@@ -76,6 +76,8 @@
   "editor.links": "{host} links",
   "editor.link.oneway": "One way",
   "editor.mbus": "{exa} M-bus",
+  "editor.exa.name": "Name",
+  "editor.exa.renamed": "Renamed to {exa}",
   "editor.exa.deleted": "{exa} deleted",
   "screen.solitaire": "ПАСЬЯНС",
   "solitaire.board": "Board",

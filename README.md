@@ -41,6 +41,8 @@ You will still need to reference the zines every now and then for e.g., packet p
 | Ctrl+O | Open the solution browser |
 | Ctrl+Z / Ctrl+Y | Undo / redo  |
 | Arrows, Home, End, Page Up / Down, Shift+arrows, Ctrl+A, Ctrl+C / X / V | Normal text editing in the code field ; the mod reads the line or character you land on |
+| Right / Left on an EXA window row | Along the row: the EXA, its M-bus toggle, its Name field |
+| Type in an EXA's Name field | Rename the EXA (two characters; Backspace deletes; Enter or moving away commits) |
 | Enter on a file row | Open the file's values, one row per item |
 | Enter on a link row | Jump to the host at the other end |
 | Enter on a problem row | Jump the caret to the offending line |

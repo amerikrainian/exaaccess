@@ -2,7 +2,8 @@
 
 ## V0.1.2
 
-- Trash World News now ships as text documents. The Digital Version button on each issue opens the zine in your text editor instead of the game's locked PDF; the printable buttons are unchanged.
+- EXAs can be renamed... though the game only allows for only 2 letter monikers.
+- Trash World News now ships as text documents. The Digital Version button on each issue opens the zine in your text editor instead of the game's locked PDF.
 
 ## V0.1.1
 

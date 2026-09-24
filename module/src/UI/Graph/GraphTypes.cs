@@ -166,6 +166,12 @@ namespace ExaAccess.UI.Graph
         /// <summary>Optional. Secondary activation â€” the right-click equivalent (Backspace).</summary>
         public Action OnSecondary;
 
+        /// <summary>Optional. Runs when focus LEAVES this node for another, by any route (arrows,
+        /// Tab-stop landings, programmatic focus), BEFORE the newcomer's OnSelect and its
+        /// announce -- so a field can commit its edit and the landing readout already carries
+        /// the committed state. Not run when the node simply vanishes from a rebuild.</summary>
+        public Action OnBlur;
+
         /// <summary>Optional. Read / open the control's tooltip (Space, F1). The action owns the whole
         /// behavior (speak, or open the drill-in tooltip reader), so the core stays game-agnostic.</summary>
         public Action OnTooltip;

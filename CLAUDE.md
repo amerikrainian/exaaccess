@@ -640,8 +640,8 @@ More `/eval` traps, all hit live:
     NEWS launcher (the game's PDFs are password-protected against text extraction, so
     since 2026-09-24 the zines ship as text documents under `docs/game/` and the Digital
     Version buttons open those — see TrashWorldNewsScreen).
-11. **(in progress)** The EXA editor — see "Editor reference" below. Deferred: EXA
-    rename (cosmetic), live Redshift play narration (the sound registers are the
+11. **(in progress)** The EXA editor — see "Editor reference" below. Deferred:
+    live Redshift play narration (the sound registers are the
     game's own real-time channel — by design, play by ear), GClass26 row context menu
     (mouse-only; every verb it carries is a first-class key in our browser).
 12. Map the remaining obfuscated transition/overlay screens to friendly names.
@@ -728,8 +728,25 @@ PB024's column roughly backwards (audit 2026-09-06). Rows are keyed by ENTITY nu
 replicated SimExa shares its parent's SOLUTION number but gets a fresh EntityID and
 the game's ":n" name; keying by solution number created duplicate ControlIds which
 KILL the whole graph rebuild). Copies get read-only rows; edit (Enter → code,
-following that instance), delete (Backspace, undoable method_36) and the M-bus toggle
-stay on the original, like the drawn buttons. Rows gate the way the game draws:
+following that instance), delete (Backspace, undoable method_36), the NAME field and
+the M-bus toggle stay on the original, like the drawn buttons — ONE UNKEYED ROW per
+original: EXA → Right → M-bus → Right → Name, so Up/Down always land on the EXA cell
+(user layout, 2026-09-24). POSITIONS are stamped by hand (WindowPosition, a Position-kind
+part): every WINDOW row — EXA cells, copies, file rows — counts "n of {windows}" over the
+whole drawn column, and the bar's buttons (M-bus, Name) speak NO position
+(SpeaksOwnPosition; user rule, 2026-09-24) — the builder would otherwise count the bar's
+cells "1 of 3" and files only among themselves. RENAME (2026-09-24):
+the original's "Name" TextEntry cell (editing only) fronts the title's append-only
+GClass60 field over SolutionExa.string_0 (GClass68.int_1 = 2 chars, uppercased, the
+widget's caller snapshots every change so Ctrl+Z undoes it); landing arms it the way
+the title click does (maybe_4 kind 0 + EditorWindow.method_18 backup), Enter or leaving
+the node commits the way the game's focus change does (method_19 restores an emptied
+name, method_54 closes) — via NodeVtable.OnBlur (graph core: runs when focus leaves a
+node for another, by any route, BEFORE the newcomer's OnSelect/announce — added for
+this, so the neighbour's landing never reads an emptied name; the window-row labels
+read the AUTHORED SolutionExa name because the SimExa copy lags a game frame behind a
+synchronous commit), with the OnUpdate falling edge as backstop; both are keyed to the
+EXA WE armed, so a mouse user's own title click is never closed under them. Rows gate the way the game draws:
 entity gone or in a hidden host = no row; the game windows only YOUR team's EXAs plus
 unheld files (a held file's window merges into its holder; an enemy/NPC EXA and its
 held file draw no window for anyone); the game also PRE-OPENS windows for files the
