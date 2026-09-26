@@ -453,6 +453,18 @@ Module (each reload starts this half cold — statics are per-load):
   VERSION button shell-opens the matching document (ids match the files' `id:` headers;
   a missing document falls back to the game's PDF); the PRINTABLE buttons still open
   the game's PDFs, byte-identical to the click (user rule, 2026-09-24).
+  MOD NARRATION IN A GAME SCRIPT (`Screens/CutsceneNotes.cs`, user decision 2026-09-26 — the
+  first mod-authored prose inside the game): 14 Moss lines (ui.json cutscene.notes.ghast1.*)
+  recalling the editor layout in the mod's terms, inserted IN MEMORY into ghast-1's vignette at
+  parsed index 7 (after the TRASH WORLD NEWS line, before Ghast resumes) at first tick, removed
+  by reference in Dispose. Vignette scripts are on-disk CSVs (`Content\vignettes\<id>.csv`,
+  parsed at init into CampaignItem.vignette_0.list_0 — public and mutable). Rules learned: the
+  visual-novel player picks voice clips by COUNTING NON-MOSS LINES, so only Moss insertions are
+  audio-safe; never index 0 (the first line's door action sets the opening state) and never after
+  the game's last line (seen flag + zine-reader push fire on it); LocString.ToString has NO
+  language fallback (fill every Language slot). The EMBER comic player is UNUSABLE for narration:
+  a Moss line is a pick-me reply bubble (advances only by click or digit) and the previous line is
+  drawn in EMBER's speech slot (both verified live). Played through end to end 2026-09-26.
 - `module/src/Screens/CreditsScreen.cs` — the game's VICTORY screen: the credits roll (deob
   GClass252, obfuscated live), pushed by Ember2CutsceneScreen when the final story
   epilogue's last line is advanced. ~73s, timed, non-interactive (black screen + music;

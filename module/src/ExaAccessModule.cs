@@ -138,6 +138,7 @@ namespace ExaAccess
                 Patches.ExecutionCapture.Apply(_harmony);   // per-cycle executed instructions -> the execution log
                 Patches.PanelCapture.IsHostName = Screens.ExaEditorScreen.IsSpokenHostName;
                 Patches.PanelCapture.Apply(_harmony);       // special-puzzle panel text + goal-view force
+                Screens.CutsceneNotes.Apply();              // Moss's EXODUS recollection in the Ghast visit (campaign lists exist post-init)
             }
             // Ticks only run after game init, so this can never talk over the boot prompt.
             if (!_updateAnnounced && _updateCheck != null && _updateCheck.NewerVersion != null)
@@ -150,6 +151,7 @@ namespace ExaAccess
 
         public void Dispose()
         {
+            Screens.CutsceneNotes.Remove(); // in-memory script lines: out before the next generation inserts its own
             // This Harmony build predates UnpatchSelf; UnpatchAll(ownId) is the same owner-scoped removal.
             try { _harmony?.UnpatchAll(_harmony.Id); }
             catch (Exception ex) { Log.Error("[module] UnpatchSelf failed", ex); }
