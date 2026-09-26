@@ -50,22 +50,12 @@ pub fn uninstall(game_dir: &Path, manifest: &InstallManifest) -> Result<(), Stri
     // nothing in it). The manifest records files only, so the walks above never
     // visit such a dir; sweep the mod-owned tree for leftover empty dirs.
     remove_empty_dirs(&game_dir.join("Echopunks"));
-
-    // An install made under the mod's previous name keeps its record at the legacy path
-    // (manifest.rs reads it from there); its files went above, so retire the record too.
-    let legacy_manifest = game_dir.join(paths::LEGACY_MANIFEST_REL);
-    if legacy_manifest.exists() {
-        ensure_writable(&legacy_manifest)?;
-        fs::remove_file(&legacy_manifest)
-            .map_err(|e| format!("Failed to remove legacy manifest: {e}"))?;
-    }
-    remove_empty_dirs(&game_dir.join(paths::LEGACY_MOD_DIR));
     Ok(())
 }
 
 /// Remove `root` and everything below it that is an empty directory, deepest first. A dir
 /// holding any file survives, so this can never delete data.
-pub(crate) fn remove_empty_dirs(root: &Path) {
+fn remove_empty_dirs(root: &Path) {
     if !root.is_dir() {
         return;
     }

@@ -158,20 +158,7 @@ pub fn install_from_zip(
         backups,
     };
     manifest.write(game_dir)?;
-    retire_legacy_manifest(game_dir);
     Ok(manifest)
-}
-
-/// After the new record is written, drop the one the mod's previous name left behind
-/// (paths::LEGACY_MANIFEST_REL) and any now-empty legacy folder: the files it listed were
-/// pruned or re-owned above, so nothing refers to it any more.
-fn retire_legacy_manifest(game_dir: &Path) {
-    let legacy = game_dir.join(paths::LEGACY_MANIFEST_REL);
-    if legacy.exists() {
-        let _ = ensure_writable(&legacy);
-        let _ = fs::remove_file(&legacy);
-    }
-    super::uninstall::remove_empty_dirs(&game_dir.join(paths::LEGACY_MOD_DIR));
 }
 
 /// Remove files the prior install owned that the new zip no longer ships, so an upgrade never
@@ -563,66 +550,6 @@ mod tests {
             fs::read_to_string(dir.path().join(paths::PLUGIN_REL)).unwrap(),
             "plugin v2"
         );
-    }
-
-    #[test]
-    fn legacy_named_install_is_upgraded_and_its_record_retired() {
-        // An install made while the mod was named ExaAccess: old-named files on disk and the
-        // record at the legacy path. The rename must read as an ordinary upgrade.
-        let dir = tempfile::tempdir().unwrap();
-        for (rel, body) in [
-            ("ExaAccess.dll", "old host"),
-            ("ExaAccess/locale/enGB/ui.json", "old strings"),
-        ] {
-            let p = dir.path().join(rel);
-            fs::create_dir_all(p.parent().unwrap()).unwrap();
-            fs::write(&p, body).unwrap();
-        }
-        let legacy = InstallManifest {
-            schema_version: SUPPORTED_SCHEMA,
-            mod_version: "0.1.2".to_string(),
-            installed_at: "2026-09-24T00:00:00Z".to_string(),
-            source: GameSource::Manual.as_manifest_str().to_string(),
-            release_asset: "ExaAccess-v0.1.2.zip".to_string(),
-            sha256: None,
-            installed_files: vec![
-                "ExaAccess.dll".to_string(),
-                "ExaAccess/locale/enGB/ui.json".to_string(),
-            ],
-            backups: HashMap::new(),
-        };
-        let legacy_path = dir.path().join(paths::LEGACY_MANIFEST_REL);
-        fs::write(&legacy_path, serde_json::to_string(&legacy).unwrap()).unwrap();
-
-        let state = classify_install(dir.path());
-        assert!(matches!(state, InstallState::Managed(_)));
-
-        let zip = dir.path().join("v2.zip");
-        create_zip(
-            &zip,
-            &[
-                (paths::PLUGIN_REL, "new host"),
-                ("Echopunks/locale/enGB/ui.json", "strings"),
-            ],
-        );
-        let manifest =
-            install_from_zip(&zip, dir.path(), &GameSource::Manual, &test_asset(), &state).unwrap();
-
-        assert!(!dir.path().join("ExaAccess.dll").exists());
-        assert!(!dir.path().join("ExaAccess").exists());
-        assert!(!legacy_path.exists());
-        assert!(paths::manifest_path(dir.path()).exists());
-        assert_eq!(
-            fs::read_to_string(dir.path().join(paths::PLUGIN_REL)).unwrap(),
-            "new host"
-        );
-
-        // And an uninstall of a legacy-recorded install (no upgrade first) retires the record.
-        fs::create_dir_all(legacy_path.parent().unwrap()).unwrap();
-        fs::write(&legacy_path, serde_json::to_string(&legacy).unwrap()).unwrap();
-        uninstall::uninstall(dir.path(), &manifest).unwrap();
-        assert!(!legacy_path.exists());
-        assert!(!dir.path().join("ExaAccess").exists());
     }
 
     #[test]

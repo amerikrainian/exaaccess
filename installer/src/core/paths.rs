@@ -21,11 +21,6 @@ pub const PLUGIN_REL: &str = "Echopunks.dll";
 // Installer state lives in the mod's own folder, next to namemap.tsv and locale\.
 pub const MANIFEST_REL: &str = "Echopunks/install.json";
 pub const BACKUPS_REL: &str = "Echopunks/backups";
-// Where the record lived while the mod was named ExaAccess (releases up to 0.1.2). An
-// install found only there counts as the prior install, so the rename is an ordinary
-// upgrade: the old-named files are pruned and the record moves to MANIFEST_REL.
-pub const LEGACY_MOD_DIR: &str = "ExaAccess";
-pub const LEGACY_MANIFEST_REL: &str = "ExaAccess/install.json";
 
 pub fn manifest_path(game_dir: &Path) -> PathBuf {
     game_dir.join(MANIFEST_REL)

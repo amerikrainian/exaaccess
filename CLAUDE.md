@@ -200,10 +200,9 @@ RENAMED 2026-09-26: ExaAccess → Echopunks (repo amerikrainian/echopunks; GitHu
 URL). Everything carries the new name — assemblies, namespaces, the `Echopunks\` game-folder dir,
 `%LOCALAPPDATA%\Echopunks`, the `ECHOPUNKS_*` env vars, zip/installer names. Migration seams, all
 keyed to the literal legacy name: the host csproj deploy deletes ExaAccess.exe/.dll/.Module.dll +
-the `ExaAccess\` dir; HostConfig copies a legacy settings.json once; the installer honours a legacy
-`ExaAccess\install.json` as the prior install (paths.rs LEGACY_*), prunes the old-named files and
-retires the record on upgrade and uninstall. Pre-rename installers cannot find the new zip name
-(one manual download for existing users).
+the `ExaAccess\` dir; HostConfig copies a legacy settings.json once. The INSTALLER has no legacy
+handling (user decision, 2026-09-26): an ExaAccess install is uninstalled with its own installer
+first; pre-rename installers cannot find the new zip name.
 RELEASE PIPELINE (ported 2026-08-23 from the Harkest Dungeon tooling, itself adapted from
 Rashad Naqeeb's Non-Visual Calculus installer, MIT — attribution headers on every file,
 license text in `installer/LICENSE-NonVisualCalculus.txt`): `Directory.Build.props` holds

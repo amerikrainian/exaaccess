@@ -55,13 +55,9 @@ impl InstallManifest {
     }
 
     pub fn read(game_dir: &Path) -> ManifestRead {
-        let mut path = paths::manifest_path(game_dir);
+        let path = paths::manifest_path(game_dir);
         if !path.exists() {
-            // A record left by the mod's previous name (paths::LEGACY_MANIFEST_REL).
-            path = game_dir.join(paths::LEGACY_MANIFEST_REL);
-            if !path.exists() {
-                return ManifestRead::Missing;
-            }
+            return ManifestRead::Missing;
         }
         let text = match fs::read_to_string(&path) {
             Ok(t) => t,
