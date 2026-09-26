@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using ExaAccess.Localization;
+using Echopunks.Localization;
 
-namespace ExaAccess.Screens
+namespace Echopunks.Screens
 {
     /// <summary>
     /// Mod narration inserted into a game cutscene script: Moss recalling how EXODUS is laid

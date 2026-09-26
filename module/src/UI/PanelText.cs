@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace ExaAccess.UI
+namespace Echopunks.UI
 {
     /// <summary>One string the game drew, with its position. BCL-pure (unit-tested) — the capture
     /// patch translates the game's Vector2 to bare floats before anything reaches this file.</summary>

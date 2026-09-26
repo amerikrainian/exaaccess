@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace ExaAccess.UI.Graph
+namespace Echopunks.UI.Graph
 {
     /// <summary>The four navigable directions between graph nodes (explicit edges). Tab-stop cycling and
     /// region jumps are OPERATIONS over node metadata (<see cref="GraphNode.StopKey"/> /

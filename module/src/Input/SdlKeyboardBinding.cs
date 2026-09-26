@@ -1,6 +1,6 @@
 using System;
 
-namespace ExaAccess.Input
+namespace Echopunks.Input
 {
     /// <summary>
     /// A keyboard chord over <see cref="SdlKeyboard"/> — WrathAccess's KeyboardBinding rebuilt on SDL

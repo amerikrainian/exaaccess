@@ -1,9 +1,9 @@
 using System.Collections.Generic;
-using ExaAccess.Input;
-using ExaAccess.Localization;
-using ExaAccess.UI.Graph;
+using Echopunks.Input;
+using Echopunks.Localization;
+using Echopunks.UI.Graph;
 
-namespace ExaAccess.UI
+namespace Echopunks.UI
 {
     /// <summary>
     /// The graph-based navigator, ported from WrathAccess: every screen runs on the key-graph core

@@ -1,7 +1,7 @@
-using ExaAccess.Localization;
-using ExaAccess.UI.Graph;
+using Echopunks.Localization;
+using Echopunks.UI.Graph;
 
-namespace ExaAccess.UI
+namespace Echopunks.UI
 {
     /// <summary>
     /// The control-type registry (ported from WrathAccess): each entry is a <see cref="ControlType"/>

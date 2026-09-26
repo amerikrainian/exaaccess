@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ExaAccess.Input
+namespace Echopunks.Input
 {
     /// <summary>
     /// Registry + per-frame poll (ported from WrathAccess), ticked from the module's FrameLoop after

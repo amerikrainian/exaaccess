@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using ExaAccess.Speech;
+using Echopunks.Speech;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     /// <summary>Routes the whole speech stack into a capturing fake for the duration of a test —
     /// everything spoken through Tts (navigator, screens, fallbacks) lands in <see cref="Spoken"/>.</summary>
@@ -26,13 +26,13 @@ namespace ExaAccess.Tests
 
         public TestSpeech()
         {
-            Environment.SetEnvironmentVariable("EXAACCESS_SPEECH", "auto");
+            Environment.SetEnvironmentVariable("ECHOPUNKS_SPEECH", "auto");
             SpeechManager.ResetForTests(new List<ISpeechHandler> { _handler });
         }
 
         public void Dispose()
         {
-            Environment.SetEnvironmentVariable("EXAACCESS_SPEECH", null);
+            Environment.SetEnvironmentVariable("ECHOPUNKS_SPEECH", null);
             SpeechManager.ResetForTests(new List<ISpeechHandler>
             {
                 new PrismHandler(), new SapiHandler(), new ClipboardHandler(),

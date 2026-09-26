@@ -1,8 +1,8 @@
 #if DEBUG
-using ExaAccess.Dev;
+using Echopunks.Dev;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     /// <summary>SpeechLog is DEBUG-only in the mod, so these tests exist only in Debug test runs
     /// (the default for dotnet test) — same shape as the dev server that consumes it.</summary>

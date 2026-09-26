@@ -1,9 +1,9 @@
 using System;
 using System.Reflection;
-using ExaAccess.Game;
-using ExaAccess.Localization;
+using Echopunks.Game;
+using Echopunks.Localization;
 
-namespace ExaAccess.Screens
+namespace Echopunks.Screens
 {
     /// <summary>
     /// The visual-novel cutscene player (deob GClass255 — the nivas/ghast/isadora scenes; the

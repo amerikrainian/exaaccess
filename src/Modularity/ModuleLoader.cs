@@ -2,10 +2,10 @@ using System;
 using System.IO;
 using System.Reflection;
 
-namespace ExaAccess.Modularity
+namespace Echopunks.Modularity
 {
     /// <summary>
-    /// Loads (and hot-reloads) ExaAccess.Module.dll. net48 port of NonVisualCalculus's ModuleLoader:
+    /// Loads (and hot-reloads) Echopunks.Module.dll. net48 port of NonVisualCalculus's ModuleLoader:
     /// no AssemblyLoadContext here, so the module is Assembly.Load(byte[])'d into the AppDomain — the
     /// on-disk file stays unlocked (a build can overwrite it with the game running) and each load gets
     /// fresh statics. Old copies are pinned until process exit; that leak is a dev-loop cost only and
@@ -41,7 +41,7 @@ namespace ExaAccess.Modularity
                 byte[] bytes = File.ReadAllBytes(_modulePath);
                 // The module is compiled against the deob game names; rewrite its game references to
                 // the shipping names before loading (see GameRefRemapper).
-                string mapPath = Path.Combine(Path.GetDirectoryName(_modulePath), "ExaAccess", "namemap.tsv");
+                string mapPath = Path.Combine(Path.GetDirectoryName(_modulePath), "Echopunks", "namemap.tsv");
                 bytes = GameRefRemapper.Remap(bytes, mapPath);
                 var asm = Assembly.Load(bytes);
 

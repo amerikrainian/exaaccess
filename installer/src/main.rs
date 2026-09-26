@@ -4,7 +4,7 @@
 
 #![windows_subsystem = "windows"]
 
-use exaaccess_installer::{cli, gui};
+use echopunks_installer::{cli, gui};
 
 fn main() {
     if std::env::args().any(|a| a == "--cli") {

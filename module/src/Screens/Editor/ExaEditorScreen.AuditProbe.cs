@@ -3,11 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using ExaAccess.Game;
-using ExaAccess.UI;
-using ExaAccess.UI.Graph;
+using Echopunks.Game;
+using Echopunks.UI;
+using Echopunks.UI.Graph;
 
-namespace ExaAccess.Screens
+namespace Echopunks.Screens
 {
     // DEV-ONLY parity-audit probe (DEBUG builds; reached from the dev server's /eval by
     // reflection on the live module generation). Typed against the deob names, so an audit

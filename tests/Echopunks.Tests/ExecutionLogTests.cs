@@ -1,7 +1,7 @@
-using ExaAccess.UI;
+using Echopunks.UI;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     /// <summary>The editor's per-run execution log: instructions grouped by (test, cycle) in
     /// arrival order, uncapped (the graph windows what it shows; the store keeps the run) with

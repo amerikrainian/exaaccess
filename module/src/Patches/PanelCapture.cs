@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using ExaAccess.Game;
-using ExaAccess.UI;
+using Echopunks.Game;
+using Echopunks.UI;
 using HarmonyLib;
 
-namespace ExaAccess.Patches
+namespace Echopunks.Patches
 {
     /// <summary>
     /// Reads the special-puzzle panels (I/O logs, uplink status, custom-puzzle windows) the way the

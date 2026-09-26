@@ -1,6 +1,6 @@
 using System;
 
-namespace ExaAccess.Patches
+namespace Echopunks.Patches
 {
     /// <summary>
     /// The mod's Harmony patches on <c>GameLogic</c> — deliberately thin: they only translate the
@@ -29,7 +29,7 @@ namespace ExaAccess.Patches
             {
                 if (_announcedReady) return; // method_8 runs once, but guard anyway
                 _announcedReady = true;
-                Log.Info("[hook] GameLogic init complete — ExaAccess is live.");
+                Log.Info("[hook] GameLogic init complete — Echopunks is live.");
                 Bootstrap.OnGameInitialized(); // the module announces readiness on its next tick
             }
             catch (Exception ex) { Log.Error("[hook] AfterInit failed", ex); }

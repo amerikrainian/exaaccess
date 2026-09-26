@@ -1,12 +1,12 @@
 using System;
 using System.IO;
 
-namespace ExaAccess
+namespace Echopunks
 {
     /// <summary>
     /// The mod's logger. Unlike the WotR sibling (which routes through Unity's Debug log into
     /// Player.log), EXAPUNKS has no engine log surface we can borrow, so we write our own file under
-    /// %LOCALAPPDATA%\ExaAccess\ and mirror to any attached console (a normal GUI launch has none;
+    /// %LOCALAPPDATA%\Echopunks\ and mirror to any attached console (a normal GUI launch has none;
     /// Console.WriteLine is then a harmless no-op). A screen-reader user can point support at one
     /// predictable path. Thread-safe: the game hooks (main thread) and the dev HTTP server (its own
     /// thread) both log.
@@ -23,11 +23,11 @@ namespace ExaAccess
             try
             {
                 string dir = System.IO.Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ExaAccess");
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Echopunks");
                 Directory.CreateDirectory(dir);
-                _path = System.IO.Path.Combine(dir, "exaaccess.log");
+                _path = System.IO.Path.Combine(dir, "echopunks.log");
                 // Fresh file each launch — one session per log keeps it readable.
-                File.WriteAllText(_path, "ExaAccess log — " + DateTime.Now.ToString("s") + Environment.NewLine);
+                File.WriteAllText(_path, "Echopunks log — " + DateTime.Now.ToString("s") + Environment.NewLine);
             }
             catch { _path = null; }
         }

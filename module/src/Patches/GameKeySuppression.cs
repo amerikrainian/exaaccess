@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using ExaAccess.Game;
+using Echopunks.Game;
 using HarmonyLib;
 using SDL2;
 
-namespace ExaAccess.Patches
+namespace Echopunks.Patches
 {
     /// <summary>
     /// The focus-mode key-suppression seam. Some game screens read the keyboard themselves through

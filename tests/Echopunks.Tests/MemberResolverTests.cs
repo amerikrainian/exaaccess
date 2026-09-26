@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
-using ExaAccess;
+using Echopunks;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     /// <summary>
     /// The ordinal contract these tests pin down: members come back in MetadataToken order, which for

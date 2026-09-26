@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace ExaAccess
+namespace Echopunks
 {
     /// <summary>Monotonic seconds since module load — the typematic/repeat clock (WrathAccess used
     /// Unity's Time.unscaledTime; there is no engine clock to borrow here). Wall-clock based, which is

@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace ExaAccess.Input
+namespace Echopunks.Input
 {
     /// <summary>
     /// Reads the OS keyboard typematic settings (initial delay + repeat rate) so our nav key-repeat

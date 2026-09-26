@@ -1,10 +1,10 @@
 using System;
 using System.IO;
-using ExaAccess.Localization;
-using ExaAccess.UI;
+using Echopunks.Localization;
+using Echopunks.UI;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     /// <summary>Runs against the REAL locale asset (module/assets/locale, copied to the test output),
     /// so a curated screen label can't drift out of ui.json without a test noticing.</summary>

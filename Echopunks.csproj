@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- ExaAccess — screen-reader accessibility mod for EXAPUNKS (Zachtronics).
+  <!-- Echopunks — screen-reader accessibility mod for EXAPUNKS (Zachtronics).
        EXAPUNKS is a single, self-contained .NET Framework 4.x x64 executable ("Burbank")
        running Zachtronics' own SDL2/D3D11 engine — NOT Unity. So there is no Unity player to
-       bootstrap into: this project builds ExaAccess.dll, which the STOCK EXAPUNKS.exe loads by
+       bootstrap into: this project builds Echopunks.dll, which the STOCK EXAPUNKS.exe loads by
        itself via deploy/EXAPUNKS.exe.config (AppDomainManager → src/Bootstrap.cs) before any game
        code runs. See README.md for the full rationale (and why not BepInEx). -->
 
@@ -15,8 +15,8 @@
     <Prefer32Bit>false</Prefer32Bit>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
-    <AssemblyName>ExaAccess</AssemblyName>
-    <RootNamespace>ExaAccess</RootNamespace>
+    <AssemblyName>Echopunks</AssemblyName>
+    <RootNamespace>Echopunks</RootNamespace>
     <!-- Pinned: deploy/EXAPUNKS.exe.config binds the AppDomainManager by FULL display name
          (Version=1.0.0.0). Version releases via FileVersion/InformationalVersion instead; if you ever
          bump AssemblyVersion, bump the config in lockstep or the zero-loader path silently dies. -->
@@ -39,8 +39,8 @@
   <!-- The unit-test project exercises internals; the reloadable module (module/) shares the host's
        internal seams (MemberResolver, dev plumbing). -->
   <ItemGroup>
-    <InternalsVisibleTo Include="ExaAccess.Tests" />
-    <InternalsVisibleTo Include="ExaAccess.Module" />
+    <InternalsVisibleTo Include="Echopunks.Tests" />
+    <InternalsVisibleTo Include="Echopunks.Module" />
   </ItemGroup>
 
   <!-- Paths. Override GameDir on the command line if your install differs:
@@ -87,12 +87,12 @@
   <!-- Deploy into the game folder after a Debug build; then just launch EXAPUNKS.exe (see README). -->
   <Target Name="DeployMod" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
     <ItemGroup>
-      <Payload Include="$(OutputPath)ExaAccess.dll" />
+      <Payload Include="$(OutputPath)Echopunks.dll" />
       <Payload Include="$(OutputPath)0Harmony.dll" />
       <!-- Native screen-reader bridge (Prism → NVDA/JAWS/SAPI/OneCore). Must sit next to the exe
            whose working dir is the game folder so P/Invoke can resolve it. -->
       <Payload Include="$(ThirdParty)\prism\prism.dll" />
-      <!-- Zero-loader hookup: makes the STOCK EXAPUNKS.exe instantiate ExaAccess.Bootstrap
+      <!-- Zero-loader hookup: makes the STOCK EXAPUNKS.exe instantiate Echopunks.Bootstrap
            (AppDomainManager) before any game code runs, so launching the game normally loads the mod. -->
       <Payload Include="$(MSBuildProjectDirectory)\deploy\EXAPUNKS.exe.config" />
       <!-- The module remapper (see src/Modularity/GameRefRemapper.cs). -->
@@ -102,9 +102,13 @@
          builds this project) must not fail just because the game is open — the deploy is then stale
          and the warning says so. -->
     <Copy SourceFiles="@(Payload)" DestinationFolder="$(GameDir)" ContinueOnError="true" Retries="0" />
-    <!-- The mod shipped as a loader exe before it became a config-loaded dll; assembly probing tries
-         .dll before .exe, but a stale ExaAccess.exe would still invite users to run it. Clear it. -->
-    <Delete Files="$(GameDir)\ExaAccess.exe" />
+    <!-- Legacy names in the game folder: the mod shipped as ExaAccess (a loader exe first, then the
+         config-loaded ExaAccess.dll + ExaAccess.Module.dll + ExaAccess\ folder) until the rename to
+         Echopunks on 2026-09-26. Assembly probing tries .dll before .exe, but a stale ExaAccess.exe
+         would still invite users to run it, and the rest is dead weight. Clear them all (the old
+         host dll may be locked by a running game — best effort). -->
+    <Delete Files="$(GameDir)\ExaAccess.exe;$(GameDir)\ExaAccess.dll;$(GameDir)\ExaAccess.Module.dll" ContinueOnError="true" />
+    <RemoveDir Directories="$(GameDir)\ExaAccess" ContinueOnError="true" />
     <!-- Mono.CSharp for the DEBUG-only /eval; harmless to place next to the game. Locked (same
          ContinueOnError story as above) whenever a running game has served an /eval. -->
     <Copy SourceFiles="$(ThirdParty)\monocsharp\Mono.CSharp.dll" DestinationFolder="$(GameDir)"
@@ -114,7 +118,7 @@
          would only be a cosmetic double launch (the relaunched stock exe re-enters through the same
          config), but skip the churn. Bootstrap also writes this at runtime as a fallback. -->
     <WriteLinesToFile File="$(GameDir)\steam_appid.txt" Lines="$(SteamAppId)" Overwrite="true" />
-    <Message Importance="high" Text="ExaAccess deployed to $(GameDir)" />
+    <Message Importance="high" Text="Echopunks deployed to $(GameDir)" />
   </Target>
 
 </Project>

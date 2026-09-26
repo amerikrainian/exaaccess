@@ -3,15 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExaAccess", "ExaAccess.csproj", "{C778E3D6-AE1D-4E1E-B97C-A232A93BF5BE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Echopunks", "Echopunks.csproj", "{C778E3D6-AE1D-4E1E-B97C-A232A93BF5BE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExaAccess.Tests", "tests\ExaAccess.Tests\ExaAccess.Tests.csproj", "{151153D0-9783-4CC2-A2A6-FC142FAA8C71}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Echopunks.Tests", "tests\Echopunks.Tests\Echopunks.Tests.csproj", "{151153D0-9783-4CC2-A2A6-FC142FAA8C71}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "module", "module", "{8B5F1146-71F5-B789-E571-DCFF4CD75A63}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExaAccess.Module", "module\ExaAccess.Module.csproj", "{A2E2B556-40DD-4C5B-AB42-28B0F687AEBB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Echopunks.Module", "module\Echopunks.Module.csproj", "{A2E2B556-40DD-4C5B-AB42-28B0F687AEBB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

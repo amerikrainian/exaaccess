@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Web.Script.Serialization;
 
-namespace ExaAccess.Localization
+namespace Echopunks.Localization
 {
     /// <summary>
     /// Locale tables, ported from WrathAccess. Layout: &lt;root&gt;/&lt;lang&gt;/&lt;table&gt;.json, each file a flat
@@ -13,7 +13,7 @@ namespace ExaAccess.Localization
     ///
     /// Module-side ON PURPOSE: statics are per-load, so a hot reload re-reads the JSON â€” edit a
     /// string, /reload, hear it. The root defaults next to the HOST assembly (this module is
-    /// byte-loaded and has no on-disk location): &lt;gameDir&gt;/ExaAccess/locale.
+    /// byte-loaded and has no on-disk location): &lt;gameDir&gt;/Echopunks/locale.
     ///
     /// Language selection is a pluggable source (<see cref="LanguageSource"/>), polled per frame like
     /// WrathAccess polls the game â€” EXAPUNKS's own language setting can plug in once mapped. Default
@@ -36,7 +36,7 @@ namespace ExaAccess.Localization
         public static string Language => _language;
 
         public static string DefaultRoot =>
-            Path.Combine(Path.GetDirectoryName(typeof(Log).Assembly.Location), "ExaAccess", "locale");
+            Path.Combine(Path.GetDirectoryName(typeof(Log).Assembly.Location), "Echopunks", "locale");
 
         /// <summary>Load enGB (the fallback manifest) and the current language, and install the
         /// Message resolver. First thing the module does on load.</summary>

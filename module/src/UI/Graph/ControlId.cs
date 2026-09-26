@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ExaAccess.UI.Graph
+namespace Echopunks.UI.Graph
 {
     /// <summary>
     /// The identity of a control (graph node) â€” a two-tier identity so focus can be followed across

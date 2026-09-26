@@ -55,9 +55,13 @@ impl InstallManifest {
     }
 
     pub fn read(game_dir: &Path) -> ManifestRead {
-        let path = paths::manifest_path(game_dir);
+        let mut path = paths::manifest_path(game_dir);
         if !path.exists() {
-            return ManifestRead::Missing;
+            // A record left by the mod's previous name (paths::LEGACY_MANIFEST_REL).
+            path = game_dir.join(paths::LEGACY_MANIFEST_REL);
+            if !path.exists() {
+                return ManifestRead::Missing;
+            }
         }
         let text = match fs::read_to_string(&path) {
             Ok(t) => t,
@@ -96,7 +100,7 @@ mod tests {
             "schema_version": 1,
             "installed_at": "2026-07-27T00:00:00Z",
             "source": "manual",
-            "release_asset": "ExaAccess-v1.0.0.zip",
+            "release_asset": "Echopunks-v1.0.0.zip",
             "sha256": null,
             "installed_files": [],
             "backups": {}
@@ -112,7 +116,7 @@ mod tests {
             mod_version: "1.0.0".to_string(),
             installed_at: "2026-07-27T00:00:00Z".to_string(),
             source: "manual".to_string(),
-            release_asset: "ExaAccess-v1.0.0.zip".to_string(),
+            release_asset: "Echopunks-v1.0.0.zip".to_string(),
             sha256: None,
             installed_files: Vec::new(),
             backups: HashMap::new(),

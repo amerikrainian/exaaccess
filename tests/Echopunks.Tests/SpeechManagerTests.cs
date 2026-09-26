@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using ExaAccess.Speech;
+using Echopunks.Speech;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     public class SpeechManagerTests : IDisposable
     {
@@ -26,12 +26,12 @@ namespace ExaAccess.Tests
 
         public SpeechManagerTests()
         {
-            Environment.SetEnvironmentVariable("EXAACCESS_SPEECH", "auto");
+            Environment.SetEnvironmentVariable("ECHOPUNKS_SPEECH", "auto");
         }
 
         public void Dispose()
         {
-            Environment.SetEnvironmentVariable("EXAACCESS_SPEECH", null);
+            Environment.SetEnvironmentVariable("ECHOPUNKS_SPEECH", null);
             SpeechManager.ResetForTests(new List<ISpeechHandler>
             {
                 new PrismHandler(), new SapiHandler(), new ClipboardHandler(),
@@ -117,7 +117,7 @@ namespace ExaAccess.Tests
             var solid = new FakeHandler { Key = "solid" };
             SpeechManager.ResetForTests(new List<ISpeechHandler> { flaky, solid });
 
-            Environment.SetEnvironmentVariable("EXAACCESS_SPEECH", "flaky");
+            Environment.SetEnvironmentVariable("ECHOPUNKS_SPEECH", "flaky");
             SpeechManager.Output("hello", interrupt: false);
 
             Assert.Equal(new[] { "hello" }, flaky.Spoken);   // tried first

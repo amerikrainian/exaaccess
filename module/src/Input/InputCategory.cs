@@ -1,4 +1,4 @@
-namespace ExaAccess.Input
+namespace Echopunks.Input
 {
     /// <summary>
     /// The input layer an action belongs to (ported from WrathAccess, trimmed to what exists here —

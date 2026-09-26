@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace ExaAccess.Update
+namespace Echopunks.Update
 {
     /// <summary>
     /// The version logic behind the launch update announcement: what version a GitHub latest-release

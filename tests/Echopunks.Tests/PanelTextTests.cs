@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using ExaAccess.UI;
+using Echopunks.UI;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     /// <summary>
     /// The panel-text assembler over captured draw calls. Geometry mirrors the game's special-puzzle

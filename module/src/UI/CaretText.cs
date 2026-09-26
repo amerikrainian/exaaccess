@@ -1,6 +1,6 @@
-using ExaAccess.Localization;
+using Echopunks.Localization;
 
-namespace ExaAccess.UI
+namespace Echopunks.UI
 {
     /// <summary>
     /// Game-free caret/text helpers behind the code editor's narration (extracted so they unit-test

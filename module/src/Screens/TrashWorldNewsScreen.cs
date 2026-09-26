@@ -2,19 +2,19 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
-using ExaAccess.Game;
-using ExaAccess.Localization;
-using ExaAccess.UI;
-using ExaAccess.UI.Graph;
+using Echopunks.Game;
+using Echopunks.Localization;
+using Echopunks.UI;
+using Echopunks.UI.Graph;
 
-namespace ExaAccess.Screens
+namespace Echopunks.Screens
 {
     /// <summary>
     /// The TRASH WORLD NEWS launcher (deob GClass214 — obfuscated live): the zine "reference
     /// materials" book. The zines themselves never render in-game — the game's buttons shell-open
     /// the shipped PDFs via method_39 (the PDFs are password-protected against text extraction, so
     /// a screen reader gets little out of them). The mod ships each zine as a TEXT DOCUMENT
-    /// (repo docs/game/*.md → &lt;game&gt;\ExaAccess\docs\), and the per-tab DIGITAL VERSION button
+    /// (repo docs/game/*.md → &lt;game&gt;\Echopunks\docs\), and the per-tab DIGITAL VERSION button
     /// opens that document in the user's own editor instead; the PRINTABLE buttons still open the
     /// game's PDFs, byte-identical to the click. Modeled fully: issue tabs (select-on-arrow;
     /// locked ones present as unavailable, unlocking with the same story flags the game checks),
@@ -74,11 +74,11 @@ namespace ExaAccess.Screens
             catch (Exception ex) { Log.Error("[news] pdf open failed", ex); }
         }
 
-        // The mod's zine documents ship next to the locale tables: <game>\ExaAccess\docs\<id>.md,
+        // The mod's zine documents ship next to the locale tables: <game>\Echopunks\docs\<id>.md,
         // rooted off the HOST dll (the module is byte-loaded and has no disk location — the same
         // anchor LocalizationManager uses). Per-tab ids match the doc files' own `id:` headers.
         private static string DocPath(string id) =>
-            Path.Combine(Path.GetDirectoryName(typeof(Log).Assembly.Location), "ExaAccess", "docs", id + ".md");
+            Path.Combine(Path.GetDirectoryName(typeof(Log).Assembly.Location), "Echopunks", "docs", id + ".md");
 
         // Shell-open the text document (the OS's .md association — a plain editor at worst).
         // A missing document (a hand-copied install without the docs folder) falls back to the

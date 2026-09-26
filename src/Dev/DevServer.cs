@@ -4,10 +4,10 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Threading;
 
-namespace ExaAccess.Dev
+namespace Echopunks.Dev
 {
     /// <summary>
-    /// Dev-only in-process driver, gated behind the EXAACCESS_DEV env var (or a marker file). Exposes a
+    /// Dev-only in-process driver, gated behind the ECHOPUNKS_DEV env var (or a marker file). Exposes a
     /// loopback HTTP server so an external driver (Claude, curl) can introspect and drive the live mod/game
     /// while it runs — the test harness copied over from the WrathAccess architecture, trimmed to what the
     /// EXAPUNKS POC needs:
@@ -25,14 +25,14 @@ namespace ExaAccess.Dev
     /// /speech are thread-safe and answer directly off the HTTP thread.
     ///
     /// This whole subsystem is compiled only in DEBUG (#if DEBUG) — a Release build has none of it. Even in
-    /// Debug it stays inert unless EXAACCESS_DEV=1 (or the marker file exists).
+    /// Debug it stays inert unless ECHOPUNKS_DEV=1 (or the marker file exists).
     /// </summary>
     internal sealed class DevServer
     {
         public static readonly DevServer Instance = new DevServer();
 
-        public const string EnableEnv = "EXAACCESS_DEV";
-        public const string PortEnv = "EXAACCESS_DEV_PORT";
+        public const string EnableEnv = "ECHOPUNKS_DEV";
+        public const string PortEnv = "ECHOPUNKS_DEV_PORT";
         public const string MarkerFile = "devserver.enable"; // in the working dir (the game folder)
         private const int DefaultPort = 8772; // WotR uses 8771; keep ours distinct.
 
@@ -72,7 +72,7 @@ namespace ExaAccess.Dev
             if (!string.IsNullOrEmpty(p)) int.TryParse(p, out port);
 
             // Tap every string the mod speaks into the ring buffer so /speech can read it back.
-            ExaAccess.Speech.Tts.Observer = _speech.Add;
+            Echopunks.Speech.Tts.Observer = _speech.Add;
 
             try
             {
@@ -127,7 +127,7 @@ namespace ExaAccess.Dev
             {
                 string text = (body ?? "").Trim();
                 if (text.Length == 0) return "[empty] POST the text to speak as the body\n";
-                ExaAccess.Speech.Tts.Speak(text, interrupt: true);
+                Echopunks.Speech.Tts.Speak(text, interrupt: true);
                 return "said: " + text + "\n";
             }
 

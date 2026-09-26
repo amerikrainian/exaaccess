@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace ExaAccess.Game
+namespace Echopunks.Game
 {
     /// <summary>
     /// The last resort of the typed-access pipeline: the compiler + load-time remap cover every
@@ -72,7 +72,7 @@ namespace ExaAccess.Game
             {
                 // Next to the HOST dll (this assembly is byte-loaded and has no location).
                 string path = Path.Combine(
-                    Path.GetDirectoryName(typeof(Log).Assembly.Location), "ExaAccess", "namemap.tsv");
+                    Path.GetDirectoryName(typeof(Log).Assembly.Location), "Echopunks", "namemap.tsv");
                 foreach (var line in File.ReadAllLines(path))
                 {
                     var parts = line.Split('\t');

@@ -6,14 +6,14 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace ExaAccess.Dev
+namespace Echopunks.Dev
 {
     /// <summary>
     /// The /screenshot endpoint's engine: captures OUR OWN game window via PrintWindow with
     /// PW_RENDERFULLCONTENT, which reads the DWM-composited surface — no focus change, no
     /// foreground requirement, works while occluded (not while minimized). Never bring the window
     /// to the front for a capture; the dev driver runs alongside whatever else the user is doing.
-    /// PNGs land under %LOCALAPPDATA%\ExaAccess\screenshots. DEBUG-only, like all dev tooling.
+    /// PNGs land under %LOCALAPPDATA%\Echopunks\screenshots. DEBUG-only, like all dev tooling.
     /// </summary>
     internal static class Screenshot
     {
@@ -43,7 +43,7 @@ namespace ExaAccess.Dev
                 if (w <= 0 || h <= 0) return "[error] window is minimized or zero-sized (" + w + "x" + h + ")\n";
 
                 string dir = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ExaAccess", "screenshots");
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Echopunks", "screenshots");
                 Directory.CreateDirectory(dir);
                 string path = Path.Combine(dir, DateTime.Now.ToString("yyyyMMdd-HHmmss-fff") + ".png");
 

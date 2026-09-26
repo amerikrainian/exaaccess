@@ -1,9 +1,9 @@
 using System;
-using ExaAccess.Localization;
-using ExaAccess.UI;
-using ExaAccess.UI.Graph;
+using Echopunks.Localization;
+using Echopunks.UI;
+using Echopunks.UI.Graph;
 
-namespace ExaAccess.Screens
+namespace Echopunks.Screens
 {
     public sealed partial class ExaEditorScreen
     {

@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using ExaAccess.Game;
-using ExaAccess.Localization;
+using Echopunks.Game;
+using Echopunks.Localization;
 
-namespace ExaAccess.Screens
+namespace Echopunks.Screens
 {
     /// <summary>
     /// The game's VICTORY screen: the credits roll (deob GClass252, obfuscated live), pushed

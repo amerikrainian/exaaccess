@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Web.Script.Serialization;
 
-namespace ExaAccess
+namespace Echopunks
 {
     /// <summary>
     /// Minimal user configuration: a flat {"dotted.key": "value"} JSON file at
-    /// %LOCALAPPDATA%\ExaAccess\settings.json — the same on-disk shape as WrathAccess's settings
+    /// %LOCALAPPDATA%\Echopunks\settings.json — the same on-disk shape as WrathAccess's settings
     /// persistence, so the full Setting-tree port can adopt the file unchanged later. Read once,
     /// lazily; absent or broken file just means defaults. Host-side (the speech stack reads it
     /// before any module exists). Parsing is in-box JavaScriptSerializer — no shipped JSON library.
@@ -18,7 +18,15 @@ namespace ExaAccess
         private static readonly object Gate = new object();
 
         internal static string SettingsPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Echopunks", "settings.json");
+
+        /// <summary>Where the file lived while the mod was named ExaAccess (releases up to 0.1.2).
+        /// Copied to the default SettingsPath once, when no new file exists yet, so the rename
+        /// never silently resets a user's speech.output choice. Tests redirect SettingsPath and
+        /// are never migrated.</summary>
+        private static readonly string LegacySettingsPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ExaAccess", "settings.json");
+        private static readonly string DefaultSettingsPath = SettingsPath;
 
         public static string Get(string key, string fallback)
         {
@@ -40,6 +48,12 @@ namespace ExaAccess
         {
             try
             {
+                if (!File.Exists(path) && path == DefaultSettingsPath && File.Exists(LegacySettingsPath))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(path));
+                    File.Copy(LegacySettingsPath, path);
+                    Log.Info("[config] migrated settings from " + LegacySettingsPath);
+                }
                 if (!File.Exists(path)) return new Dictionary<string, string>();
                 var raw = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(path))
                           ?? new Dictionary<string, object>();

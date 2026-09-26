@@ -1,8 +1,8 @@
 using System;
-using ExaAccess.Localization;
+using Echopunks.Localization;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     public class MessageTests : IDisposable
     {

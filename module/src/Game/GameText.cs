@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ExaAccess.Game
+namespace Echopunks.Game
 {
     /// <summary>
     /// The GAME's own localized strings, typed (GClass7.smethod_5(key, comment) → LocString,

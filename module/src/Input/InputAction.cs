@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ExaAccess.Input
+namespace Echopunks.Input
 {
     /// <summary>
     /// A named mod command with one or more bindings (ported from WrathAccess). Exposes per-frame

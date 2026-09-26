@@ -6,7 +6,7 @@
 
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
-    <AssemblyName>ExaAccess.Tests</AssemblyName>
+    <AssemblyName>Echopunks.Tests</AssemblyName>
     <LangVersion>latest</LangVersion>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -18,8 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\ExaAccess.csproj" />
-    <ProjectReference Include="..\..\module\ExaAccess.Module.csproj" />
+    <ProjectReference Include="..\..\Echopunks.csproj" />
+    <ProjectReference Include="..\..\module\Echopunks.Module.csproj" />
   </ItemGroup>
 
   <!-- The real locale tables, so label tests run against shipping data (a curated label can't

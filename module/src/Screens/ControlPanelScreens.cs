@@ -1,12 +1,12 @@
 using System;
 using System.Reflection;
-using ExaAccess.Game;
-using ExaAccess.Localization;
-using ExaAccess.UI;
-using ExaAccess.UI.Graph;
+using Echopunks.Game;
+using Echopunks.Localization;
+using Echopunks.UI;
+using Echopunks.UI.Graph;
 using SDL2;
 
-namespace ExaAccess.Screens
+namespace Echopunks.Screens
 {
     /// <summary>
     /// The TEC Constellation II control panel — TYPED against the game via the remap pipeline. One

@@ -85,7 +85,7 @@ function Get-ChangelogSection {
     return $section
 }
 
-# The installer finds the mod zip by the asset name pattern ExaAccess-v<maj>.<min>.<patch>.zip
+# The installer finds the mod zip by the asset name pattern Echopunks-v<maj>.<min>.<patch>.zip
 # and parses that version with semver, so only a strict three-part tag produces a release it can consume.
 if ($VersionTag -notmatch '^v\d+\.\d+\.\d+$') {
     Fail "Version tag must be lowercase 'v' plus a three-part version, for example v1.0.0."
@@ -94,8 +94,8 @@ if ($VersionTag -notmatch '^v\d+\.\d+\.\d+$') {
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $releaseDir = Join-Path $scriptDir "releases"
 $changelogPath = Join-Path $scriptDir "CHANGELOG.md"
-$zipPath = Join-Path $releaseDir "ExaAccess-$VersionTag.zip"
-$installerPath = Join-Path $releaseDir "ExaAccessInstaller.exe"
+$zipPath = Join-Path $releaseDir "Echopunks-$VersionTag.zip"
+$installerPath = Join-Path $releaseDir "EchopunksInstaller.exe"
 $releaseTitle = "V$($VersionTag.Substring(1))"
 
 Push-Location $scriptDir
@@ -119,7 +119,7 @@ try {
     }
 
     $releaseNotes = Get-ChangelogSection -ChangelogPath $changelogPath -ReleaseTitle $releaseTitle
-    $notesFile = Join-Path ([System.IO.Path]::GetTempPath()) "ExaAccess-$VersionTag-release-notes.md"
+    $notesFile = Join-Path ([System.IO.Path]::GetTempPath()) "Echopunks-$VersionTag-release-notes.md"
     # UTF-8 without a byte-order mark: Set-Content -Encoding UTF8 writes one, and gh keeps it in the release body.
     [System.IO.File]::WriteAllText($notesFile, $releaseNotes, (New-Object System.Text.UTF8Encoding $false))
 

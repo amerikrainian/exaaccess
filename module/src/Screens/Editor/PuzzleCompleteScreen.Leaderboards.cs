@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using ExaAccess.Game;
-using ExaAccess.Localization;
-using ExaAccess.UI.Graph;
+using Echopunks.Game;
+using Echopunks.Localization;
+using Echopunks.UI.Graph;
 
-namespace ExaAccess.Screens
+namespace Echopunks.Screens
 {
     public sealed partial class PuzzleCompleteScreen
     {

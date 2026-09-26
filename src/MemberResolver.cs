@@ -1,7 +1,7 @@
 using System;
 using System.Reflection;
 
-namespace ExaAccess
+namespace Echopunks
 {
     /// <summary>
     /// The token-ordinal member resolution primitive, extracted from <see cref="GameState"/> so the

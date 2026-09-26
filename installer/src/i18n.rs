@@ -3,7 +3,7 @@
 // Dungeon installer, https://github.com/amerikrainian/harkest-dungeon.
 
 //! Installer UI strings. The language follows the Windows display language;
-//! EXAACCESS_INSTALLER_LANG (a tag like "de" or "pt-br") overrides it. The mod
+//! ECHOPUNKS_INSTALLER_LANG (a tag like "de" or "pt-br") overrides it. The mod
 //! ships English only (locale\enGB); a translation adds a table here and a
 //! match arm in `pick`, keyed off the tag.
 //!
@@ -78,7 +78,7 @@ pub struct Strings {
 }
 
 pub fn get() -> &'static Strings {
-    if let Ok(tag) = std::env::var("EXAACCESS_INSTALLER_LANG") {
+    if let Ok(tag) = std::env::var("ECHOPUNKS_INSTALLER_LANG") {
         return pick(&tag);
     }
     let locale = sys_locale::get_locale().unwrap_or_default();
@@ -104,8 +104,8 @@ pub fn fill(template: &str, args: &[(&str, &str)]) -> String {
 }
 
 pub static EN: Strings = Strings {
-    app_title: "ExaAccess Installer",
-    cli_header: "=== ExaAccess Installer ===",
+    app_title: "Echopunks Installer",
+    cli_header: "=== Echopunks Installer ===",
     game_dir_label: "Game directory:",
     browse: "Browse...",
     btn_install: "Install",
@@ -125,7 +125,7 @@ pub static EN: Strings = Strings {
     log_connected: "Connected to GitHub.",
     log_github_error: "Could not check GitHub releases: {error}",
     log_latest_asset: "Latest release file: {name}",
-    log_no_asset: "No mod release zip (ExaAccess-vX.Y.Z.zip) was found on the latest release.",
+    log_no_asset: "No mod release zip (Echopunks-vX.Y.Z.zip) was found on the latest release.",
     log_detected_dir: "Detected game directory: {path}",
     log_could_not_detect: "Could not auto-detect the game directory.",
     log_damaged_state: "Damaged installer state: {reason}",
@@ -142,13 +142,13 @@ pub static EN: Strings = Strings {
     err_close_game_install: "Close EXAPUNKS before installing.",
     err_close_game_uninstall: "Close EXAPUNKS before uninstalling.",
     err_uninstall_managed_only: "Uninstall is only available for installs managed by this installer.",
-    confirm_uninstall: "Remove ExaAccess from this game directory?",
+    confirm_uninstall: "Remove Echopunks from this game directory?",
     confirm_uninstall_title: "Confirm Uninstall",
     msg_uninstall_complete: "Uninstall complete.",
     msg_uninstall_failed: "Uninstall failed:\n{error}",
     msg_already_up_to_date: "Already up to date. Reinstall can repair damaged files.",
     msg_install_complete: "Install complete.",
-    msg_first_launch_note: "Launch EXAPUNKS through Steam. The mod says \"ExaAccess ready\" as the game boots, then \"Press any key to continue\" at the loading screen.",
+    msg_first_launch_note: "Launch EXAPUNKS through Steam. The mod says \"Echopunks ready\" as the game boots, then \"Press any key to continue\" at the loading screen.",
     msg_install_failed: "Install failed:\n{error}",
     cli_no_valid_install: "No valid EXAPUNKS install selected.",
     cli_state_not_installed: "State: not installed",
@@ -163,7 +163,7 @@ pub static EN: Strings = Strings {
     cli_invalid_option: "Invalid option.",
     cli_use_path: "Use this path? (Y/n): ",
     cli_type_path: "Type the game directory path: ",
-    cli_confirm_uninstall: "Remove ExaAccess? (y/N): ",
+    cli_confirm_uninstall: "Remove Echopunks? (y/N): ",
     cli_error: "Error: {error}",
     cli_yes_key: "y",
     cli_no_key: "n",

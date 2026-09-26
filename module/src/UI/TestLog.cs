@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace ExaAccess.UI
+namespace Echopunks.UI
 {
     /// <summary>
     /// The per-run TEST LOG behind the editor's "Test log" stop: sim events (EXA errors, goal

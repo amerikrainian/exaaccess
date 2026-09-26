@@ -1,6 +1,6 @@
 # Build the distributable mod zip: the Release build's shipping file set laid out as the
-# game folder - EXAPUNKS.exe.config, ExaAccess.dll, ExaAccess.Module.dll, Mono.Cecil.dll,
-# 0Harmony.dll, prism.dll, steam_appid.txt, and the ExaAccess\ folder (namemap.tsv + locale\ +
+# game folder - EXAPUNKS.exe.config, Echopunks.dll, Echopunks.Module.dll, Mono.Cecil.dll,
+# 0Harmony.dll, prism.dll, steam_appid.txt, and the Echopunks\ folder (namemap.tsv + locale\ +
 # docs\ - the zine text documents TRASH WORLD NEWS opens).
 # The zip root IS the game folder, so the installer (and a manual user) extracts it straight
 # into the game dir. A Release build carries no dev tooling (no dev server, no Mono.CSharp).
@@ -31,7 +31,7 @@ $localeDir = Join-Path $scriptDir "module\assets\locale"
 $docsDir = Join-Path $scriptDir "docs\game"
 $prismDll = Join-Path $scriptDir "third_party\prism\prism.dll"
 $configFile = Join-Path $scriptDir "deploy\EXAPUNKS.exe.config"
-$zipPath = Join-Path $releaseDir "ExaAccess-v$version.zip"
+$zipPath = Join-Path $releaseDir "Echopunks-v$version.zip"
 
 foreach ($required in @($prismDll, $configFile, $localeDir, $docsDir, (Join-Path $scriptDir "game\EXAPUNKS-deob.exe"))) {
     if (-not (Test-Path $required)) {
@@ -47,13 +47,13 @@ try {
         if (Test-Path $dir) { Remove-Item -LiteralPath $dir -Recurse -Force }
     }
 
-    dotnet build ExaAccess.sln -c Release -v:minimal
+    dotnet build Echopunks.sln -c Release -v:minimal
     if ($LASTEXITCODE -ne 0) {
         throw "Release build failed with exit code $LASTEXITCODE"
     }
 
-    $hostDll = Join-Path $hostOutDir "ExaAccess.dll"
-    $moduleDll = Join-Path $moduleOutDir "ExaAccess.Module.dll"
+    $hostDll = Join-Path $hostOutDir "Echopunks.dll"
+    $moduleDll = Join-Path $moduleOutDir "Echopunks.Module.dll"
     $cecilDll = Join-Path $hostOutDir "Mono.Cecil.dll"
     $harmonyDll = Join-Path $hostOutDir "0Harmony.dll"
     foreach ($required in @($hostDll, $moduleDll, $cecilDll, $harmonyDll, $nameMap)) {
@@ -71,8 +71,8 @@ try {
     New-Item -ItemType Directory -Force $stageDir | Out-Null
     New-Item -ItemType Directory -Force $releaseDir | Out-Null
 
-    # The same file set the Debug post-build targets deploy (see ExaAccess.csproj DeployMod and
-    # module/ExaAccess.Module.csproj DeployModule), minus the dev REPL.
+    # The same file set the Debug post-build targets deploy (see Echopunks.csproj DeployMod and
+    # module/Echopunks.Module.csproj DeployModule), minus the dev REPL.
     Copy-Item -LiteralPath $configFile -Destination $stageDir
     Copy-Item -LiteralPath $hostDll -Destination $stageDir
     Copy-Item -LiteralPath $moduleDll -Destination $stageDir
@@ -83,7 +83,7 @@ try {
     # (SteamAPI.RestartAppIfNecessary); Bootstrap rewrites it at runtime as a fallback.
     Set-Content -LiteralPath (Join-Path $stageDir "steam_appid.txt") -Value "716490" -NoNewline -Encoding ascii
 
-    $modDir = Join-Path $stageDir "ExaAccess"
+    $modDir = Join-Path $stageDir "Echopunks"
     New-Item -ItemType Directory -Force $modDir | Out-Null
     Copy-Item -LiteralPath $nameMap -Destination $modDir
     # Packaging pattern adapted from SayTheSpire2:

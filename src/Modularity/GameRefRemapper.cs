@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using Mono.Cecil;
 
-namespace ExaAccess.Modularity
+namespace Echopunks.Modularity
 {
     /// <summary>
     /// The load-time half of the typed-game-access pipeline. The module COMPILES against

@@ -5,7 +5,7 @@ description: Audit the currently open puzzle for screen-reader parity (drawn map
 The puzzle I just unlocked is open in the editor right now. Run a full map-parity
 audit like the UC Berkeley one (2026-08-23 — see the map-parity notes in CLAUDE.md).
 
-Rules of engagement: use the dev server (relaunch with EXAACCESS_DEV=1 only if it
+Rules of engagement: use the dev server (relaunch with ECHOPUNKS_DEV=1 only if it
 isn't running). Never send input, move my focus, or navigate the game — I'm playing.
 Read-only probes plus /screenshot only.
 

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using ExaAccess.UI;
+using Echopunks.UI;
 
-namespace ExaAccess.Screens
+namespace Echopunks.Screens
 {
     /// <summary>
     /// Base for a navigable screen, ported from WrathAccess. Lifecycle (dispatched by ScreenManager

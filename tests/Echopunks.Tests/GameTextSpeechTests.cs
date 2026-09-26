@@ -1,7 +1,7 @@
-using ExaAccess.Game;
+using Echopunks.Game;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     public class GameTextSpeechTests
     {

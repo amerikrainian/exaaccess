@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace ExaAccess
+namespace Echopunks
 {
     /// <summary>
     /// A reflection-cached view onto the live game, and the seam every accessibility read goes through —

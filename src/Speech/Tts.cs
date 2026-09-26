@@ -2,7 +2,7 @@ using System;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace ExaAccess.Speech
+namespace Echopunks.Speech
 {
     /// <summary>
     /// The call-site speech facade — the mod's single output chokepoint (hard rule). Cleans

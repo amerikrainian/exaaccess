@@ -1,6 +1,6 @@
 using System;
 
-namespace ExaAccess.Speech
+namespace Echopunks.Speech
 {
     /// <summary>
     /// The primary handler: Prism's best-available backend (NVDA/JAWS directly, else SAPI/OneCore via

@@ -1,4 +1,4 @@
-The ExaAccess installer (this directory) is adapted from the Non-Visual Calculus
+The Echopunks installer (this directory) is adapted from the Non-Visual Calculus
 installer by Rashad Naqeeb, https://github.com/rashadnaqeeb/NonVisualCalculus,
 by way of the Harkest Dungeon installer, https://github.com/amerikrainian/harkest-dungeon.
 The original is licensed under the MIT License, reproduced below.

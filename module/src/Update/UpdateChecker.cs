@@ -4,7 +4,7 @@ using System.Net;
 using System.Reflection;
 using System.Threading;
 
-namespace ExaAccess.Update
+namespace Echopunks.Update
 {
     /// <summary>
     /// Fetches the newest GitHub release on a thread-pool thread and holds the answer for the
@@ -18,7 +18,7 @@ namespace ExaAccess.Update
     /// </summary>
     internal sealed class UpdateChecker
     {
-        private const string ApiUrl = "https://api.github.com/repos/amerikrainian/exaaccess/releases/latest";
+        private const string ApiUrl = "https://api.github.com/repos/amerikrainian/echopunks/releases/latest";
 
         private volatile string _newerVersion;
 
@@ -54,13 +54,13 @@ namespace ExaAccess.Update
             try
             {
                 ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
-                // EXAACCESS_UPDATE_URL overrides the feed, like the installer's
-                // EXAACCESS_INSTALLER_RELEASES_URL: an end-to-end check can point at any
+                // ECHOPUNKS_UPDATE_URL overrides the feed, like the installer's
+                // ECHOPUNKS_INSTALLER_RELEASES_URL: an end-to-end check can point at any
                 // latest-release payload without publishing one.
-                string url = Environment.GetEnvironmentVariable("EXAACCESS_UPDATE_URL");
+                string url = Environment.GetEnvironmentVariable("ECHOPUNKS_UPDATE_URL");
                 if (string.IsNullOrWhiteSpace(url)) url = ApiUrl;
                 var request = (HttpWebRequest)WebRequest.Create(url);
-                request.UserAgent = "ExaAccess-mod";
+                request.UserAgent = "Echopunks-mod";
                 request.Accept = "application/vnd.github+json";
                 request.Timeout = 10000;
                 request.ReadWriteTimeout = 10000;

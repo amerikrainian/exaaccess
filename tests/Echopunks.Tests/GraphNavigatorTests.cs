@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
-using ExaAccess.Input;
-using ExaAccess.Screens;
-using ExaAccess.UI;
-using ExaAccess.UI.Graph;
+using Echopunks.Input;
+using Echopunks.Screens;
+using Echopunks.UI;
+using Echopunks.UI.Graph;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     public class GraphNavigatorTests : IDisposable
     {

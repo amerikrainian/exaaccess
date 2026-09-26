@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 
-namespace ExaAccess.Speech
+namespace Echopunks.Speech
 {
     /// <summary>
     /// Handler registry + selection, ported from WrathAccess: a fixed priority list (Prism first —
     /// the user's own screen reader — then SAPI, then clipboard), lazy Detect/Load per handler, and
     /// an auto chain that walks the list until something loads. The user picks an output with the
-    /// `speech.output` key in %LOCALAPPDATA%\ExaAccess\settings.json ("auto" | "prism" | "sapi" |
-    /// "clipboard"; the EXAACCESS_SPEECH env var overrides for dev runs); anything unknown or broken
+    /// `speech.output` key in %LOCALAPPDATA%\Echopunks\settings.json ("auto" | "prism" | "sapi" |
+    /// "clipboard"; the ECHOPUNKS_SPEECH env var overrides for dev runs); anything unknown or broken
     /// resolves back through auto — never strand a blind user with no voice.
     /// Host-side and stateful across module reloads. All engine calls serialize under one gate: the
     /// game thread and the dev server's HTTP thread both speak.
@@ -30,7 +30,7 @@ namespace ExaAccess.Speech
         {
             get
             {
-                string env = Environment.GetEnvironmentVariable("EXAACCESS_SPEECH");
+                string env = Environment.GetEnvironmentVariable("ECHOPUNKS_SPEECH");
                 if (!string.IsNullOrEmpty(env)) return env;
                 return HostConfig.Get("speech.output", "auto");
             }

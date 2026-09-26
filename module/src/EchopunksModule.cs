@@ -1,9 +1,9 @@
 ﻿using System;
-using ExaAccess.Localization;
-using ExaAccess.Modularity;
+using Echopunks.Localization;
+using Echopunks.Modularity;
 using HarmonyLib;
 
-namespace ExaAccess
+namespace Echopunks
 {
     /// <summary>
     /// The module entry point — what the host's ModuleLoader instantiates. Composition root for all
@@ -12,7 +12,7 @@ namespace ExaAccess
     /// All statics in this assembly are per-load — a reload starts this whole half of the mod cold,
     /// re-deriving everything from the live game (and re-reading the locale files).
     /// </summary>
-    public sealed class ExaAccessModule : IModModule
+    public sealed class EchopunksModule : IModModule
     {
         private ModHost _host;
         private Harmony _harmony;
@@ -29,7 +29,7 @@ namespace ExaAccess
             // Module-owned patches: per-load UNIQUE id so THIS load's Dispose unpatches exactly these
             // (the host loads the new module before disposing the old — a fixed id would let the old
             // teardown strip the fresh patches; see IModModule).
-            _harmony = new Harmony("com.exaaccess.module." + Guid.NewGuid().ToString("N"));
+            _harmony = new Harmony("com.echopunks.module." + Guid.NewGuid().ToString("N"));
             if (!host.GameInitialized)
                 Patches.SplashPatches.Apply(_harmony); // pre-init only: the splash is long gone on a reload
             // Every OTHER patch waits for the first tick — see Tick(). Patching here would run each

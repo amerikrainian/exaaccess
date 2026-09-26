@@ -1,4 +1,4 @@
-namespace ExaAccess
+namespace Echopunks
 {
     /// <summary>
     /// Whether the mod's navigation owns the keyboard. WrathAccess pairs this with the game's own

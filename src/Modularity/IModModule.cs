@@ -1,17 +1,17 @@
 using System;
 
-namespace ExaAccess.Modularity
+namespace Echopunks.Modularity
 {
     /// <summary>
     /// The contract between the permanent HOST (this assembly — bootstrap, logging, GameState, the
     /// init/tick Harmony patches, the speech backend, the dev server) and the reloadable MODULE
-    /// (ExaAccess.Module.dll — every feature: announcers, localization, input, UI). The split exists
+    /// (Echopunks.Module.dll — every feature: announcers, localization, input, UI). The split exists
     /// for hot reload (pattern ported from NonVisualCalculus): the module is byte-loaded so its dll is
     /// never file-locked, and a rebuild + /reload swaps features into the running game without
     /// a restart or another trip through the boot click-gate.
     ///
     /// Rules a module implementation must follow (each learned the hard way in NVC):
-    ///  • Any Harmony patching uses a PER-LOAD UNIQUE id (e.g. "com.exaaccess.module." + Guid) and
+    ///  • Any Harmony patching uses a PER-LOAD UNIQUE id (e.g. "com.echopunks.module." + Guid) and
     ///    UnpatchAll(ownId) in Dispose. The host loads the NEW module before disposing the OLD one (so a
     ///    failed reload keeps the old module running) — with a fixed id, the old module's teardown
     ///    would strip the fresh load's patches.

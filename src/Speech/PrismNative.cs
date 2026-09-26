@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace ExaAccess.Speech
+namespace Echopunks.Speech
 {
     /// <summary>
     /// Thin P/Invoke layer over prism.dll (https://github.com/ethindp/prism — a unified native

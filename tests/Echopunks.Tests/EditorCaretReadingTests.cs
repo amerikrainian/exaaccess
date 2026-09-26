@@ -1,7 +1,7 @@
-using ExaAccess.UI;
+using Echopunks.UI;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     public class EditorCaretReadingTests
     {

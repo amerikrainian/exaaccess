@@ -1,7 +1,7 @@
-using ExaAccess.Update;
+using Echopunks.Update;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     /// <summary>
     /// The version rules behind the launch update announcement: what the release payload names, and
@@ -12,7 +12,7 @@ namespace ExaAccess.Tests
         [Fact]
         public void LatestVersion_reads_the_tag_and_strips_the_v()
         {
-            string json = "{\"url\":\"x\",\"tag_name\":\"v0.2.2\",\"name\":\"ExaAccess v0.2.2\"}";
+            string json = "{\"url\":\"x\",\"tag_name\":\"v0.2.2\",\"name\":\"Echopunks v0.2.2\"}";
             Assert.Equal("0.2.2", UpdateCheck.LatestVersion(json));
         }
 
@@ -54,7 +54,7 @@ namespace ExaAccess.Tests
             Assert.True(UpdateCheck.IsNewer("0.3.0-beta", "0.2.1"));
         }
 
-        // ExaAccess addition: the SDK stamps "+{commit}" onto InformationalVersion; left in, the
+        // Echopunks addition: the SDK stamps "+{commit}" onto InformationalVersion; left in, the
         // last component would parse as zero and an OLDER release would announce as an update.
         [Theory]
         [InlineData("0.1.3+4f2a9c1", "0.1.3")]

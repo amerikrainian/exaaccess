@@ -7,8 +7,8 @@ use std::path::{Path, PathBuf};
 // The full release list, newest first: one call serves both the latest-version
 // lookup and the per-version release notes shown after an update.
 pub const GITHUB_RELEASES_URL: &str =
-    "https://api.github.com/repos/amerikrainian/exaaccess/releases?per_page=100";
-pub const MOD_ZIP_PREFIX: &str = "ExaAccess-v";
+    "https://api.github.com/repos/amerikrainian/echopunks/releases?per_page=100";
+pub const MOD_ZIP_PREFIX: &str = "Echopunks-v";
 pub const MOD_ZIP_SUFFIX: &str = ".zip";
 pub const GAME_EXES: &[&str] = &["EXAPUNKS.exe"];
 pub const GAME_FOLDERS: &[&str] = &["EXAPUNKS"];
@@ -17,10 +17,15 @@ pub const GAME_FOLDERS: &[&str] = &["EXAPUNKS"];
 // identify the game dir (SDL2.dll alone would match any SDL game).
 pub const GAME_ASSEMBLY_MARKER: &str = "Renderer_D3D11.dll";
 // The host dll EXAPUNKS.exe.config makes the CLR load: the mod's presence marker.
-pub const PLUGIN_REL: &str = "ExaAccess.dll";
+pub const PLUGIN_REL: &str = "Echopunks.dll";
 // Installer state lives in the mod's own folder, next to namemap.tsv and locale\.
-pub const MANIFEST_REL: &str = "ExaAccess/install.json";
-pub const BACKUPS_REL: &str = "ExaAccess/backups";
+pub const MANIFEST_REL: &str = "Echopunks/install.json";
+pub const BACKUPS_REL: &str = "Echopunks/backups";
+// Where the record lived while the mod was named ExaAccess (releases up to 0.1.2). An
+// install found only there counts as the prior install, so the rename is an ordinary
+// upgrade: the old-named files are pruned and the record moves to MANIFEST_REL.
+pub const LEGACY_MOD_DIR: &str = "ExaAccess";
+pub const LEGACY_MANIFEST_REL: &str = "ExaAccess/install.json";
 
 pub fn manifest_path(game_dir: &Path) -> PathBuf {
     game_dir.join(MANIFEST_REL)
@@ -36,7 +41,7 @@ pub fn required_loader_files() -> &'static [&'static str] {
     &[
         "EXAPUNKS.exe.config",
         PLUGIN_REL,
-        "ExaAccess.Module.dll",
+        "Echopunks.Module.dll",
         "0Harmony.dll",
         "prism.dll",
     ]

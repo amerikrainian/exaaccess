@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace ExaAccess.Speech
+namespace Echopunks.Speech
 {
     /// <summary>
     /// The last-resort handler: put the text on the clipboard so the user's own tools can read it.

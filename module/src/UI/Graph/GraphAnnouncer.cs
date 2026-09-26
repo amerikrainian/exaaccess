@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ExaAccess.UI.Graph
+namespace Echopunks.UI.Graph
 {
     /// <summary>
     /// Composes the spoken line for a focus change by diffing the old and new focus PATHS â€” each node's

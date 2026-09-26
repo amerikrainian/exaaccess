@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ExaAccess
+namespace Echopunks
 {
     /// <summary>
     /// The mod's per-frame dispatcher — the one consumer of the GameLogic tick prefix. Subsystems that

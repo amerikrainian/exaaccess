@@ -3,14 +3,14 @@
 # Dungeon installer, https://github.com/amerikrainian/harkest-dungeon.
 
 [package]
-name = "exaaccess-installer"
+name = "echopunks-installer"
 version = "0.1.0"
 edition = "2024"
 
 # test = false: the exe embeds a requireAdministrator manifest, so a test
 # harness built from it cannot run unelevated. Tests live in the lib target.
 [[bin]]
-name = "exaaccess-installer"
+name = "echopunks-installer"
 path = "src/main.rs"
 test = false
 

@@ -1,11 +1,11 @@
 using System;
 using System.Reflection;
-using ExaAccess.Game;
-using ExaAccess.Localization;
-using ExaAccess.UI;
-using ExaAccess.UI.Graph;
+using Echopunks.Game;
+using Echopunks.Localization;
+using Echopunks.UI;
+using Echopunks.UI.Graph;
 
-namespace ExaAccess.Screens
+namespace Echopunks.Screens
 {
     /// <summary>The EXODUS Connection Browser (game type OpponentBrowserScreen, name-preserved) —
     /// the battle opponent picker the SELECT OPPONENT map hotspot pushes. Mouse-only in the game

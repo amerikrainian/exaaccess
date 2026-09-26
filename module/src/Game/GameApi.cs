@@ -1,6 +1,6 @@
 using System;
 
-namespace ExaAccess.Game
+namespace Echopunks.Game
 {
     /// <summary>
     /// Game operations the mod invokes — TYPED against the deob reference assembly (the load-time

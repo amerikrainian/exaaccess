@@ -1,4 +1,4 @@
-namespace ExaAccess.UI
+namespace Echopunks.UI
 {
     /// <summary>Navigation directions at the navigator level (mapped onto Graph.GraphDir).</summary>
     public enum NavDirection

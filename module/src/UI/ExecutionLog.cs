@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ExaAccess.UI
+namespace Echopunks.UI
 {
     /// <summary>
     /// The per-run EXECUTION LOG behind the editor's "Execution log" stop: every instruction the

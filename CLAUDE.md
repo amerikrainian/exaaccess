@@ -1,4 +1,4 @@
-﻿# ExaAccess — Accessibility Mod for EXAPUNKS
+﻿# Echopunks — Accessibility Mod for EXAPUNKS
 
 Screen-reader accessibility mod for blind players. Speaks screens today; grows into a
 model-driven reader of the desktop, EXA code editor, and simulation via Prism. Sibling
@@ -15,10 +15,10 @@ to WrathAccess (`../wotr-access`) and SayTheSpire — reuse those patterns where
   folder (build writes it; Bootstrap re-writes as fallback). Without it a non-Steam
   launch restarts through Steam — cosmetic double launch; the relaunch still loads us.
 - **Injection**: `deploy/EXAPUNKS.exe.config` next to the game names
-  `ExaAccess.Bootstrap` as the process **AppDomainManager** → the CLR instantiates the
+  `Echopunks.Bootstrap` as the process **AppDomainManager** → the CLR instantiates the
   mod inside the **stock exe** before any game code (even static ctors) runs. No game
   file is modified ("verify integrity" ignores extra files); deleting the config =
-  vanilla. There is no loader exe anymore; `ExaAccess.dll` is the whole mod.
+  vanilla. There is no loader exe anymore; `Echopunks.dll` is the whole mod.
 - **Obfuscation**: Eazfuscator.NET. The shipping exe keeps real TYPE names
   (`GameLogic`, `IScreen`, `DesktopScreen`, `Sim`, …) but MEMBERS are `#=q…` gibberish.
   See "Analysis workspace" for how we target them anyway.
@@ -174,44 +174,52 @@ namemap), and runs it. `-Force` refreshes after a game update; `-Decompile` also
 rebuilds `game/decompiled/` (needs ilspycmd). The build itself auto-copies the orig exe
 when missing; only the deob half needs the script. A machine without a game install
 still cannot build the module.
-A Debug build deploys into the game folder: `ExaAccess.dll`, `ExaAccess.Module.dll`,
+A Debug build deploys into the game folder: `Echopunks.dll`, `Echopunks.Module.dll`,
 `Mono.Cecil.dll` (the remapper), `0Harmony.dll`, `prism.dll` (native screen-reader
-bridge), `EXAPUNKS.exe.config`, `Mono.CSharp.dll` (dev REPL), `ExaAccess\namemap.tsv`
-+ `ExaAccess\locale\` + `ExaAccess\docs\` (the zine text documents from repo `docs/game/`),
-writes `steam_appid.txt`, and deletes any stale pre-DLL `ExaAccess.exe`.
+bridge), `EXAPUNKS.exe.config`, `Mono.CSharp.dll` (dev REPL), `Echopunks\namemap.tsv`
++ `Echopunks\locale\` + `Echopunks\docs\` (the zine text documents from repo `docs/game/`),
+writes `steam_appid.txt`, and deletes any stale pre-DLL `Echopunks.exe`.
 The HOST dll copy needs the game closed (file-locked; the deploy warns and continues);
 the MODULE dll deploys fine with the game running — that's the hot-reload loop.
 `dotnet build -c Release` compiles without deploying and contains zero dev tooling.
 Override the install path with `-p:GameDir="…"`.
 
-Tests: `dotnet test` from the repo root (`ExaAccess.sln` = mod + `tests/ExaAccess.Tests`, xunit on
+Tests: `dotnet test` from the repo root (`Echopunks.sln` = mod + `tests/Echopunks.Tests`, xunit on
 net48, InternalsVisibleTo). Game-independent logic (resolution, text mapping, loc, UI graph core)
 belongs there — grow the suite with each subsystem.
 
 User install (the future installer) = copy 7 files into the game folder —
-`EXAPUNKS.exe.config`, `ExaAccess.dll`, `ExaAccess.Module.dll`, `Mono.Cecil.dll`,
-`0Harmony.dll`, `prism.dll`, `steam_appid.txt` — plus the `ExaAccess\` folder
+`EXAPUNKS.exe.config`, `Echopunks.dll`, `Echopunks.Module.dll`, `Mono.Cecil.dll`,
+`0Harmony.dll`, `prism.dll`, `steam_appid.txt` — plus the `Echopunks\` folder
 (`namemap.tsv` + `locale\` + `docs\`). Uninstall = delete the config. (namemap.tsv ships name
 pairs only — the same information our ordinals always encoded; no game code ships.) The config binds the
 host assembly by **full display name**, so the host's `AssemblyVersion` is pinned at
 **1.0.0.0** in its csproj — bump both in lockstep or the mod silently stops loading
 (release versioning goes in FileVersion instead).
+RENAMED 2026-09-26: ExaAccess → Echopunks (repo amerikrainian/echopunks; GitHub redirects the old
+URL). Everything carries the new name — assemblies, namespaces, the `Echopunks\` game-folder dir,
+`%LOCALAPPDATA%\Echopunks`, the `ECHOPUNKS_*` env vars, zip/installer names. Migration seams, all
+keyed to the literal legacy name: the host csproj deploy deletes ExaAccess.exe/.dll/.Module.dll +
+the `ExaAccess\` dir; HostConfig copies a legacy settings.json once; the installer honours a legacy
+`ExaAccess\install.json` as the prior install (paths.rs LEGACY_*), prunes the old-named files and
+retires the record on upgrade and uninstall. Pre-rename installers cannot find the new zip name
+(one manual download for existing users).
 RELEASE PIPELINE (ported 2026-08-23 from the Harkest Dungeon tooling, itself adapted from
 Rashad Naqeeb's Non-Visual Calculus installer, MIT — attribution headers on every file,
 license text in `installer/LICENSE-NonVisualCalculus.txt`): `Directory.Build.props` holds
 the release `Version` (FileVersion/InformationalVersion of every assembly; the host's
 AssemblyVersion stays pinned separately). `build.ps1` = dev Debug build + deploy with the
 Steam install located (EXAPUNKS_DIR overrides). `build_release.ps1` = Release build →
-`releases\ExaAccess-vX.Y.Z.zip`, zip root = game folder, exactly the file set above (it
+`releases\Echopunks-vX.Y.Z.zip`, zip root = game folder, exactly the file set above (it
 refuses to ship Mono.CSharp.dll). `installer\` = the Rust + wxWidgets installer
-(`ExaAccessInstaller.exe` via `build-installer.ps1`; `test-installer.ps1` = cargo test;
+(`EchopunksInstaller.exe` via `build-installer.ps1`; `test-installer.ps1` = cargo test;
 `tools\installer-toolchain.ps1` probes libclang/ninja for both): finds the game (EXAPUNKS_DIR,
 Steam registry + library folders; a dir is the game when `EXAPUNKS.exe` AND
 `Renderer_D3D11.dll` are present), reads the GitHub releases feed
-(amerikrainian/exaaccess; `EXAACCESS_INSTALLER_RELEASES_URL` overrides it for tests),
-downloads the `ExaAccess-v<semver>.zip` asset, verifies its sha256 digest, extracts it over
-the game folder recording every file in `ExaAccess\install.json` and backing up anything it
-overwrote under `ExaAccess\backups\`, prunes files a newer zip no longer ships, and
+(amerikrainian/echopunks; `ECHOPUNKS_INSTALLER_RELEASES_URL` overrides it for tests),
+downloads the `Echopunks-v<semver>.zip` asset, verifies its sha256 digest, extracts it over
+the game folder recording every file in `Echopunks\install.json` and backing up anything it
+overwrote under `Echopunks\backups\`, prunes files a newer zip no longer ships, and
 uninstalls by the record (restoring backups). `installer\examples\cli.rs` is the same CLI
 without the requireAdministrator manifest — `tools\installer-e2e.ps1` drives it against a
 throwaway game folder and a locally served release feed (install → assert the file set and
@@ -219,14 +227,14 @@ the backup → uninstall → assert the folder is pristine). `create-release.ps1
 release with the zip + installer and the CHANGELOG.md section as notes.
 
 ## Logs
-`%LOCALAPPDATA%\ExaAccess\exaaccess.log` — fresh file per launch; the one path to give
+`%LOCALAPPDATA%\Echopunks\echopunks.log` — fresh file per launch; the one path to give
 testers. The stock exe is a GUI app, so console output goes nowhere — the file is the
 only log surface.
 
 ## Dev loop (DEBUG builds)
-Set `EXAACCESS_DEV=1` (or drop a `devserver.enable` marker file in the game folder) and
+Set `ECHOPUNKS_DEV=1` (or drop a `devserver.enable` marker file in the game folder) and
 launch `EXAPUNKS.exe`. A loopback HTTP server comes up on `127.0.0.1:8772`
-(`EXAACCESS_DEV_PORT` overrides; WotR uses 8771 — keep them distinct):
+(`ECHOPUNKS_DEV_PORT` overrides; WotR uses 8771 — keep them distinct):
 
 | Route | Purpose |
 |---|---|
@@ -235,12 +243,12 @@ launch `EXAPUNKS.exe`. A loopback HTTP server comes up on `127.0.0.1:8772`
 | `GET /speech?since=N` | read back what was spoken (we can't hear TTS) |
 | `GET /screen` | active screen + full stack, by type name |
 | `GET /gui` | reflection dump of the active screen model — fields in TOKEN ORDER as `f[N]` (lines up with de4dot names/ordinals), collections expanded, depth-capped |
-| `GET /screenshot` | capture the game window to `%LOCALAPPDATA%\ExaAccess\screenshots\*.png`, path returned. In-process PrintWindow(PW_RENDERFULLCONTENT): NO focus change, works occluded, full render resolution. NEVER SetForegroundWindow for captures |
+| `GET /screenshot` | capture the game window to `%LOCALAPPDATA%\Echopunks\screenshots\*.png`, path returned. In-process PrintWindow(PW_RENDERFULLCONTENT): NO focus change, works occluded, full render resolution. NEVER SetForegroundWindow for captures |
 | `POST /eval` | C# against the live game, main thread, persistent REPL state (C# 6 — no pattern matching) |
 
 `/eval` and `/screen` run on the game's main thread (queued, pumped from the tick
 prefix); `/say` and `/speech` answer directly off the HTTP thread. Reach live game
-state from `/eval` via `ExaAccess.GameState`.
+state from `/eval` via `Echopunks.GameState`.
 
 **Click-gate in automation**: nothing ticks (and `/screen`/`/eval` time out) until the
 gate gets a click. Post one: find the EXAPUNKS window HWND, `PostMessage`
@@ -262,8 +270,8 @@ occluded by design); (2) arrow keys need the EXTENDED-KEY bit in lParam
 scancodes.
 
 ## Architecture (current): permanent HOST + reloadable MODULE
-Two assemblies (pattern ported from NonVisualCalculus). The HOST (`ExaAccess.dll`,
-root `src/`) is the config-bound permanent half; the MODULE (`ExaAccess.Module.dll`,
+Two assemblies (pattern ported from NonVisualCalculus). The HOST (`Echopunks.dll`,
+root `src/`) is the config-bound permanent half; the MODULE (`Echopunks.Module.dll`,
 `module/src/`) holds every feature and hot-reloads (see "Hot reload" below).
 
 Host:
@@ -286,13 +294,13 @@ Host:
   fallback — never strand a blind user voiceless), `PrismHandler`+`PrismNative`,
   `SapiHandler` (in-box System.Speech — replaces WotR's 500 lines of manual COM),
   `ClipboardHandler` (raw user32). Output choice: `speech.output` in
-  `%LOCALAPPDATA%\ExaAccess\settings.json` (flat dotted-key JSON, `src/HostConfig.cs`)
-  or the `EXAACCESS_SPEECH` env var for dev runs; default auto.
+  `%LOCALAPPDATA%\Echopunks\settings.json` (flat dotted-key JSON, `src/HostConfig.cs`)
+  or the `ECHOPUNKS_SPEECH` env var for dev runs; default auto.
 - `src/Dev/` — DEBUG-only dev server (+ `/reload`); `src/Log.cs` — file logger.
 
 Module (each reload starts this half cold — statics are per-load):
-- `module/src/ExaAccessModule.cs` — `IModModule` implementation, module composition
-  root: loc first, then patches/hooks/FrameLoop steps; speaks "ExaAccess ready." once
+- `module/src/EchopunksModule.cs` — `IModModule` implementation, module composition
+  root: loc first, then patches/hooks/FrameLoop steps; speaks "Echopunks ready." once
   at boot (generation 1 only — the splash prompt is the next thing the user hears).
   TWO-PHASE PATCH ARMING (hard-won, 2026-08-23): only SplashPatches applies in Load;
   every other Harmony patch arms on the FIRST TICK (ticks start only after GameLogic
@@ -309,7 +317,7 @@ Module (each reload starts this half cold — statics are per-load):
 - `module/src/Localization/` — the WrathAccess loc layer: `Loc.T`, lazy `Message` with
   `{var}` substitution, `LocalizationManager` (enGB fallback manifest + per-frame
   language poll via the pluggable `LanguageSource`; game-language mapping is future
-  work). Tables load from `<game>\ExaAccess\locale\<lang>\<table>.json` — rooted off
+  work). Tables load from `<game>\Echopunks\locale\<lang>\<table>.json` — rooted off
   the HOST dll (the module is byte-loaded, it has no disk location). Module-side so a
   hot reload re-reads the JSON: edit a string, build/copy, /reload, hear it.
 - `module/src/Update/` — the LAUNCH UPDATE CHECK, ported from Guildrun Access: `UpdateCheck`
@@ -318,9 +326,9 @@ Module (each reload starts this half cold — statics are per-load):
   and `UpdateChecker` (one thread-pool request per GAME LAUNCH — generation 1 only — to
   GitHub's releases/latest; HttpWebRequest, and TLS 1.2 switched on explicitly because the
   process is the game's exe and its target framework picks the default protocols). Only a
-  strictly newer release speaks ("ExaAccess update {version} available.", from Tick — so
+  strictly newer release speaks ("Echopunks update {version} available.", from Tick — so
   always after the boot prompt); up to date / dev build ahead / offline / rate-limited /
-  no release published (404) are log lines only. `EXAACCESS_UPDATE_URL` overrides the feed
+  no release published (404) are log lines only. `ECHOPUNKS_UPDATE_URL` overrides the feed
   for end-to-end checks (verified against a real GitHub repo's payload, 2026-09-20).
 - `module/src/FrameLoop.cs` — ordered, defensive per-frame step registry (steps:
   keyboard snapshot → input → loc poll → screens). `FrameClock.cs` — Stopwatch clock.
@@ -448,7 +456,7 @@ Module (each reload starts this half cold — statics are per-load):
   `TrashWorldNewsScreen` — the zine reader (deob GClass214, obfuscated live; ghast-1/2
   cutscenes end by pushing it): issue tabs (unlock flags mirrored), the per-tab buttons,
   close, and the art-only printing instructions. THE ZINES SHIP AS TEXT DOCUMENTS
-  (repo `docs/game/twn-1.md`, `twn-2.md`, `twn-epilogue.md` → `<game>\ExaAccess\docs\`,
+  (repo `docs/game/twn-1.md`, `twn-2.md`, `twn-epilogue.md` → `<game>\Echopunks\docs\`,
   deployed by the module build and staged into the release zip): each tab's DIGITAL
   VERSION button shell-opens the matching document (ids match the files' `id:` headers;
   a missing document falls back to the game's PDF); the PRINTABLE buttons still open
@@ -538,7 +546,7 @@ Module (each reload starts this half cold — statics are per-load):
   click-gate" above).
 
 ## Hot reload (DEBUG loop for feature work)
-The module is `Assembly.Load(byte[])`'d, so `dotnet build module/ExaAccess.Module.csproj`
+The module is `Assembly.Load(byte[])`'d, so `dotnet build module/Echopunks.Module.csproj`
 works with the game RUNNING (the Debug build auto-deploys it), then `POST /reload`
 swaps it in — no restart, no click-gate. Load-then-swap: a broken build
 leaves the old module running. Old copies leak until exit (dev cost only). The REPL
@@ -550,7 +558,7 @@ id + `UnpatchSelf` in Dispose, and native handles live host-side only.
 type reference (`Loc.T(...)`) may bind to an OLD generation. `GetAssemblies()...Last()`
 is NOT reliable either (with dozens of generations loaded it has picked a stale copy).
 Ask the host which module actually runs:
-`typeof(ExaAccess.Bootstrap).GetField("_moduleLoader", NonPublic|Static).GetValue(null)`,
+`typeof(Echopunks.Bootstrap).GetField("_moduleLoader", NonPublic|Static).GetValue(null)`,
 then `.GetType().GetProperty("Module").GetValue(...)` → `.GetType().Assembly` is the
 live generation.
 AUDIT PROBE (DEBUG only, `Screens/Editor/ExaEditorScreen.AuditProbe.cs`): one typed
@@ -604,7 +612,7 @@ More `/eval` traps, all hit live:
   before anything reaches `Tts`; map screens to friendly labels as they're identified.
 - **Localize every string the mod speaks** — `Loc.T(key[, args])` / `Message` + an
   entry in `module/assets/locale/enGB/ui.json` (the complete translation manifest;
-  another language = a dropped-in folder under `<game>\ExaAccess\locale\`). Named
+  another language = a dropped-in folder under `<game>\Echopunks\locale\`). Named
   `{placeholders}`, not string.Format. Exemptions: HOST emergency strings (spoken when
   the module itself failed to load — localization is module-side) and dev-only tooling.
 - **Never duplicate a string the game already has.** Anything the game displays is read
@@ -634,7 +642,7 @@ More `/eval` traps, all hit live:
   exception): patching runs the target type's STATIC CONSTRUCTOR, a cctor that touches
   uninitialized game state fails, and the CLR caches that failure until the game
   crashes on first real use of the type. Game patches arm on the module's first tick
-  (post-init by construction) — see ExaAccessModule and the 2026-08-23 note above.
+  (post-init by construction) — see EchopunksModule and the 2026-08-23 note above.
   Cold-boot test editor-open before shipping any new load-order change: the hot-reload
   dev loop CANNOT catch this class of bug.
 

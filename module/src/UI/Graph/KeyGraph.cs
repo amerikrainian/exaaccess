@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace ExaAccess.UI.Graph
+namespace Echopunks.UI.Graph
 {
     /// <summary>The outcome of a navigation operation, for the caller (navigator) to announce. The core
     /// never speaks â€” it returns what happened.</summary>

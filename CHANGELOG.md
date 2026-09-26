@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The mod is now called Echopunks (it was ExaAccess up to V0.1.2). Everything follows the new name: the release zip and installer (`Echopunks-vX.Y.Z.zip`, `EchopunksInstaller.exe`), the files in the game folder (`Echopunks.dll`, `Echopunks.Module.dll`, the `Echopunks\` folder), the log and settings folder (`%LOCALAPPDATA%\Echopunks`) and the `ECHOPUNKS_*` environment variables. The new installer treats an ExaAccess install as the previous version and cleans it up on upgrade; existing settings are carried over on first launch. The old installer cannot see releases under the new name, so this one update is a manual download.
+- Moss recalls how the editor is laid out during the Ghast visit that hands over the zine: fourteen lines on the groups, the keys, and how travelling a link works.
+
 ## V0.1.2
 
 - EXAs can be renamed... though the game only allows for only 2 letter monikers.

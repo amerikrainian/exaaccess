@@ -1,9 +1,9 @@
 using System;
 using System.IO;
-using ExaAccess.Localization;
+using Echopunks.Localization;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     public class LocalizationManagerTests : IDisposable
     {
@@ -11,7 +11,7 @@ namespace ExaAccess.Tests
 
         public LocalizationManagerTests()
         {
-            _root = Path.Combine(Path.GetTempPath(), "ExaAccessLocTests-" + Guid.NewGuid().ToString("N"));
+            _root = Path.Combine(Path.GetTempPath(), "EchopunksLocTests-" + Guid.NewGuid().ToString("N"));
             Write("enGB", "ui.json", "{ \"a\": \"A-en\", \"only.en\": \"fallback works\" }");
             Write("enGB", "extra.json", "{ \"e\": \"E-en\" }");
             Write("deDE", "ui.json", "{ \"a\": \"A-de\" }");

@@ -1,7 +1,7 @@
-using ExaAccess.Input;
-using ExaAccess.Screens;
+using Echopunks.Input;
+using Echopunks.Screens;
 
-namespace ExaAccess.UI
+namespace Echopunks.UI
 {
     /// <summary>
     /// The navigation contract <see cref="Navigation"/> drives (ported from WrathAccess): bind to a

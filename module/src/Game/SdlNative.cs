@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace ExaAccess.Game
+namespace Echopunks.Game
 {
     /// <summary>
     /// The mod's own P/Invoke over the game's SDL2.dll (already loaded in-process, so the module name

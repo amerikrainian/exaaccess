@@ -1,4 +1,4 @@
-namespace ExaAccess.Localization
+namespace Echopunks.Localization
 {
     /// <summary>Call-site shorthand for the "ui" table (the WrathAccess idiom): every string the mod
     /// speaks goes through here or Message — hardcoded speakable English is a hard-rule violation.</summary>

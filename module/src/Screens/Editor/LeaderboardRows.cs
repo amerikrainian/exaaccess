@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using ExaAccess.Game;
-using ExaAccess.Localization;
-using ExaAccess.UI;
-using ExaAccess.UI.Graph;
+using Echopunks.Game;
+using Echopunks.Localization;
+using Echopunks.UI;
+using Echopunks.UI.Graph;
 
-namespace ExaAccess.Screens
+namespace Echopunks.Screens
 {
     /// <summary>The histogram/leaderboard PANEL as browsable rows — ONE Tab stop per stat
     /// (user rule, 2026-08-22: Tab jumps Cycles/Size/Activity like the three drawn panels;

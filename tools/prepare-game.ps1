@@ -80,4 +80,4 @@ if ($Decompile) {
     Write-Host "decompiled -> game\decompiled"
 }
 
-Write-Host "done. The module builds now (dotnet build ExaAccess.sln)."
+Write-Host "done. The module builds now (dotnet build Echopunks.sln)."

@@ -6,7 +6,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
-namespace ExaAccess.Dev
+namespace Echopunks.Dev
 {
     /// <summary>
     /// Minimal loopback HTTP/1.1 server on a raw <see cref="TcpListener"/>. We speak just enough of the
@@ -37,7 +37,7 @@ namespace ExaAccess.Dev
             _listener = new TcpListener(IPAddress.Loopback, _port);
             _listener.Start();
             _running = true;
-            _thread = new Thread(Loop) { IsBackground = true, Name = "ExaAccessDevHttp" };
+            _thread = new Thread(Loop) { IsBackground = true, Name = "EchopunksDevHttp" };
             _thread.Start();
         }
 

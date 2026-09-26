@@ -5,10 +5,10 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 
-namespace ExaAccess.Dev
+namespace Echopunks.Dev
 {
     /// <summary>
-    /// The /gui endpoint's engine: a reflection dump of the live screen model — the ExaAccess
+    /// The /gui endpoint's engine: a reflection dump of the live screen model — the Echopunks
     /// equivalent of WrathAccess's Unity-object dumps, tuned for the obfuscation workflow. Fields
     /// print in METADATA-TOKEN ORDER with their ordinal (`f[N]`), so every line lines up with de4dot's
     /// `..._N` names and with GameState-style ordinal resolution. Values render shallowly; nested

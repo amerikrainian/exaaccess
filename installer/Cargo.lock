@@ -336,6 +336,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
+name = "echopunks-installer"
+version = "0.1.0"
+dependencies = [
+ "embed-resource",
+ "regex",
+ "reqwest",
+ "semver",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sys-locale",
+ "sysinfo",
+ "tempfile",
+ "time",
+ "windows-sys 0.61.2",
+ "winreg 0.56.0",
+ "wxdragon",
+ "zip",
+]
+
+[[package]]
 name = "either"
 version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -369,27 +390,6 @@ checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "exaaccess-installer"
-version = "0.1.0"
-dependencies = [
- "embed-resource",
- "regex",
- "reqwest",
- "semver",
- "serde",
- "serde_json",
- "sha2",
- "sys-locale",
- "sysinfo",
- "tempfile",
- "time",
- "windows-sys 0.61.2",
- "winreg 0.56.0",
- "wxdragon",
- "zip",
 ]
 
 [[package]]

@@ -1,7 +1,7 @@
-using ExaAccess.Input;
-using ExaAccess.Screens;
+using Echopunks.Input;
+using Echopunks.Screens;
 
-namespace ExaAccess.UI
+namespace Echopunks.UI
 {
     /// <summary>
     /// Holds the active Navigator (swappable later) and is the entry point input dispatches into.

@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
-using ExaAccess.Game;
-using ExaAccess.Localization;
-using ExaAccess.Screens;
-using ExaAccess.UI;
+using Echopunks.Game;
+using Echopunks.Localization;
+using Echopunks.Screens;
+using Echopunks.UI;
 using HarmonyLib;
 
-namespace ExaAccess.Patches
+namespace Echopunks.Patches
 {
     /// <summary>
     /// Records every instruction the player's EXAs execute, cycle by cycle, into the editor's

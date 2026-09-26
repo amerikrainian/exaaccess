@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace ExaAccess.UI.Graph
+namespace Echopunks.UI.Graph
 {
     /// <summary>
     /// Builds a <see cref="GraphRender"/>. Two construction styles, freely mixable in one build:

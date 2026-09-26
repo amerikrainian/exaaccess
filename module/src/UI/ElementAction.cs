@@ -1,6 +1,6 @@
 using System;
 
-namespace ExaAccess.UI
+namespace Echopunks.UI
 {
     /// <summary>A screen-level action (Back/Escape handlers and the like), dispatched by id — the
     /// WrathAccess shape, trimmed to the one id in use. Screens advertise them via GetActions.</summary>

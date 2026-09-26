@@ -1,4 +1,4 @@
-namespace ExaAccess.Input
+namespace Echopunks.Input
 {
     /// <summary>
     /// Base for a single key/button combo (ported from WrathAccess). Phase queries are polled each

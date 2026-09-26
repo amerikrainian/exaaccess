@@ -4,7 +4,7 @@ using System.IO;
 using System.Reflection;
 using HarmonyLib;
 
-namespace ExaAccess
+namespace Echopunks
 {
     /// <summary>
     /// The mod's only entry point. EXAPUNKS is a single self-contained .NET Framework 4.x x64
@@ -18,7 +18,7 @@ namespace ExaAccess
     /// The game's own files are never modified, so Steam's "verify integrity" leaves the install alone
     /// (it ignores extra files); deleting the config restores a fully vanilla launch.
     ///
-    /// Install = copy into the game folder: EXAPUNKS.exe.config, ExaAccess.dll, 0Harmony.dll,
+    /// Install = copy into the game folder: EXAPUNKS.exe.config, Echopunks.dll, 0Harmony.dll,
     /// prism.dll, steam_appid.txt. The config binds this assembly by FULL display name, so
     /// AssemblyVersion is pinned in the csproj — bump both in lockstep or the mod silently stops
     /// loading.
@@ -50,7 +50,7 @@ namespace ExaAccess
         private static void Boot()
         {
             Log.Init();
-            Log.Info("ExaAccess bootstrap (AppDomainManager inside the stock exe) starting.");
+            Log.Info("Echopunks bootstrap (AppDomainManager inside the stock exe) starting.");
 
             // BaseDirectory is the game folder (this config-driven path only exists there). Pin the
             // working directory to it: the engine resolves Content/ and the native dlls relative to
@@ -89,7 +89,7 @@ namespace ExaAccess
             // fusion ever misses (byte-loaded assemblies resolve through the default Load context).
             AppDomain.CurrentDomain.AssemblyResolve += ResolveLoadedByName;
             _modHost = new Modularity.ModHost();
-            _moduleLoader = new Modularity.ModuleLoader(Path.Combine(gameDir, "ExaAccess.Module.dll"), _modHost);
+            _moduleLoader = new Modularity.ModuleLoader(Path.Combine(gameDir, "Echopunks.Module.dll"), _modHost);
             if (!_moduleLoader.Reload())
                 Speech.Tts.Speak("Exa Access could not load its features module. The game will run without accessibility.");
 
@@ -190,7 +190,7 @@ namespace ExaAccess
                     return false;
                 }
 
-                var harmony = new Harmony("com.exaaccess");
+                var harmony = new Harmony("com.echopunks");
                 var patches = typeof(Patches.GameLogicPatches);
                 harmony.Patch(init, postfix: new HarmonyMethod(patches.GetMethod(nameof(Patches.GameLogicPatches.AfterInit))));
                 harmony.Patch(tick, prefix: new HarmonyMethod(patches.GetMethod(nameof(Patches.GameLogicPatches.BeforeTick))));

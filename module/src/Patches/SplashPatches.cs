@@ -1,10 +1,10 @@
 using System;
 using System.Reflection;
-using ExaAccess.Game;
-using ExaAccess.Localization;
+using Echopunks.Game;
+using Echopunks.Localization;
 using HarmonyLib;
 
-namespace ExaAccess.Patches
+namespace Echopunks.Patches
 {
     /// <summary>
     /// Makes ANY KEY advance the boot splash, which stock EXAPUNKS gates on a MOUSE CLICK only.

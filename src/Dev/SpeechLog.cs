@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ExaAccess.Dev
+namespace Echopunks.Dev
 {
     /// <summary>
     /// Thread-safe ring buffer of strings the mod has spoken, so the dev driver (which can't hear TTS)

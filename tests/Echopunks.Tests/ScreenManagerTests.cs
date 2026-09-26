@@ -1,12 +1,12 @@
 using System;
 using System.IO;
-using ExaAccess.Localization;
-using ExaAccess.Screens;
-using ExaAccess.UI;
-using ExaAccess.UI.Graph;
+using Echopunks.Localization;
+using Echopunks.Screens;
+using Echopunks.UI;
+using Echopunks.UI.Graph;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     public class ScreenManagerTests : IDisposable
     {
@@ -149,7 +149,7 @@ namespace ExaAccess.Tests
             ScreenManager.Register(s);
             ScreenManager.Tick();
 
-            Assert.Contains(ExaAccess.Input.InputCategory.UI, ScreenManager.ActiveInputCategories());
+            Assert.Contains(Echopunks.Input.InputCategory.UI, ScreenManager.ActiveInputCategories());
 
             FocusMode.Active = false;
             Assert.Empty(ScreenManager.ActiveInputCategories());

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ExaAccess.UI
+namespace Echopunks.UI
 {
     /// <summary>
     /// The shared core of the editor's run logs (the TEST LOG and the EXECUTION LOG): text

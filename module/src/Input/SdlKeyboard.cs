@@ -1,6 +1,6 @@
-using ExaAccess.Game;
+using Echopunks.Game;
 
-namespace ExaAccess.Input
+namespace Echopunks.Input
 {
     /// <summary>
     /// The keyboard sensor for in-game input: a per-frame snapshot pair over SDL's internal key-state

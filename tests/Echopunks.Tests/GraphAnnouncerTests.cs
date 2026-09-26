@@ -1,7 +1,7 @@
-﻿using ExaAccess.UI.Graph;
+﻿using Echopunks.UI.Graph;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     public class GraphAnnouncerTests
     {

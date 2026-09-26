@@ -1,4 +1,4 @@
-namespace ExaAccess.Speech
+namespace Echopunks.Speech
 {
     /// <summary>
     /// One speech engine, ported (trimmed) from WrathAccess: Prism (screen readers), SAPI, clipboard.

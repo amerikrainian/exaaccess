@@ -1,7 +1,7 @@
-using ExaAccess.UI;
+using Echopunks.UI;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     /// <summary>The editor's per-run test log: events grouped by test in arrival order,
     /// uncapped (the graph windows what it shows; the store keeps the run) with a runaway

@@ -1,7 +1,7 @@
 using System;
 using System.Text;
 
-namespace ExaAccess.UI
+namespace Echopunks.UI
 {
     /// <summary>
     /// Maps a screen's obfuscation-recovered TYPE name to something speakable, and knows which names are

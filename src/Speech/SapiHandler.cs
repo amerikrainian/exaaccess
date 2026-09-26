@@ -1,7 +1,7 @@
 using System;
 using System.Speech.Synthesis;
 
-namespace ExaAccess.Speech
+namespace Echopunks.Speech
 {
     /// <summary>
     /// SAPI fallback for machines with no screen reader and no working Prism. WrathAccess drives SAPI

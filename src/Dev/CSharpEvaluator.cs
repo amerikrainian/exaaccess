@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text;
 using Mono.CSharp;
 
-namespace ExaAccess.Dev
+namespace Echopunks.Dev
 {
     /// <summary>
     /// Wraps Mono.CSharp's REPL so the dev driver can POST arbitrary C# and run it against the live game.
@@ -13,7 +13,7 @@ namespace ExaAccess.Dev
     /// session behaves like a REPL. Ported from WrathAccess/TangledeepAccess. DEBUG-only.
     ///
     /// This is the single highest-leverage tool for an obfuscated game: it can enumerate the loaded types,
-    /// reach the live <c>GameLogic</c> via <c>ExaAccess.GameState</c>, read the Sim model, and call methods
+    /// reach the live <c>GameLogic</c> via <c>Echopunks.GameState</c>, read the Sim model, and call methods
     /// by their de4dot names — turning static decompile-reading into live exploration.
     ///
     /// MUST be used from the game's main thread: evaluated code routinely touches engine/game objects. The
@@ -60,7 +60,7 @@ namespace ExaAccess.Dev
             {
                 _evaluator.Run(
                     "using System; using System.Linq; using System.Reflection; "
-                    + "using System.Collections; using System.Collections.Generic; using ExaAccess;");
+                    + "using System.Collections; using System.Collections.Generic; using Echopunks;");
             }
             catch { /* a missing default namespace shouldn't sink the whole evaluator */ }
         }

@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using ExaAccess.Input;
+using Echopunks.Input;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     public class InputManagerTests : IDisposable
     {

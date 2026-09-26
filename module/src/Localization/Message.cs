@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
-namespace ExaAccess.Localization
+namespace Echopunks.Localization
 {
     /// <summary>
     /// A lazily-resolved piece of speakable text, ported from WrathAccess: either raw text or a

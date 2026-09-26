@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     public class HostConfigTests : IDisposable
     {
@@ -12,7 +12,7 @@ namespace ExaAccess.Tests
         public HostConfigTests()
         {
             _originalPath = HostConfig.SettingsPath;
-            _tempFile = Path.Combine(Path.GetTempPath(), "ExaAccessCfg-" + Guid.NewGuid().ToString("N") + ".json");
+            _tempFile = Path.Combine(Path.GetTempPath(), "EchopunksCfg-" + Guid.NewGuid().ToString("N") + ".json");
         }
 
         public void Dispose()

@@ -1,7 +1,7 @@
-# build.ps1 - Build ExaAccess and deploy it into the game. Deploy itself is the Debug
+# build.ps1 - Build Echopunks and deploy it into the game. Deploy itself is the Debug
 # post-build target of the two projects (host dll + 0Harmony + Mono.Cecil + prism.dll +
-# EXAPUNKS.exe.config + steam_appid.txt from the host; ExaAccess.Module.dll + ExaAccess\namemap.tsv
-# + ExaAccess\locale from the module); this script locates the game, checks the deob exe
+# EXAPUNKS.exe.config + steam_appid.txt from the host; Echopunks.Module.dll + Echopunks\namemap.tsv
+# + Echopunks\locale from the module); this script locates the game, checks the deob exe
 # prerequisite, and runs the build. Close the game first, or the HOST dll copy is skipped
 # (file locked) and you'll run a stale host - the module still deploys (it's byte-loaded).
 #
@@ -60,12 +60,12 @@ if (-not (Test-Path "$PSScriptRoot\game\EXAPUNKS-deob.exe")) {
 }
 
 # --- Build (the Debug post-build targets deploy) ---
-Write-Host "Building ExaAccess (game: $Game)..." -ForegroundColor Cyan
-dotnet build "$PSScriptRoot\ExaAccess.sln" -c Debug -p:GameDir="$Game"
+Write-Host "Building Echopunks (game: $Game)..." -ForegroundColor Cyan
+dotnet build "$PSScriptRoot\Echopunks.sln" -c Debug -p:GameDir="$Game"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Build FAILED." -ForegroundColor Red
     exit 1
 }
 
 Write-Host ""
-Write-Host "Done. Launch EXAPUNKS through Steam and listen for `"ExaAccess ready`"." -ForegroundColor Cyan
+Write-Host "Done. Launch EXAPUNKS through Steam and listen for `"Echopunks ready`"." -ForegroundColor Cyan

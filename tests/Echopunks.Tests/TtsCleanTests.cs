@@ -1,7 +1,7 @@
-using ExaAccess.Speech;
+using Echopunks.Speech;
 using Xunit;
 
-namespace ExaAccess.Tests
+namespace Echopunks.Tests
 {
     public class TtsCleanTests
     {

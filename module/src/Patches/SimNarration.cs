@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
-using ExaAccess.Game;
-using ExaAccess.Localization;
+using Echopunks.Game;
+using Echopunks.Localization;
 using HarmonyLib;
 
-namespace ExaAccess.Patches
+namespace Echopunks.Patches
 {
     /// <summary>
     /// Captures sim events the model destroys too fast to poll: an errored EXA keeps its message

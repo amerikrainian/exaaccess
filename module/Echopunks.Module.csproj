@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- The RELOADABLE half of the mod: every feature (announcers, localization, input, UI graph)
-       lives here. The host (ExaAccess.dll, ../ExaAccess.csproj) byte-loads this dll via
+       lives here. The host (Echopunks.dll, ../Echopunks.csproj) byte-loads this dll via
        Modularity/ModuleLoader, so the file is never locked — rebuild with the game running, then
        POST /reload (or F6 in a Debug build) hot-swaps the features without a game restart or
        another trip through the boot click-gate. See src/Modularity/IModModule.cs for the rules. -->
@@ -13,8 +13,8 @@
     <Prefer32Bit>false</Prefer32Bit>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
-    <AssemblyName>ExaAccess.Module</AssemblyName>
-    <RootNamespace>ExaAccess</RootNamespace>
+    <AssemblyName>Echopunks.Module</AssemblyName>
+    <RootNamespace>Echopunks</RootNamespace>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
@@ -24,8 +24,8 @@
 
   <ItemGroup>
     <!-- The host: shared statics (Log, GameState, Tts, MemberResolver) and the module contract.
-         Private=false — the host deploys itself; we ship only ExaAccess.Module.dll from here. -->
-    <ProjectReference Include="..\ExaAccess.csproj" Private="false" />
+         Private=false — the host deploys itself; we ship only Echopunks.Module.dll from here. -->
+    <ProjectReference Include="..\Echopunks.csproj" Private="false" />
     <!-- Module-owned Harmony patches (per-load unique id + UnpatchSelf — see IModModule). -->
     <Reference Include="0Harmony">
       <HintPath>..\third_party\harmony\0Harmony.dll</HintPath>
@@ -73,30 +73,30 @@
   </Target>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="ExaAccess.Tests" />
+    <InternalsVisibleTo Include="Echopunks.Tests" />
   </ItemGroup>
 
   <!-- Byte-loaded means never file-locked: this copy succeeds even while the game is running.
        That IS the hot-reload loop — build, then /reload. -->
   <Target Name="DeployModule" AfterTargets="GenerateNameMap" Condition="'$(Configuration)' == 'Debug'">
-    <Copy SourceFiles="$(OutputPath)ExaAccess.Module.dll" DestinationFolder="$(GameDir)" />
-    <Copy SourceFiles="$(IntermediateOutputPath)namemap.tsv" DestinationFolder="$(GameDir)\ExaAccess" />
-    <!-- Locale tables land under <game>\ExaAccess\locale\<lang>\*.json (the module is byte-loaded
+    <Copy SourceFiles="$(OutputPath)Echopunks.Module.dll" DestinationFolder="$(GameDir)" />
+    <Copy SourceFiles="$(IntermediateOutputPath)namemap.tsv" DestinationFolder="$(GameDir)\Echopunks" />
+    <!-- Locale tables land under <game>\Echopunks\locale\<lang>\*.json (the module is byte-loaded
          and has no disk location, so LocalizationManager roots off the host dll's folder). A module
          hot-reload re-reads them: edit a string, build, /reload, hear it. -->
     <ItemGroup>
       <LocaleFiles Include="$(MSBuildProjectDirectory)\assets\locale\**\*.json" />
     </ItemGroup>
     <Copy SourceFiles="@(LocaleFiles)"
-          DestinationFiles="@(LocaleFiles->'$(GameDir)\ExaAccess\locale\%(RecursiveDir)%(Filename)%(Extension)')" />
+          DestinationFiles="@(LocaleFiles->'$(GameDir)\Echopunks\locale\%(RecursiveDir)%(Filename)%(Extension)')" />
     <!-- The zine documents (repo docs/game/*.md): TRASH WORLD NEWS's Digital Version buttons
-         shell-open these from <game>\ExaAccess\docs\ instead of the game's text-locked PDFs
+         shell-open these from <game>\Echopunks\docs\ instead of the game's text-locked PDFs
          (Screens/TrashWorldNewsScreen.cs). -->
     <ItemGroup>
       <DocFiles Include="$(MSBuildProjectDirectory)\..\docs\game\*.md" />
     </ItemGroup>
-    <Copy SourceFiles="@(DocFiles)" DestinationFolder="$(GameDir)\ExaAccess\docs" />
-    <Message Importance="high" Text="ExaAccess.Module + locale + docs deployed to $(GameDir)" />
+    <Copy SourceFiles="@(DocFiles)" DestinationFolder="$(GameDir)\Echopunks\docs" />
+    <Message Importance="high" Text="Echopunks.Module + locale + docs deployed to $(GameDir)" />
   </Target>
 
 </Project>

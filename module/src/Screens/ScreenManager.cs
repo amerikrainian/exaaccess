@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using ExaAccess.UI;
+using Echopunks.UI;
 
-namespace ExaAccess.Screens
+namespace Echopunks.Screens
 {
     /// <summary>
     /// The screen stack, ported from WrathAccess with EXAPUNKS resolution: registered screens poll
