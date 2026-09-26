@@ -423,7 +423,11 @@ Module (each reload starts this half cold — statics are per-load):
   Return to Desktop, then "Task complete: …" and the row's check. Returning lands focus on
   the Tasks tab (a fresh DesktopScreen instance starts on Chat; the tab re-selects on
   landing) — the list is one Down away. Deferred: leaderboards/histograms, the multiplayer
-  opponent table, the custom-win hold-button.
+  opponent table, the custom-win hold-button. HACK*MATCH (campaign type 5, "arcade-win")
+  is DELIBERATELY NOT accessified (user decision, 2026-09-26: a real-time falling-block
+  game): the shared Open path speaks desktop.arcade.inaccessible for the task row, the
+  details button and the launcher; mouse paths untouched. Trap: no `const` of a game enum
+  type in module code — Cecil's writer resolves the constant's assembly and the reload dies.
 - `module/src/Screens/CutsceneScreens.cs` — `CutsceneScreen` over the visual-novel
   cutscene player (deob GClass255, obfuscated live — the nivas/ghast/isadora scenes;
   FULLY LINEAR: vignette script + current-line int, no choices): ANNOUNCE-ONLY with

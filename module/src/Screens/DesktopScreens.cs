@@ -66,10 +66,27 @@ namespace ExaAccess.Screens
             catch (Exception ex) { Log.Error("[desktop] select failed", ex); }
         }
 
+        // HACK*MATCH (campaign type 5, the arcade item) is deliberately NOT made accessible: a
+        // real-time falling-block game whose speed would need rewriting to play by ear (user
+        // decision, 2026-09-26). Every keyboard open path (task row, details button, launcher)
+        // speaks the notice instead; the game's own mouse paths are untouched.
+        // (No const of the game's enum type: the remapper's Cecil writer would then have to
+        // resolve the constant's declaring assembly, and the reload fails.)
+        private static bool IsArcade(CampaignItem item)
+        {
+            try { return item != null && item.genum20_0 == (GEnum20)5; }
+            catch { return false; }
+        }
+
         private static void Open(CampaignItem item)
         {
             var d = Desktop;
             if (d == null || OpenMethod == null) return;
+            if (IsArcade(item ?? SelectedTask))
+            {
+                Speech.Tts.Speak(Loc.T("desktop.arcade.inaccessible"), interrupt: true);
+                return;
+            }
             try
             {
                 if (item != null && !ReferenceEquals(SelectedTask, item))

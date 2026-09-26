@@ -210,6 +210,7 @@
   "desktop.user.operator": "operator",
   "desktop.programs": "Programs",
   "desktop.close": "Close desktop",
+  "desktop.arcade.inaccessible": "This portion of the game is not and will not be made accessible as it is similar to Tetris and would require extreme modifications to slow it down.",
 
   "workhouse.receipt": "Receipt",
   "workhouse.form": "Entry form",
