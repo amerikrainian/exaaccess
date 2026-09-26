@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## V0.1.3
 
 - Moss recalls how the editor is laid out during the Ghast visit that hands over the zine.
 
